@@ -1,0 +1,19 @@
+{
+ "organisationUnitGroups": [
+  {
+   "id": "amN2FMJH1wj",
+   "name": "Facility Ownership - Other/unknown",
+   "shortName": "Ownership Other"
+  },
+  {
+   "id": "DVLpnxg8qmJ",
+   "name": "Facility Type - Other/unknown",
+   "shortName": "Facility Type Other"
+  },
+  {
+   "id": "Pn2mko7SfK1",
+   "name": "Location Rural/Urban - Other/unknown",
+   "shortName": "Location Other"
+  }
+ ]
+}

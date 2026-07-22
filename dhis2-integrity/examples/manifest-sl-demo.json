@@ -1,0 +1,283 @@
+{
+ "manifest_version": 1,
+ "engagement": {
+  "name": "sl-demo",
+  "source_instance": "http://dhis2-agent-sl-43:8080",
+  "dhis2_version": "2.43.0.1",
+  "control_snapshot": "data/control.pgdump",
+  "decisions_doc": "docs/decisions.md",
+  "created": "2026-07-19",
+  "note": "Exemplar built on the PUBLIC Sierra Leone demo database (2.43 seed). Demonstrates: the 2.43 merge-endpoint path with its duplicate-COC follow-up, a UID-based SQL structural fix the API guards block, a derive-at-runtime fix with fixed pre-generated UIDs, an expression repair with server-side validation, and drift-guarded preconditions on every fix."
+ },
+ "fixes": [
+  {
+   "id": "S1",
+   "title": "Merge duplicate category combo 'Morbidity Age' into 'Morbidity Cases' via the 2.43 merge endpoint, then dedupe the surviving combo's COCs",
+   "check": "categories_unique_category_combo",
+   "severity": "SEVERE",
+   "decision_ref": "docs/decisions.md#S1",
+   "rationale": "Both combos use the same single category ('Morbidity Age'); one has no data elements. On 2.43 the categoryCombos/merge endpoint migrates dataset overrides, data values and COCs transactionally. Its own merge report warns duplicate COCs remain in the survivor \u2014 the second step clears those with categoryOptionCombos/merge.",
+   "reversible": "Control snapshot; the merge migrates rather than deletes data.",
+   "output_risk": "analytics",
+   "preconditions": [
+    {
+     "type": "check_nonzero",
+     "check": "categories_unique_category_combo"
+    },
+    {
+     "type": "object_exists",
+     "path": "/categoryCombos/pbvcDRasDav"
+    },
+    {
+     "type": "object_exists",
+     "path": "/categoryCombos/t3aNCvHsoSn"
+    }
+   ],
+   "steps": [
+    {
+     "action": "api",
+     "method": "POST",
+     "path": "/categoryCombos/merge",
+     "payload": {
+      "sources": [
+       "pbvcDRasDav"
+      ],
+      "target": "t3aNCvHsoSn",
+      "deleteSources": true,
+      "dataMergeStrategy": "LAST_UPDATED"
+     },
+     "note": "2.43+ only \u2014 on 2.42/2.41 this endpoint returns 405 and the fix needs the SQL merge recipe (see references/playbook.md \u00a75/\u00a76)"
+    },
+    {
+     "action": "code",
+     "code": "# the combo merge leaves duplicate COCs in the survivor (per its own merge report) \u2014 dedupe them\nimport collections\ncc = api(\"GET\", \"/categoryCombos/t3aNCvHsoSn\", params={\"fields\": \"categoryOptionCombos[id,name,categoryOptions[id]]\"}).json()\nbyopt = collections.defaultdict(list)\nfor coc in cc.get(\"categoryOptionCombos\", []):\n    byopt[tuple(sorted(o[\"id\"] for o in coc.get(\"categoryOptions\", [])))].append(coc)\nfor grp in (v for v in byopt.values() if len(v) > 1):\n    target, sources = grp[0][\"id\"], [x[\"id\"] for x in grp[1:]]\n    _say(f\"merging duplicate COCs {[x['name'] for x in grp[1:]]} -> {grp[0]['name']!r}\")\n    api(\"POST\", \"/categoryOptionCombos/merge\", body={\"sources\": sources, \"target\": target, \"deleteSources\": True, \"dataMergeStrategy\": \"LAST_UPDATED\"})\napi(\"POST\", \"/maintenance\", params={\"cacheClear\": \"true\", \"categoryOptionComboUpdate\": \"true\"})",
+     "note": "derive the duplicate groups at runtime \u2014 the summary under-reports them"
+    }
+   ],
+   "verify": [
+    {
+     "type": "check",
+     "check": "categories_unique_category_combo",
+     "expected": 0
+    },
+    {
+     "type": "check",
+     "check": "category_option_combos_have_duplicates",
+     "expected": 0
+    }
+   ],
+   "importable": false
+  },
+  {
+   "id": "S2",
+   "title": "Fix the 'Births' combo's wrong category (Gender -> Location PHU/Community) \u2014 resolves 12 disjoint COCs, moves NO data",
+   "check": "category_option_combos_disjoint",
+   "severity": "SEVERE",
+   "decision_ref": "docs/decisions.md#S2",
+   "rationale": "The Births combo is defined as [Births attended by x Gender] but all 12 of its COCs actually use [Births attended by x Location PHU/Community] ('Trained TBA, In Community' etc.) \u2014 the combo references the wrong category while the data already sits under the correct COCs. No merge endpoint does a category swap and E1120 blocks the API edit while data exists, so this is the one legitimately-SQL structural fix even on 2.43.",
+   "reversible": "Single-row UPDATE; swap back to the Gender category UID.",
+   "output_risk": "none",
+   "preconditions": [
+    {
+     "type": "check_nonzero",
+     "check": "category_option_combos_disjoint"
+    },
+    {
+     "type": "object_exists",
+     "path": "/categoryCombos/m2jTvAj5kkm"
+    },
+    {
+     "type": "custom",
+     "code": "any(c[\"id\"] == \"cX5k9anHEHd\" for c in api(\"GET\", \"/categoryCombos/m2jTvAj5kkm\", params={\"fields\": \"categories[id]\"}).json().get(\"categories\", []))",
+     "note": "the Births combo still (wrongly) references the Gender category \u2014 skip if already fixed"
+    }
+   ],
+   "steps": [
+    {
+     "action": "sql",
+     "statement": "UPDATE categorycombos_categories SET categoryid=(SELECT categoryid FROM category WHERE uid='x3uo8LqiTBk') WHERE categorycomboid=(SELECT categorycomboid FROM categorycombo WHERE uid='m2jTvAj5kkm') AND categoryid=(SELECT categoryid FROM category WHERE uid='cX5k9anHEHd')",
+     "note": "UID-based subqueries \u2014 never hardcode internal numeric ids",
+     "cache_clear": true,
+     "guard": "EXISTS (SELECT 1 FROM categorycombos_categories cc JOIN categorycombo c ON c.categorycomboid=cc.categorycomboid JOIN category g ON g.categoryid=cc.categoryid WHERE c.uid='m2jTvAj5kkm' AND g.uid='cX5k9anHEHd')"
+    },
+    {
+     "action": "api",
+     "method": "POST",
+     "path": "/maintenance",
+     "params": {
+      "cacheClear": "true",
+      "categoryOptionComboUpdate": "true"
+     }
+    }
+   ],
+   "verify": [
+    {
+     "type": "check",
+     "check": "category_option_combos_disjoint",
+     "expected": 0
+    }
+   ],
+   "importable": false
+  },
+  {
+   "id": "S3",
+   "title": "Create an 'Other/unknown' group in each compulsory OU dimension (Facility Ownership, Facility Type, Location Rural/Urban); bucket unclassified OUs and move exclusive conflicts into it",
+   "check": "org_units_not_in_compulsory_group_sets",
+   "severity": "SEVERE",
+   "decision_ref": "docs/decisions.md#S3",
+   "rationale": "The uncovered OUs are mostly admin-hierarchy levels with no facility classification; conflicted OUs carry contradictory memberships. An explicit Other/unknown bucket keeps each dimension complete and compulsory without fabricating classifications.",
+   "reversible": "Delete the 3 groups by their fixed UIDs; original memberships are in the control snapshot.",
+   "output_risk": "labels",
+   "preconditions": [
+    {
+     "type": "check_nonzero",
+     "check": "org_units_not_in_compulsory_group_sets"
+    },
+    {
+     "type": "custom",
+     "code": "len(api(\"GET\", \"/organisationUnitGroupSets\", params={\"filter\": \"name:eq:Facility Ownership\", \"fields\": \"id\"}).json().get(\"organisationUnitGroupSets\", [])) == 1",
+     "note": "identity guard: the target has the dimension this fix was developed against"
+    }
+   ],
+   "steps": [
+    {
+     "action": "api",
+     "method": "POST",
+     "path": "/metadata",
+     "params": {
+      "importStrategy": "CREATE_AND_UPDATE",
+      "identifier": "UID",
+      "atomicMode": "NONE"
+     },
+     "payload": {
+      "organisationUnitGroups": [
+       {
+        "id": "amN2FMJH1wj",
+        "name": "Facility Ownership - Other/unknown",
+        "shortName": "Ownership Other"
+       },
+       {
+        "id": "DVLpnxg8qmJ",
+        "name": "Facility Type - Other/unknown",
+        "shortName": "Facility Type Other"
+       },
+       {
+        "id": "Pn2mko7SfK1",
+        "name": "Location Rural/Urban - Other/unknown",
+        "shortName": "Location Other"
+       }
+      ]
+     },
+     "note": "fixed pre-generated UIDs: idempotent, portable, reversible; shells are also emitted to the import package"
+    },
+    {
+     "action": "code",
+     "code": "GROUP_UID = {\"Facility Ownership\": \"amN2FMJH1wj\", \"Facility Type\": \"DVLpnxg8qmJ\", \"Location Rural/Urban\": \"Pn2mko7SfK1\"}\nimport collections\nallou = {o[\"id\"] for o in api(\"GET\", \"/organisationUnits\", params={\"fields\": \"id\", \"paging\": \"false\"}).json()[\"organisationUnits\"]}\ngss = api(\"GET\", \"/organisationUnitGroupSets\", params={\"fields\": \"id,name,compulsory,organisationUnitGroups[id]\", \"paging\": \"false\"}).json()[\"organisationUnitGroupSets\"]\nfor gs in [g for g in gss if g.get(\"compulsory\") and g[\"name\"] in GROUP_UID]:\n    ouid = GROUP_UID[gs[\"name\"]]\n    ou2grp = collections.defaultdict(list)\n    for grp in gs[\"organisationUnitGroups\"]:\n        if grp[\"id\"] == ouid: continue\n        for o in api(\"GET\", f\"/organisationUnitGroups/{grp['id']}\", params={\"fields\": \"organisationUnits[id]\"}).json().get(\"organisationUnits\", []):\n            ou2grp[o[\"id\"]].append(grp[\"id\"])\n    uncovered = allou - set(ou2grp)\n    conflicted = {o: g for o, g in ou2grp.items() if len(g) > 1}\n    members = sorted(uncovered | set(conflicted))\n    _say(f\"{gs['name']}: uncovered={len(uncovered)} conflicted={len(conflicted)} -> Other gets {len(members)}\")\n    api(\"POST\", \"/metadata\", body={\"organisationUnitGroups\": [{\"id\": ouid, \"name\": f\"{gs['name']} - Other/unknown\", \"shortName\": f\"{gs['name'][:40]} Other\"[:50], \"organisationUnits\": [{\"id\": m} for m in members]}]}, params={\"importStrategy\": \"CREATE_AND_UPDATE\", \"identifier\": \"UID\", \"atomicMode\": \"NONE\"})\n    if ouid not in {g[\"id\"] for g in gs[\"organisationUnitGroups\"]}:\n        api(\"POST\", f\"/organisationUnitGroupSets/{gs['id']}/organisationUnitGroups/{ouid}\")\n    for ou, grps in conflicted.items():\n        for gid in grps:\n            api(\"DELETE\", f\"/organisationUnitGroups/{gid}/organisationUnits/{ou}\")",
+     "note": "membership is DERIVED at runtime (logic step) \u2014 never hardcode thousands of OU UIDs"
+    }
+   ],
+   "verify": [
+    {
+     "type": "check",
+     "check": "org_units_not_in_compulsory_group_sets",
+     "expected": 0
+    }
+   ],
+   "importable": true
+  },
+  {
+   "id": "W1",
+   "title": "Repair validation rules wrapping a single operand in AVG() \u2014 strip the unsupported wrapper",
+   "check": "validation_rules_with_invalid_right_side_expression",
+   "severity": "WARNING",
+   "decision_ref": "docs/decisions.md#W-exprs",
+   "rationale": "Validation-rule expressions do not support aggregation functions; AVG(x) over a single operand is a no-op wrapper, so stripping it is deterministic. Every candidate repair is validated server-side (GET /api/expressions/description) before writing; anything that does not validate is left and flagged.",
+   "reversible": "Re-wrap in AVG() (original expressions in the control snapshot).",
+   "output_risk": "analytics",
+   "preconditions": [
+    {
+     "type": "check_nonzero",
+     "check": "validation_rules_with_invalid_right_side_expression"
+    }
+   ],
+   "steps": [
+    {
+     "action": "code",
+     "code": "import re, time\ndef valid(expr):\n    r = api(\"GET\", \"/expressions/description\", params={\"expression\": expr})\n    try: return r.json().get(\"status\") == \"OK\"\n    except Exception: return False\ndef strip_avg(e):\n    e = (e or \"\").strip(); m = re.match(r\"^AVG\\((.*)\\)$\", e, re.S)\n    return m.group(1).strip() if m else e\nd = api(\"GET\", \"/dataIntegrity/details\", params={\"checks\": \"validation_rules_with_invalid_right_side_expression\"}).json().get(\"validation_rules_with_invalid_right_side_expression\", {})\nfor issue in d.get(\"issues\", []):\n    full = api(\"GET\", f\"/validationRules/{issue['id']}\", params={\"fields\": \":owner\"}).json()\n    changed = False\n    for side in (\"leftSide\", \"rightSide\"):\n        e = full[side][\"expression\"]; ne = strip_avg(e)\n        if ne != e and valid(ne):\n            full[side][\"expression\"] = ne; changed = True\n    if changed:\n        api(\"PUT\", f\"/validationRules/{full['id']}\", body=full)\n        _say(f\"repaired {full['name'][:60]!r}\")\n    else:\n        _say(f\"\u23ed\ufe0f no clean repair for {full['name'][:60]!r} \u2014 leave + flag\")",
+     "note": "NB /api/expressions/description is a GET (POST returns 405 and would reject every good fix)"
+    }
+   ],
+   "verify": [
+    {
+     "type": "check",
+     "check": "validation_rules_with_invalid_right_side_expression",
+     "expected": 0
+    }
+   ],
+   "importable": false
+  },
+  {
+   "id": "U1",
+   "title": "Give users data-view access to their capture org units",
+   "check": "users_capture_ou_not_in_data_view_ou",
+   "severity": "SEVERE",
+   "decision_ref": "docs/decisions.md#S9",
+   "rationale": "Users could enter data at org units they could not see in analytics; standard fix is data-view \u2287 capture.",
+   "reversible": "Original dataViewOrganisationUnits are in the control snapshot.",
+   "output_risk": "none",
+   "preconditions": [
+    {
+     "type": "check_nonzero",
+     "check": "users_capture_ou_not_in_data_view_ou"
+    }
+   ],
+   "steps": [
+    {
+     "action": "code",
+     "code": "us = api(\"GET\", \"/users\", params={\"fields\": \"id,username,organisationUnits[id],dataViewOrganisationUnits[id]\", \"paging\": \"false\"}).json()[\"users\"]\nfor u in us:\n    cap = {o[\"id\"] for o in u.get(\"organisationUnits\", [])}\n    dv = {o[\"id\"] for o in u.get(\"dataViewOrganisationUnits\", [])}\n    if cap and (cap - dv):\n        api(\"PATCH\", f\"/users/{u['id']}\", body=[{\"op\": \"add\", \"path\": \"/dataViewOrganisationUnits\", \"value\": [{\"id\": o} for o in sorted(cap | dv)]}])\n        _say(f\"  {u.get('username')}: data-view now covers capture\")",
+     "note": "derived per user at runtime"
+    }
+   ],
+   "verify": [
+    {
+     "type": "check",
+     "check": "users_capture_ou_not_in_data_view_ou",
+     "expected": 0
+    }
+   ],
+   "importable": false
+  }
+ ],
+ "flagged": [
+  {
+   "check": "data_elements_aggregate_with_different_period_types",
+   "summary": "5 data elements live in datasets of different period types; which period is canonical is a reporting-design decision.",
+   "owner_action": "choose the canonical period type per data element"
+  },
+  {
+   "check": "category_option_group_sets_incomplete",
+   "summary": "3 group sets flagged 'incomplete' \u2014 same-dimension banding overlap (options shared across overlapping categorizations), not fixable per-item without corrupting the dimension.",
+   "owner_action": "data-model review: stop sharing options across overlapping categorizations"
+  },
+  {
+   "check": "category_options_excess_groupset_membership",
+   "summary": "'World Relief' donor option sits in BOTH the GIZ and USAID donor groups; neither is correct (it is a distinct donor).",
+   "owner_action": "assign the option to the right donor group (or its own)"
+  },
+  {
+   "check": "data_elements_violating_exclusive_group_sets",
+   "summary": "'Admission Date' is in two diagnosis groups; as a generic field it arguably belongs in neither.",
+   "owner_action": "decide the correct (single or no) diagnosis group"
+  },
+  {
+   "check": "tracked_entity_attributes_invalid_trigram_search_configuration",
+   "summary": "56 TEAs searchable-but-unindexed; which to index is a per-needs performance decision.",
+   "owner_action": "curate the genuine search-key TEAs (names, IDs, phone) for indexing"
+  },
+  {
+   "check": "users_with_invalid_usernames",
+   "summary": "1 invalid username; usernames are immutable via the API (E4056) and this is often a superuser.",
+   "owner_action": "confirm the replacement name; rename requires DB access"
+  }
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "skill_name": "dhis2-integrity",
+ "evals": [
+  {
+   "id": 1,
+   "prompt": "Our DHIS2 2.43 demo instance (reachable at http://dhis2-integrity-sl:8080, admin/district) is failing a bunch of data integrity checks. Go through the critical and severe ones, fix what you safely can, and tell me which ones need a decision from me before you touch them.",
+   "expected_output": "Connects, runs the FULL inventory (summary + slow checks), triages by severity/fix-type, asks before destructive/ambiguous fixes, fixes deterministic-safe severe issues, re-verifies, and reports fixed vs needs-decision vs accepted with reasons. Logs writes.",
+   "files": []
+  },
+  {
+   "id": 2,
+   "prompt": "Here's a metadata dump from our production DHIS2 (a metadata.json export). I do NOT want to touch prod. Clean it up on a throwaway copy \u2014 dedupe the duplicate category combos and indicators, and fix any broken indicator/program-indicator expressions \u2014 then give me back a fixed dump I can review before we apply it.",
+   "expected_output": "Recognizes dump/sandbox mode: spins up (or asks to) an empty sandbox of matching version, imports the dump (twice, checks summary, flags default-UID gotchas), keeps the original as control, runs the cleanup using merge endpoints for dedup, verifies, re-exports a fixed metadata.json, and offers a dump diff. Does not touch production.",
+   "files": []
+  },
+  {
+   "id": 3,
+   "prompt": "After a bad metadata import our category option combos are a mess \u2014 there are duplicates, and one category combo seems to have the wrong categories so the data entry form is showing blank cells. How do I clean this up without losing the data values that are already entered?",
+   "expected_output": "Distinguishes dedup (use categoryOptionCombos/categoryCombos merge endpoints, knowing the within-combo-only scope of COC merge) from a wrong-category structural fix (blocked by E1120 \u2014 SQL category swap, no data moved). Emphasizes snapshot-first, the data-preservation/conservation check, cache clear after SQL, and verifying form COC resolvability + analytics afterwards.",
+   "files": []
+  }
+ ]
+}
