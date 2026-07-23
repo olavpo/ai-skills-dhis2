@@ -104,6 +104,14 @@ Read the per-type files and the import report side by side. Decode the error cod
 
 The skill does not ship a dummy-data generator — it depends too much on the specific program or dataset. Instead, use the prep workflow above to give the model the relevant program metadata, then write a one-off script that respects each data element's `valueType` and `optionSet`. Recipe in `references/workflows.md`.
 
+### Document a program for humans
+
+A different deliverable from the AI prep: readable Markdown documentation of a program's configuration — attributes, stages/sections in display order, option-set appendix with usage cross-references. Same approach as dummy data (prep, then a one-off script); the output structure and its `sortOrder`-on-join-objects gotcha are in `references/workflows.md` §8.
+
+### Translate metadata to another locale
+
+The flags above only *strip* translations (`--delocalize`); producing them is a recipe: schema-driven translatable fields, the `translations` record format, and the trap that translating `programRuleVariables` names silently breaks program rules. See `references/workflows.md` §9.
+
 ---
 
 ## Critical safety notes

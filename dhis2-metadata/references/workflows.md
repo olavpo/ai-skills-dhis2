@@ -101,7 +101,7 @@ The skill itself doesn't ship a dummy-data script — every program has differen
 
 Quick checks the model can do over the split files:
 
-- **Dangling references**: collect all UIDs declared in any file, then scan every `{id: ...}` reference in every file; flag references whose target isn't declared.
+- **Dangling references**: collect all UIDs declared in any file, then scan every `{id: ...}` reference in every file; flag references whose target isn't declared. The classic late-failing case is visualizations/eventVisualizations and dashboards — data-dimension items (`dataDimensionItems`, `columns`/`rows`/`filters`) pointing at DEs/indicators/PIs missing from the slice only surface as `E4061`/`E5002` at import time, so scanning them up front saves a whole import cycle.
 - **Required-field violations**: read the right-version schema from `references/`. For each object type, list properties with `required: true` and check every object in `<plural>.json` has them set (and non-empty).
 - **DHIS2-specific limits**:
    - Category: max 50 options.
@@ -171,6 +171,28 @@ These come from a full seed → export → import → re-export → diff round-t
 - **Map *views* cannot be imported on 2.42** (verified 2.42.5.1). Embedded mapViews crash the payload (their references are never preheated), a standalone `mapViews` payload is silently ignored (HTTP 200, zero objects), and `{id}`-reference views crash on `MapView.layer`. The only working import is maps as **shells with `mapViews` removed** — this keeps dashboard references resolvable but loses all view content. Also note batch size: a large shell-map payload crashed the whole JVM; use small chunks (≤50).
 - **Server-normalized properties differ after a round-trip without being real changes**: option `sortOrder` is renumbered, `optionSet`/`dataSet`/`program` `version` counters bump on every import pass, defaults materialize (`false`/`NONE` where the source had null), and everything referencing categoryOptionCombos by UID (section `greyedFields`, predictor `outputCombo`, visualization `dataElementOperand`s) drops or changes because COCs are regenerated with fresh UIDs on the target. Ignore these when diffing source vs. imported copy.
 - **`jobConfigurations` are instance-managed** — a fresh instance creates its own defaults, and imported ones carry meaningless scheduling state. Consider `--exclude jobConfigurations` for cross-instance copies.
+
+## 8. Document a program as human-readable Markdown
+
+Goal: readable configuration documentation for implementers and reviewers — a different deliverable from the AI prep in §1. Like dummy data (§4), don't reach for a shipped generator: run the §1 prep, then write a one-off script over the split files producing this structure (proven on real tracker programs):
+
+- One `#` section per program: the tracked entity type, then a table of its tracked entity attributes (ID, name, value type, option set — link option-set names to the appendix).
+- `## Programme structure`: stages in order, each with `repeatable`, then its sections in order, each with a data-element table (same columns as the TEA table). Finish each stage with a "Not in sections" table for stage DEs that appear in no section — silently dropping them is the common mistake.
+- **Ordering gotcha**: display order lives on the *join* objects — `programTrackedEntityAttributes` (program level) and `programStageDataElements` (stage level) carry `sortOrder`, not the DE/TEA itself. Sections and stages carry their own `sortOrder`.
+- `# Appendix — OptionSets`: one entry per option set *actually used*, with ID, `valueType`, an options table (ID, code, name; sort by option `sortOrder`; cap at ~50 rows with an "N options skipped" note — option sets can have thousands) and a "Used by" table of the DEs/TEAs referencing it.
+- Program-indicator variant: per PI a table of name/ID/aggregationType/expression/filter, plus the stages, DEs and TEAs the expressions reference — parse `#{stageUid.deUid}` and `A{teaUid}` tokens and resolve UIDs to names. (Authoring or reviewing the expressions themselves is the dhis2-indicators skill.)
+
+## 9. Translate metadata to another locale
+
+Goal: produce translations (the opposite of `--delocalize`). The model does the translating itself; the reusable knowledge is the format and the traps.
+
+- **Which fields are translatable** is per-type schema data: properties with `translatable: true` in `schemas.json` (`name`, `shortName`, `description`, form names, …).
+- **Two distinct targets — confirm which the user wants**: (a) *add* translations for a new locale, leaving the primary properties alone; (b) *switch the primary language* — set translated values as the main properties and store the originals as `translations` records for the source locale.
+- **Record format**: entries in the object's `translations` array look like `{"locale": "fr", "property": "SHORT_NAME", "value": "…"}` — `property` is the field name in SCREAMING_SNAKE (`shortName` → `SHORT_NAME`, `formName` → `FORM_NAME`).
+- **Length limits apply to translations too**: a translated `SHORT_NAME` must still fit 50 chars.
+- **Dedupe `(property, locale)` per object before importing** — duplicates reject the whole object with `E1106` (failure classes, §7).
+- **Never translate `programRuleVariables` names.** Program rules reference variables *by name* — `#{varName}`, `A{varName}`, `d2:hasValue('varName')` — so translating the name silently breaks every rule using it, and the damage only shows up as rules that stop firing. Exclude the type entirely.
+- **Keep terminology consistent** across objects (the same domain term translated the same way everywhere): translate with the related objects in context, or build up a glossary as you go, rather than translating each object in isolation.
 
 ## DHIS2 schema concepts (what the script's --minimize is doing)
 
