@@ -34,7 +34,10 @@ hundreds of objects processed sequentially take minutes; a suite-level
 
 General rule: after any metadata mutation whose success matters, GET the object
 back and assert the field actually changed. HTTP 2xx is necessary, not
-sufficient.
+sufficient. The converse also holds — success isn't always `200`: partial PATCH
+returns `204`, and metadata imports can return `200` with `status: "ERROR"` or
+`"WARNING"` in the body. Check each endpoint's actual contract (accept any 2xx,
+then read the body), never `== 200`.
 
 ## Seeding data the current server forbids
 
@@ -68,6 +71,12 @@ Content-Type: application/json-patch+json
 ```
 
 Verified working for scalar fields, whole-collection `add` (`program.categoryMappings`) and whole-collection `replace` (`dataSet.dataSetElements`). Verify-after-write still applies.
+
+Three caveats (verified 2.40–2.43):
+
+- **JSON Patch re-validates the whole object**, so it can **409 on pre-existing integrity issues unrelated to the change** (`E6012` "attribute not assigned to type", `E6000` "program has more than one program instance", …). Old production metadata — exactly what bulk admin tools target — trips this constantly, so a tool under review will legitimately fail on some objects. Dedicated endpoints skip it.
+- **Never patch `/sharing`.** `replace /sharing` returns 200 but **silently ignores** `public`/`external` (the patch value needs `publicAccess`/`externalAccess`, not the aliases a GET shows) — the object looks re-shared but stays publicly accessible. The correct tool is `PUT /api/sharing?type=<singular>&id=<uid>` (recipe in the `dhis2-docs` skill), which changes only sharing, preserves `owner`, and skips whole-object validation. Flag any app that patches sharing.
+- **Plain-JSON partial PATCH is version-split**: `Content-Type: application/json` with body `{"name":"…"}` returns **204** on ≤2.41 but **415** on ≥2.42, where JSON Patch is required. A robust tool tries plain JSON first and falls back on 415; test both sides of the 2.42 boundary.
 
 ## Validating program rule conditions cheaply
 

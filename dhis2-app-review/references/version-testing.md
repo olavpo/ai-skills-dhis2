@@ -29,7 +29,7 @@ Run versions sequentially by default: stop (or delete) one instance before start
 - Auth differences: token vs session cookie endpoints, CORS allowlist API path, login form structure. Cookie name, login JSON shape, and CSRF requirements have all changed across the 2.39 → 2.42 line.
 - UI shell differences: legacy header bar vs `@dhis2/header-bar` vs the modern app shell. **2.42 is the hard boundary**: from 2.42 the platform serves installed apps inside a global-shell iframe, while 2.41 and earlier serve `/api/apps/<key>/index.html` at top level. Write suites frame-aware from the start (scan `page.frames` for a known app selector) so one suite covers both.
 - System-setting keys. Many were renamed; if the app reads or writes `systemSettings`, run `GET /api/systemSettings.json` on each version and verify the keys it expects exist.
-- App install and write status codes drift too (`POST /api/apps` → `201` on 2.42+ vs `204` on ≤2.41; silent no-op writes; refused operations). See `references/server-quirks.md` — accept any 2xx and verify after write rather than trusting a single status code.
+- App install and write status codes drift too (`POST /api/apps` → `201` on 2.42+ vs `204` on ≤2.41; plain-JSON partial `PATCH` → `204` on ≤2.41 vs `415` on ≥2.42, where JSON Patch is required; silent no-op writes; refused operations). See `references/server-quirks.md` — accept any 2xx and verify after write rather than trusting a single status code. Any tool doing single-field metadata updates needs a run on both sides of the 2.42 boundary — a single-version test ships a tool broken on half the fleet.
 
 ## Results format
 

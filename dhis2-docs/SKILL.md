@@ -108,6 +108,46 @@ page=1&pageSize=50
 
 Response includes a `pager` object: `{ page, pageSize, pageCount, total }`.
 
+### Changing sharing on a single object
+
+Use the dedicated sharing endpoint — not JSON-Patch, not a full-object PUT:
+
+```
+PUT /api/sharing?type=dataElement&id=<uid>
+Content-Type: application/json
+
+{"object": {
+  "publicAccess": "--------",
+  "externalAccess": false,
+  "userAccesses": [],
+  "userGroupAccesses": [{"id": "<groupUid>", "access": "rw------"}]
+}}
+```
+
+- `type` is the **singular** schema name (`dataElement`, not `dataElements`). `GET /api/schemas?fields=singular,plural,dataShareable` gives the plural→singular map and the `dataShareable` flag (metadata-only vs data sharing) in one call.
+- The endpoint changes **only** sharing — it never touches `owner` — and does **not** re-validate the rest of the object, so it works on messy legacy objects that fail import validation.
+- It fully replaces `publicAccess`, `externalAccess`, `userAccesses` and `userGroupAccesses` with what you send.
+- Access strings are 8-char octets: metadata rw = `rw------`, metadata + read-only data = `rwr-----`, metadata + read/write data = `rwrw----`, none = `--------`.
+
+**Footgun — never JSON-Patch `/sharing`:** `[{"op":"replace","path":"/sharing","value":{"public":"--------",…}}]` returns **200**, applies `userGroups`/`users`, and **silently ignores** `public`/`external` — inside a patch value the fields must be named `publicAccess`/`externalAccess`, not the `public`/`external` aliases a GET shows. The object looks re-shared but stays publicly accessible, and nothing errors.
+
+### Updating single fields (name, code, …)
+
+Partial updates are version-split by content-type:
+
+| DHIS2 version | `PATCH /api/<plural>/<uid>` | Result |
+|---|---|---|
+| ≤ 2.41 | `Content-Type: application/json`, body `{"name":"…"}` | **204** No Content |
+| ≥ 2.42 | same request | **415** Unsupported Media Type |
+| ≥ 2.42 | `Content-Type: application/json-patch+json`, body `[{"op":"replace","path":"/name","value":"…"}]` | 200 |
+
+Portable pattern: try the plain-JSON PATCH first; on **415**, retry as JSON-Patch and remember the choice for the rest of the run.
+
+Two general rules for writes:
+
+- **JSON-Patch (and any full-object write) re-validates the whole object**, so it can **409 on pre-existing integrity issues unrelated to your change** (`E6012` "attribute not assigned to type", `E6000`, …) — common on old production metadata. Prefer dedicated endpoints (`/api/sharing`) where they exist; on 2.42+ there is no partial-update escape hatch for other fields.
+- **Success isn't always 200.** Partial PATCH returns 204; metadata imports can return 200 with `"status": "ERROR"`/`"WARNING"` in the body. Treat any 2xx as transport success, then check the response body and (for writes that matter) re-GET the object to confirm the change landed.
+
 ### Analytics endpoint
 
 ```

@@ -448,7 +448,12 @@ skill deliberately leaves it alone.
 
 **Gotcha:** a `PATCH` rename can fail (`409`) on an **unrelated dangling custom-attribute value** (an
 attribute not assigned to that object type, `E6012`). Fall back to a full-object **PUT** with the bad
-`attributeValue` stripped — and note that dangling attribute as its own integrity fix.
+`attributeValue` stripped — and note that dangling attribute as its own integrity fix. This is an
+instance of a general rule: **JSON-Patch and full-object writes re-validate the whole object**, so on
+the messy metadata this skill targets they 409 over pre-existing issues unrelated to the change.
+Dedicated endpoints skip that revalidation — e.g. sharing changes should go through
+`PUT /api/sharing?type=<singular>&id=<uid>` (recipe in the `dhis2-docs` skill), never a patch of
+`/sharing` (which also silently ignores `public`/`external` keys).
 
 ## 8. Self-inflicted-wound watch-list
 
