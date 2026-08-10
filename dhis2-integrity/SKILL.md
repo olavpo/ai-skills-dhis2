@@ -3,22 +3,16 @@ name: dhis2-integrity
 description: >-
   DHIS2 metadata REMEDIATION — fixing what is BROKEN in an existing instance or metadata
   dump (not building, authoring, moving, or exporting config). Use when the user wants to:
-  make an instance pass DHIS2's data-integrity checks; resolve the critical/severe/warning
-  failures a data-integrity run reports across categories, org units, indicators, programs or
-  validation rules; de-duplicate near-identical metadata (category combos, category option
-  combos, indicators, data elements); repair broken indicator / program-indicator expressions
-  or validation rules; fix structural metadata faults (orphaned program stages, wrong category
-  combos, invalid org-unit groups or geometry); or trial such repairs safely by restoring a
-  metadata .json dump onto a disposable sandbox and handing back a fixed dump. Typical
-  phrasings — "make our instance pass the integrity checks", "our DHIS2 is full of broken /
-  duplicate metadata", "dedupe these combos without losing data", "clean up this messy
-  metadata dump". Do NOT trigger for routine DHIS2 work that is NOT integrity remediation:
-  creating or authoring new metadata, writing an indicator/program-indicator expression from
-  scratch, reorganising or operationally merging org units, exporting or deleting data values,
-  debugging why one analytics number looks wrong, spinning up a new instance, app development,
-  or just inspecting/documenting config — those belong to dhis2-metadata, dhis2-indicators,
-  dhis2-api, dhis2-instances or dhis2-app-dev. Composes with dhis2-api, dhis2-metadata and
-  dhis2-instances.
+  make an instance pass DHIS2's data-integrity checks; resolve the failures an integrity run
+  reports; de-duplicate near-identical metadata (combos, COCs, indicators, data elements);
+  repair broken indicator/program-indicator expressions or validation rules; fix structural
+  faults (orphaned stages, wrong category combos, invalid org-unit groups/geometry); or
+  trial repairs on a disposable sandbox and hand back a fixed dump. Typical
+  phrasings: "make our instance pass the integrity checks", "dedupe these combos without
+  losing data". Do NOT trigger for non-remediation
+  work — authoring new metadata or expressions, org-unit reorganisation, exporting data,
+  debugging one analytics number, provisioning instances, app development, or just inspecting
+  config — that belongs to dhis2-metadata, dhis2-indicators, dhis2-docs or dhis2-instances.
 ---
 
 # DHIS2 Metadata Cleanup

@@ -128,6 +128,8 @@ The flags above only *strip* translations (`--delocalize`); producing them is a 
 
 ## When something goes wrong
 
+- **Don't trust `response.uid` on a metadata POST.** A failed create (e.g. a name conflict on `/api/attributes`) can still return a generated `response.uid` for an object that was never persisted — a later GET on it 404s. Check `status`/`httpStatus`; uid-presence alone means nothing.
+
 - **`split_metadata.py` keeps a property the user expected stripped, or strips one they expected kept.** Schema property names are the source of truth. The script uses `name` (not `fieldName`) for non-collection properties because that's what the JSON serialization uses — but that's an easy bug class. Verify by inspecting the schema entry for the property: if `owner=true && persisted=true` and the name isn't in the bookkeeping blacklist, it should be kept.
 
 - **`import_metadata.py` returns 500 on a type.** Check the server log (`d2-logtail <container>` if available) — the body of the response often loses the cause, but the server log usually has a stack trace. Common cause: a required reference was stripped (often by an over-eager `--minimize`) so an `IdentifiableObject.getUid()` call sees null. Re-run without `--minimize`, or add the missing field manually.

@@ -58,11 +58,14 @@ The grep pattern below derives any component's selectors, but these stable roots
 | Transfer | `dhis2-uicore-transfer` (sub: `…-filter`, `…-pickedoptions`, `…-actions-addindividual`) |
 | Pagination | `dhis2-uiwidgets-pagination` — ⚠ *uiwidgets*, not *uicore* |
 
+Two components follow **opposite `dataTest`-prop conventions**: `SingleSelectField` does *not* forward its `dataTest` prop to the inner select/clear elements (they keep the generic `dhis2-uicore-*` values above), while `Transfer` *derives* child test-ids from its prop (`<dataTest>-sourceoptions`, `-pickedoptions`, `-leftside`, …). Verify with the grep recipe below rather than assuming either convention.
+
 ## Recon-then-act, always
 
 Don't write a 200-line script and run it once. Run `scripts/probe.py` first — it prints the DOM state, frame structure, console errors, and HTTP error responses. Adjust selectors from what you actually see, then write the full test. Common surprises:
 
 - The app may run inside an iframe under the DHIS2 app shell. Check `page.frames`.
+- After clicking a `@dhis2/ui` select option, the portal backdrop (`#dhis2-portal-root div[class*="backdrop"]`) can linger and swallow the next click — wait for it to detach before the following interaction.
 - Choices.js / similar wrappers hide the underlying `<select>`. Use `state="attached"` and locate the wrapper (`.choices__inner`, etc.).
 - Materialize wraps checkboxes in a `<span>` overlay that blocks clicks. Use `.check(force=True)`.
 - DHIS2 returns 200 with `{"status":"ERROR"}` for invalid expressions. HTTP-status checks miss this — inspect the response body.

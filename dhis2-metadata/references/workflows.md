@@ -97,6 +97,8 @@ The skill itself doesn't ship a dummy-data script — every program has differen
 
 4. Always default to a small N (e.g. 50 trackedEntities, 5 events each) for the first run. Confirm with the user before generating thousands.
 
+**2.43 gotcha for aggregate payloads:** `POST /api/dataValueSets` on 2.43+ requires each data element to belong to a data set of the matching period type, AND that data set to be assigned to the target org units — otherwise the whole payload fails with "Data set detection failed…" / "Data set X not usable with org unit(s)…". 2.40–2.42 accepted dataset-less values silently, so a generator that worked there fails wholesale on 2.43. Check dataset membership and OU assignment before generating.
+
 ## 5. Validate metadata for issues before importing
 
 Quick checks the model can do over the split files:
@@ -171,6 +173,7 @@ These come from a full seed → export → import → re-export → diff round-t
 - **Map *views* cannot be imported on 2.42** (verified 2.42.5.1). Embedded mapViews crash the payload (their references are never preheated), a standalone `mapViews` payload is silently ignored (HTTP 200, zero objects), and `{id}`-reference views crash on `MapView.layer`. The only working import is maps as **shells with `mapViews` removed** — this keeps dashboard references resolvable but loses all view content. Also note batch size: a large shell-map payload crashed the whole JVM; use small chunks (≤50).
 - **Server-normalized properties differ after a round-trip without being real changes**: option `sortOrder` is renumbered, `optionSet`/`dataSet`/`program` `version` counters bump on every import pass, defaults materialize (`false`/`NONE` where the source had null), and everything referencing categoryOptionCombos by UID (section `greyedFields`, predictor `outputCombo`, visualization `dataElementOperand`s) drops or changes because COCs are regenerated with fresh UIDs on the target. Ignore these when diffing source vs. imported copy.
 - **`jobConfigurations` are instance-managed** — a fresh instance creates its own defaults, and imported ones carry meaningless scheduling state. Consider `--exclude jobConfigurations` for cross-instance copies.
+- **SQL views are only parsed at execution, never at import** — a metadata package can therefore ship version-specific SQL-view variants side by side (e.g. tracker queries for 2.40 / 2.41–42 / 2.43+) and import cleanly everywhere; users run the variant matching their version.
 
 ## 8. Document a program as human-readable Markdown
 

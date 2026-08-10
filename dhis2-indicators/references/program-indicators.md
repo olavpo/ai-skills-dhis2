@@ -10,6 +10,8 @@
 - Filter vs expression
 - Analytics period boundaries (the part people get wrong)
 - Examples
+- Disaggregating program indicators (2.42+ category mappings)
+- Materializing PIs as aggregate data (tracker-to-aggregate)
 - Pitfalls
 
 ## Anatomy and fields
@@ -35,7 +37,9 @@ This decides the unit of analysis:
 
 The classic bug: counting something per enrollment using EVENT type, which multiplies by the number of events. When the question is about people/cases, use ENROLLMENT; when it's about visits/records, use EVENT. Test a repeatable stage with two events to expose the difference.
 
-In ENROLLMENT type you can still reference event data elements (`#{stage.de}`); analytics resolves them to a value within the enrollment according to the boundaries and, where relevant, the latest/earliest event of that stage.
+In ENROLLMENT type you can still reference event data elements (`#{stage.de}`); analytics resolves them to a value within the enrollment according to the boundaries and, where relevant, the latest/earliest event of that stage. **Verify this empirically before relying on it**: on a 2.43.0.1 demo instance, ENROLLMENT-type filters referencing event DEs (`d2:hasValue(#{stage.de})`, cross-stage `d2:daysBetween`) matched zero enrollments even though event analytics demonstrably held the values — with and without default boundaries. Prove the reference resolves (throwaway-PI probe, `references/testing.md`) before building on it.
+
+**EVENT-type PIs cannot read cross-stage data elements.** Each event-analytics row carries only its own stage's DE columns, so `#{otherStage.de}` inside an EVENT-type expression or filter evaluates to null for events of a different stage — silently (the expression validates fine; the SL demo ships a PI broken this way). Fix pattern: anchor the PI on the stage that owns the DE (`V{program_stage_id} == '<owningStageUid>'`) and use that stage's `V{event_date}`; or switch to ENROLLMENT type (subject to the caveat above).
 
 ## Aggregation type
 
@@ -48,6 +52,8 @@ Applied across the selected units:
 - **MIN / MAX** — extremes.
 
 Match the aggregation type to the question. A SUM over a per-unit "1" equals a COUNT; a SUM over a measured value (e.g. amount dispensed) totals it.
+
+**AVERAGE on a count-style expression is a silent breaker.** A PI whose expression is `V{event_count}`, `V{enrollment_count}`, or a constant `1` but whose `aggregationType` is AVERAGE validates fine and returns ~1 (or no rows) instead of the count — the SL demo ships a whole family broken this way. Lint for it when reviewing: count-style expression ⇒ aggregationType must be COUNT or SUM.
 
 ## Expression building blocks
 
@@ -92,6 +98,8 @@ Boundaries decide which date puts a unit into a reporting period. They are the m
 
 Custom `analyticsPeriodBoundaries` let you say, for example, "include the unit if its **event date** of a particular stage falls in the period" even for an ENROLLMENT indicator. Each boundary has a target (`EVENT_DATE`, `ENROLLMENT_DATE`, `INCIDENT_DATE`, or a specific stage's date) and a type (`AFTER_START_OF_REPORTING_PERIOD`, `BEFORE_END_OF_REPORTING_PERIOD`).
 
+**Omission trap when creating PIs via the API:** the Maintenance UI silently adds the two default boundaries, but a raw `POST /api/programIndicators` with no `analyticsPeriodBoundaries` creates an **unbounded** PI — it returns the same all-time value for every period, with no error anywhere. Always include the boundaries explicitly in API-created PIs.
+
 Always test boundaries by placing events/enrollments on dates on both sides of a period edge (e.g. 31 Dec vs 1 Jan) and confirming each lands in the period you expect.
 
 ## Examples
@@ -127,6 +135,21 @@ aggregationType: AVERAGE
 filter: d2:hasValue(#{visitStage.visitDate})
 expression: d2:daysBetween(V{enrollment_date}, #{visitStage.visitDate})
 ```
+
+## Disaggregating program indicators (2.42+ category mappings)
+
+The modern replacement for "one PI per age/sex combination": a single PI produces disaggregated analytics cells via category mappings. The conversion path, verified on 2.43:
+
+1. Define `categoryMappings` on the **program** — per category, map each category option to a filter expression over the program's data (e.g. an age range over an attribute, a sex option over a DE).
+2. On the **PI**, set `categoryMappingIds` (referencing the program's mappings) and a disaggregation `categoryCombo` built from those categories.
+3. Run `POST /api/maintenance?categoryOptionComboUpdate=true` so the combo's COCs exist.
+4. Verify: the disaggregated cells must sum to the undisaggregated PI total (and, when migrating, match the legacy one-PI-per-cell values).
+
+**Reuse existing categories and category options** — category options are shared objects, so a new category for disaggregation can be assembled from options that already exist in other categories; don't mint duplicates. Field-level details are version-sensitive — check the program-indicator disaggregation section of the docs (`dhis2-docs` skill) for your version.
+
+## Materializing PIs as aggregate data (tracker-to-aggregate)
+
+The alternative to referencing `I{programIndicatorUID}` live in aggregate indicator expressions: export PI values as a data value set and import them into aggregate DEs. Export `GET /api/analytics/dataValueSet.json?dimension=dx:<PI-uids>&…&outputIdScheme=ATTRIBUTE:<attrUid>` where a TEXT attribute on each PI holds the target DE *code*, then import with `dataElementIdScheme=CODE`. Verified 2.40–2.43. Two gotchas: analytics tables must be generated before the export, and on 2.43+ the target DEs must belong to a data set of the matching period type assigned to the target org units (2.43's stricter data value import — see the dhis2-metadata skill).
 
 ## Pitfalls
 

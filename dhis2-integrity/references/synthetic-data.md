@@ -39,7 +39,13 @@ before the "original" snapshot** — the snapshot then becomes the true A/B cont
    generator handles this by: skipping DEs/TEAs that are ASSIGN/validation/mandatory **rule targets**
    (derive from `programRuleActions`), skipping empty-option-set fields, and posting with
    **`validationMode=SKIP&skipSideEffects=true`**.
-3. **Scale caveat.** On very large instances (100k+ OUs) the generator's own large metadata fetches
+3. **2.43 rejects data values for dataset-less DEs.** On 2.43+, `POST /api/dataValueSets` requires each
+   data element to belong to a data set of the **matching period type**, AND that data set to be
+   **assigned to the target org units** — errors "Data set detection failed, found no set for data
+   element(s)…" / "Data set X not usable with org unit(s)…". 2.40–2.42 accepted the same payload with no
+   data set at all, so synthetic aggregate data for dataset-less DEs silently fails wholesale on 2.43.
+   Check dataset membership + assignment as a prerequisite, not just OU scope.
+4. **Scale caveat.** On very large instances (100k+ OUs) the generator's own large metadata fetches
    (a multi-MB `dataSets` export) and bulk `dataValueSets` POSTs can OOM Tomcat on a shared host. Turn the
    knobs DOWN (`--ous 1 --periods 1 --chunk 500`) or accept that a metadata-only run is the realistic
    ceiling there and document it (do the data-dependent methodology on a smaller case instead).

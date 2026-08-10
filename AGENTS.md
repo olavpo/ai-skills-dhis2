@@ -42,6 +42,17 @@ indicator that double-counted because…".
 - Synthetic / generated data
 - Throwaway local sandbox names (e.g. `dhis2-sandbox`)
 
+## Skills are knowledge bases, not just workflows
+
+The skills in this repo double as domain references. Their descriptions trigger
+on *activities* (remediate, author, review), so a task that merely overlaps a
+skill's *subject matter* — evaluating, curating, or documenting third-party
+tools in its domain — won't trigger the workflow. Read the skill's references as
+background anyway; real sessions that skipped this shipped guidance the skills
+already contradicted and re-derived recipes the references already contained.
+When authoring, keep references self-contained enough to serve this
+read-as-background use.
+
 ## When unsure
 
 If you can't tell whether something identifies a real deployment, treat it as if

@@ -375,6 +375,32 @@ Schema notes (2.4x): tables are **singular** — `categorycombo`, `categoryoptio
 `categoryoptioncombos_categoryoptions`, `categories_categoryoptions`. **The "changelog" the API vetoes
 on is the `datavalueaudit` table.**
 
+**Version landmines** (each broke otherwise-correct SQL on a real run):
+- **Event tables renamed twice**: `programstageinstance` → `event` in 2.41; 2.43 split `event` into
+  `trackerevent` + `singleevent`. Version-portable event SQL loops over all generations:
+  `FOREACH t IN ARRAY['programstageinstance','event','trackerevent','singleevent'] … CONTINUE WHEN to_regclass(t) IS NULL`.
+- **2.43 added NOT NULL `period.iso`** (the ISO period name; weekly is unpadded ISO week-year, e.g.
+  `2027W1`) — any `INSERT INTO period` must populate it.
+- **2.42 made `userinfo.twofactortype` a NOT NULL enum** (2FA off = `'NOT_ENABLED'`, not NULL);
+  ≤2.41 uses the nullable `userinfo.secret` instead.
+
+**Catalog-driven SQL beats hand-maintained table lists** — two techniques that survive version drift
+because they enumerate the live schema instead of hardcoding it:
+- *FK-graph cascade delete*: recurse over `pg_constraint` — for NOT NULL referencing columns, delete the
+  referencing rows recursively; for nullable ones, `SET NULL`; skip constraints with
+  `confdeltype IN ('c','n')` (the DB handles those itself). DHIS2 FKs are NO ACTION checked at end of
+  statement, so whole self-referencing subtrees delete in one call; `relationship`↔`relationshipitem`
+  are ON DELETE CASCADE both ways.
+- *FK-driven repointing* for merges: enumerate referencing tables/columns from the catalog and
+  `UPDATE … SET col=<keep> WHERE col=<remove>`, special-casing only the natural-key tables
+  (`datavalue`, `completedatasetregistration`, `minmaxdataelement`) where repointing can collide.
+
+For pre-2.43 category/combo/COC merges, a vetted SQL toolkit may be available in the user's
+`dhis2-utils` repo (`sql/merge-categories/merge_functions.sql`: dup diagnostics + `co/cat/cc/coc_dup_merge`
+with LAST_UPDATED conflict resolution, precondition checks, savepoint atomicity — verified 2.40–2.43,
+including the COC data migration the `E1120` guard protects). If available, prefer it over hand-writing
+the consolidation SQL below.
+
 Proven surgical patterns:
 - **Swap a combo's category** (fixes disjoint COCs without moving any data — the data already sits under
   the right COCs, only the combo metadata is wrong):
@@ -399,6 +425,9 @@ Proven surgical patterns:
 - **Rename a username:** `UPDATE userinfo SET username=…`.
 - **Bulk-load a huge join table** the API OOMs on (e.g. `orgunitgroupmembers`, 1M+ rows): resolve
   uid→id maps, delete-then-`execute_values`-insert in 50k batches directly. Then `cacheClear`.
+- **`sort_order` renumbering where `sort_order` is part of the PK** (e.g. `visualization_organisationunits`):
+  a single-pass renumber can collide transiently. Two-phase update: park changed rows on unique negative
+  values (`SET sort_order = -(new)-1`), then flip (`SET sort_order = -(sort_order)-1 WHERE sort_order < 0`).
 - **A COC migration on a huge `datavalue` table (10M+ rows) needs a temp index.** `datavalue` is indexed
   only on its composite PK (+deleted/lastupdated), so `UPDATE datavalue ... WHERE categoryoptioncomboid=X`
   full-scans the whole table per COC (a combo-merge on a 27.8M-row table timed out at 6+ min). Before the

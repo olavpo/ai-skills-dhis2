@@ -48,6 +48,16 @@ directory of CSVs plus an `INDEX.md` explaining each sheet and how to review it.
 
 - **Name similarity ≠ duplicate.** The indicator dedup evidence (across real engagements, only a small minority — e.g. 3 of 68 —
   of shared-formula groups were true duplicates) applies doubly to name-similar DEs — the sheet is a candidate list, nothing more.
+
+### Cutting false positives in duplicate-candidate lists (proven heuristics)
+
+Apply these structural exclusions *before* any semantic judgment of a candidate pair — they encode real DHIS2 domain knowledge and dramatically shrink the list:
+
+- **Shared-membership exclusion.** Two objects that co-exist in the same parent container are intentionally distinct: dataElements sharing a dataSet (`dataSetElements[dataSet[id]]`), categoryOptions sharing a category (`categories[id]`), options in the same option set, org units under the same parent. Membership links are cheap to fetch and are structural ground truth about intended coexistence.
+- **Numeric-variant exclusion.** If two names become identical after masking every digit (`ANC 1st visit` vs `ANC 2nd visit`, `Dose 1` vs `Dose 2`), they are sequence variants, not duplicates — skip the pair.
+- **Never compare across domain types.** Only compare dataElements within `domainType:eq:AGGREGATE` (tracker DEs have different duplication semantics).
+
+Two-phase fetching keeps this cheap: candidate discovery needs only `name,id` + membership links; hydrate full context (`formName`, `description`, `categoryCombo[categories[name]]`, `dataSetElements[dataSet[name,periodType]]`) via `filter=id:in:[…]` for the shortlist only — same name with a different category combo or period type is usually *not* a duplicate; different name with the same formName/description often *is*. Scale rule: on small instances (≲2–3k names per type) just feed the whole name+membership list to the model and ask for candidate sets directly; only 10k+ object types justify an embedding/nearest-neighbour pre-filter.
 - **"Meaningful totals" is a design question.** The 1,248 `category_option_group_sets_incomplete` issues
   on the Laos dataset were all deliberate overlapping-banding design; the sheet surfaces the same
   patterns as *evidence for a data-model review*, not as defects.
