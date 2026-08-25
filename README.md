@@ -6,6 +6,7 @@ A collection of [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/
 |---|---|
 | `create-dhis2-app` | Scaffold a lightweight vanilla-JS DHIS2 tool from the tool-template (no React/App Platform). |
 | `dhis2-app-review` | Review and test DHIS2 web apps: static review, Playwright UI testing, multi-version checks. |
+| `dhis2-bug-report` | Reproduce a suspected DHIS2 bug, check Jira for duplicates, isolate it, and write the ticket. |
 | `dhis2-docs` | Work with the DHIS2 Web API and look up official DHIS2 documentation. |
 | `dhis2-indicators` | Author, validate, and test aggregate indicators and program indicators. |
 | `dhis2-integrity` | Remediate broken/duplicate metadata so an instance passes DHIS2 data-integrity checks. |
