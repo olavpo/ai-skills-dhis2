@@ -39,6 +39,46 @@ returns `204`, and metadata imports can return `200` with `status: "ERROR"` or
 `"WARNING"` in the body. Check each endpoint's actual contract (accept any 2xx,
 then read the body), never `== 200`.
 
+## A `response.uid` in an import report does NOT mean the object exists
+
+Import reports carry `response.uid` **even when the import failed** — a
+`POST /api/users` that returns `409` still includes a generated uid for a user
+that was never persisted. A script that treats uid-presence as success proceeds
+with a nonexistent object and fails confusingly two steps later (401 on login
+as that user, 404 on cleanup). Guard on the status, never the uid:
+
+```python
+r = requests.post(f"{base}/api/users", json=payload, auth=auth)
+body = r.json()
+assert r.ok and body.get("status") == "OK", f"create failed: {r.status_code} {body}"
+uid = body["response"]["uid"]   # only meaningful after the guard
+```
+
+## Cleanup DELETEs can 409 right after a PUT — retry, don't fail
+
+`DELETE /api/users/<uid>` and `DELETE /api/userRoles/<uid>` can return `409`
+immediately after a `PUT` to the same object, then `200` for the identical
+request 1–2 seconds later (plausibly session/cache invalidation; cause not
+pinned down). Write cleanup deletes with 2–3 retries ~2 s apart:
+
+```python
+for attempt in range(3):
+    r = requests.delete(f"{base}/api/users/{uid}", auth=auth)
+    if r.ok or r.status_code == 404:   # 404 = already gone, fine for cleanup
+        break
+    time.sleep(2)
+```
+
+## Validation limits that trip throwaway fixtures
+
+- `description` has a **minimum** length of 2: `POST /api/userRoles` with
+  `"description": "t"` → `409 Allowed length range for property 'description'
+  is [2 to 255]`.
+- `shortName` is required on many metadata types (data elements, indicators,
+  org units, …) even when a fixture never displays it.
+
+Give fixture objects real-looking multi-character values from the start.
+
 ## Seeding data the current server forbids
 
 When the target state is "legacy data a current server won't let you create"
@@ -49,7 +89,7 @@ server now serves the bad state:
 
 ```
 # 1. jsonb UPDATE straight into the table (DB access via the dhis2-instances skill)
-# 2. curl -s -u USER:PASS -X POST "$DHIS2_URL/api/maintenance?cacheClear=true"
+# 2. curl -sg -u USER:PASS -X POST "$DHIS2_URL/api/maintenance?cacheClear=true"
 # 3. GET the object through the API and confirm the forbidden state is present
 ```
 
@@ -102,3 +142,19 @@ Don't assume a "minimal baseline tracker import succeeds cleanly" on demo progra
   not append — easy to wipe the demo defaults. Always read-modify-write
   (`GET` → add your origin → `unique` → `POST` the full list back). The
   endpoint accepts **POST only** — `PUT` returns `405 Method Not Allowed`.
+- **The CORS allowlist is a `configuration` resource, not a system setting.**
+  On 2.42 the same resource also answers at
+  `/api/configuration/corsAllowlist` (the name current docs use; bare JSON
+  array body, returns 204). There is no CORS key under `/api/systemSettings` —
+  `POST /api/systemSettings/keyCorsWhitelist` fails with 409 then 404. Every
+  fresh instance starts with an empty allowlist, so a cross-origin dev server
+  hits a CORS block once per instance.
+
+## `/api/authorities` returns 500 on a freshly booted 2.41.x
+
+Immediately after boot, `GET /api/authorities` returns
+`500 Struts Dispatcher.getInstance() is null` while `/api/userRoles` and
+`/api/me` work fine — the endpoint depends on the legacy Struts layer, which
+initialises lazily. One `GET /dhis-web-commons/security/login.action` fixes it
+permanently for the instance's lifetime. (2.42 untested — warm it pre-emptively
+before asserting on authorities.)

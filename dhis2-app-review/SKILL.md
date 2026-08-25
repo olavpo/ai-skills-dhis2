@@ -102,6 +102,7 @@ With broker access, create instances via the `dhis2-instances` skill:
 - Instances are reachable on dev-net at `http://dhis2-<name>:8080` (usually `admin`/`district`).
 - **At most 2 concurrent `agent-*` instances, and ideally only 1** — resource limits on the host make more than that unreliable. For multi-version testing, run one version at a time: finish (or at least stop) the current instance before starting the next. If you must have two running, don't *boot* them concurrently — two DHIS2 instances starting up at the same time starve each other and can take 20+ minutes with nothing on `/api`. Wait until the first answers on `/api/system/info` before creating the second. Delete instances when done, and list anything left running in the report.
 - **Verify credentials before building on an instance.** Some seeds ship with `admin` disabled or a non-default password — a `GET /api/me` (Basic auth) up front catches this in seconds. DHIS2 caches user details, so a failed login *sticks* until the instance restarts: don't discover this in the middle of a test run. The reliable path is the **always-present `local_admin` / `district` superuser** the broker injects into every instance — prefer it over repairing a seed's `admin`. Fix mechanics (DB reset of the account) belong to the `dhis2-instances` skill.
+- **Use `local_admin` for anything that grants roles or authorities.** A seed's `admin` can authenticate yet not be a true superuser: on the Sierra Leone demo, `admin` has ~248 authorities *without* `ALL`, so creating a user with a new role fails with `409 User 'admin' is not allowed to grant users access to user role '…'`. A successful login proves nothing about authority — check `GET /api/me?fields=authorities` for `ALL`, or just use `local_admin` for user/role fixtures from the start.
 
 ## Mutation safety
 
@@ -138,9 +139,9 @@ yarn start &> /tmp/dev.log &
 
 ```bash
 # POST replaces the whole list — read-modify-write, never POST just your origin
-curl -s -u "$DHIS2_USER:$DHIS2_PASS" "$DHIS2_URL/api/configuration/corsWhitelist" \
+curl -sg -u "$DHIS2_USER:$DHIS2_PASS" "$DHIS2_URL/api/configuration/corsWhitelist" \
   | jq '. + ["http://localhost:<devServerPort>"] | unique' \
-  | curl -s -u "$DHIS2_USER:$DHIS2_PASS" -X POST -H "Content-Type: application/json" \
+  | curl -sg -u "$DHIS2_USER:$DHIS2_PASS" -X POST -H "Content-Type: application/json" \
       -d @- "$DHIS2_URL/api/configuration/corsWhitelist"
 # (the endpoint accepts POST; PUT returns 405)
 ```
@@ -171,7 +172,7 @@ d2-app-scripts start --host 0.0.0.0 --port $SANDBOX_HOST_PORT \
 yarn build      # or: d2-app-scripts build       — produces build/bundle/<app>.zip
 
 # 2. Install on the target instance — accept any 2xx (201 on 2.42+, 204 on ≤2.41)
-curl -s -u "$DHIS2_USER:$DHIS2_PASS" -F "file=@build/bundle/<app>.zip" \
+curl -sg -u "$DHIS2_USER:$DHIS2_PASS" -F "file=@build/bundle/<app>.zip" \
   "$DHIS2_URL/api/apps"
 
 # 3. Drive the installed app directly
@@ -181,7 +182,7 @@ curl -s -u "$DHIS2_USER:$DHIS2_PASS" -F "file=@build/bundle/<app>.zip" \
 #    the top document. See references/playwright-patterns.md.
 
 # 4. Uninstall during cleanup (expect 204)
-curl -s -u "$DHIS2_USER:$DHIS2_PASS" -X DELETE "$DHIS2_URL/api/apps/<app-key>"
+curl -sg -u "$DHIS2_USER:$DHIS2_PASS" -X DELETE "$DHIS2_URL/api/apps/<app-key>"
 ```
 
 For Playwright against the dev server, don't inject cookies — script the dev shell's own "Please sign in" form with `--proxy` pointing at the instance (see `references/playwright-patterns.md`). Cookie injection only works when app and API origins are same-site; that trap and the forwarder workaround (still needed for legacy vanilla apps) are covered in the same reference.
@@ -227,11 +228,12 @@ PROJECT_DIR/
 ```
 
 - **Reports**: create a dated folder per review (`docs/review-2026-07-09-whitespace/`). Screenshots and probes referenced from the report go alongside it, not in `/tmp`. Previous reviews stay put — dated folders let them coexist.
-- **Tests**: everything browser/API-driving lives in `e2e/` — **not** `tests/` or `test/e2e/`, which get confused with the unit-test dir (`test/`, vitest/jest) that platform scaffolds already have.
+- **Tests**: everything browser/API-driving lives in `e2e/` — **not** `tests/` or `test/e2e/`, which get confused with the unit-test dir (`test/`, vitest/jest) that platform scaffolds already have. **This rule is for suites you create.** If the repo already has a working e2e suite elsewhere (e.g. `tests/e2e/` from an earlier review), extend it where it is — don't relocate it silently. If relocation is worth it, propose it as a LOW housekeeping finding, and include updating every README/docs reference to the old path.
 - **The moment you create `e2e/`, extend `.gitignore`**: `__pycache__/`, the results/screenshot output dir, and any auth/state files. A `py_compile` run leaves `.pyc` files that a later broad `git add` sweeps into a commit unnoticed.
 - **Keep worthwhile e2e suites in-repo**: when a suite is worth re-running (e.g. the acceptance suite for a migration — "same flows must pass before and after"), parameterize the instance URL (env var like `DHIS2_URL`, no hard-coded hosts) and offer to commit the suite. Ask the user before committing.
 - **Publishable vs session-internal — decide per document, at creation time.** Findings with root-cause analysis, version-compatibility results, and user documentation are repo history: commit them. State-change/ops logs (`STATE-CHANGES.md` — broker instances, SQL run, package installs, host ports), skill-improvement notes, and most screenshots are session-internal: they document internal test infrastructure that doesn't belong in a public product repo, even when nothing in them is secret. Write session-internal docs *outside* the repo or under a gitignored path **from the start**, so a later broad `git add` can't publish them by accident — deliver them to the user separately.
 - **Existing sprawl**: if the repo already has ad-hoc test scripts at the root, old `REVIEW-*.md` files, or screenshots strewn about, propose consolidating them into this layout as a small housekeeping finding (LOW severity) — don't silently rearrange the repo as part of the review itself.
+- **Session-internal docs an earlier review already committed** (a `STATE-CHANGES.md` with broker instance names, test data, job ids, and similar ops logs): these shouldn't be in the repo, but removing committed history is the user's call, not yours. Flag the file as a LOW finding recommending removal; delete it only with the user's consent.
 
 ## Write for the scanner (SonarCloud)
 
@@ -284,8 +286,10 @@ Don't pad the list. A 5-finding report with concrete fixes is more useful than a
 - App count doesn't match API count → the table may be client-side paginated (only the current page is in the DOM). Read the total from the `Pagination` footer, not from row count.
 - Playwright launch fails with "Host system is missing dependencies" → `sudo $(which playwright) install-deps chromium`. Plain `apt-get install` won't work on Ubuntu 24.04 (`t64` package renames).
 - Selector returns 0 results but element is visibly present → check `page.frames` first. **DHIS2 2.42+ serves installed apps inside a global-shell iframe**, while 2.41 and earlier serve them at top level — a suite that passes on 2.41 will time out on 2.42 if it queries the top document. Also possible: a wrapper widget (Choices.js, Materialize) hiding the real element — use `state="attached"` and locate the wrapper.
+- A test that passed starts failing mid-session with `Connection refused` or a Playwright timeout → the instance may be restarting (Tomcat restarts take ~90 s and the broker still reports the instance as `running`). Re-probe `GET /api/system/info` and re-run before blaming the app.
 - Validation appears to hang → check for a sequential per-item loop (common in legacy code) on a large instance. Wait on a deterministic DOM signal, not a fixed timeout.
 - Dev server (`d2-app-scripts start`, `webpack-dev-server`) exits with `ENOENT … <file>.tmp.<pid>…` while you're editing source → the i18n / hot-reload watcher raced the editor's atomic temp-file rename. Harmless: finish the edits and restart the dev server.
+- Verifying pinned GitHub Action SHAs in a workflow review, but the GitHub REST API rejects the sandbox token → no token needed: `git ls-remote --tags https://github.com/<org>/<repo> refs/tags/<tag> refs/tags/<tag>^{}` works unauthenticated and resolves annotated tags (the `^{}` row is the commit the SHA pin should match).
 - A host you need is blocked by an egress firewall → report it; the user must allow it. Don't hunt for proxies.
 
 ## Bundled resources
