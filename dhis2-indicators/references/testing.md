@@ -31,7 +31,7 @@ AUTH='admin:district'
 Record the version first — a few endpoints differ across releases:
 
 ```bash
-curl -s -u "$AUTH" "$BASE/api/system/info.json" | jq '{version,revision,calendar}'
+curl -sg -u "$AUTH" "$BASE/api/system/info.json" | jq '{version,revision,calendar}'
 ```
 
 Save every request and response under `./test-artifacts/`. Validate expressions via the description endpoints (see SKILL.md) before touching data.
@@ -88,7 +88,7 @@ Before importing, clear two traps:
 - **Zeros.** Two independent mechanisms eat zeros, which makes the "numerator 0 → 0.0 in analytics" edge case untestable as shipped: the importer **silently drops** a `0` for any DE with `zeroIsSignificant=false` (not stored, not counted in `importCount`), and analytics excludes even stored zeros unless the system setting `keyIncludeZeroValuesInAnalytics` is on. If you need zeros to appear, do both *before* generating data: set `zeroIsSignificant=true` on the relevant DEs and `POST /api/systemSettings/keyIncludeZeroValuesInAnalytics?value=true`.
 
 ```bash
-curl -s -u "$AUTH" -H 'Content-Type: application/json' -X POST \
+curl -sg -u "$AUTH" -H 'Content-Type: application/json' -X POST \
   "$BASE/api/dataValueSets?importStrategy=CREATE_AND_UPDATE&force=true" \
   --data-binary @datavalues.json | jq '.status,.importCount,.conflicts'
 ```
@@ -103,8 +103,8 @@ Two more import facts that bite:
 ### 3. Run analytics
 
 ```bash
-curl -s -u "$AUTH" -X POST "$BASE/api/resourceTables/analytics?lastYears=5&skipResourceTables=false"
-curl -s -u "$AUTH" "$BASE/api/system/tasks/ANALYTICS_TABLE.json"   # poll until completed:true
+curl -sg -u "$AUTH" -X POST "$BASE/api/resourceTables/analytics?lastYears=5&skipResourceTables=false"
+curl -sg -u "$AUTH" "$BASE/api/system/tasks/ANALYTICS_TABLE.json"   # poll until completed:true
 ```
 
 `lastYears` must reach back to your test period. Re-run analytics after every data change.
@@ -112,7 +112,7 @@ curl -s -u "$AUTH" "$BASE/api/system/tasks/ANALYTICS_TABLE.json"   # poll until 
 ### 4. Query and compare
 
 ```bash
-curl -s -u "$AUTH" \
+curl -sg -u "$AUTH" \
  "$BASE/api/analytics.json?dimension=dx:<IND_UIDS>&dimension=ou:<leaves>;<parents>&dimension=pe:<period>&outputIdScheme=UID"
 ```
 
@@ -133,7 +133,7 @@ Import the program dependency export with `import_metadata.py` (dependency order
 Create tracker data with the modern endpoint (async by default; force sync to read results immediately). Registration program: `trackedEntities → enrollments → events → dataValues`, with attributes at the TEI/enrollment level. Event program: just events.
 
 ```bash
-curl -s -u "$AUTH" -H 'Content-Type: application/json' -X POST \
+curl -sg -u "$AUTH" -H 'Content-Type: application/json' -X POST \
   "$BASE/api/tracker?async=false&importStrategy=CREATE_AND_UPDATE" \
   --data-binary @tracker.json | jq '.status,.stats,.validationReport.errorReports'
 ```
@@ -145,8 +145,8 @@ Design units deliberately: some that should pass the filter and some that should
 Program-indicator results live in the event/enrollment analytics tables, so do **not** skip events:
 
 ```bash
-curl -s -u "$AUTH" -X POST "$BASE/api/resourceTables/analytics?lastYears=5"
-curl -s -u "$AUTH" "$BASE/api/system/tasks/ANALYTICS_TABLE.json"
+curl -sg -u "$AUTH" -X POST "$BASE/api/resourceTables/analytics?lastYears=5"
+curl -sg -u "$AUTH" "$BASE/api/system/tasks/ANALYTICS_TABLE.json"
 ```
 
 ### 4. Query and compare
@@ -154,13 +154,13 @@ curl -s -u "$AUTH" "$BASE/api/system/tasks/ANALYTICS_TABLE.json"
 Aggregated program-indicator values appear in the `dx` dimension:
 
 ```bash
-curl -s -u "$AUTH" "$BASE/api/analytics.json?dimension=dx:<PI_UID>&dimension=ou:<ous>&dimension=pe:<periods>"
+curl -sg -u "$AUTH" "$BASE/api/analytics.json?dimension=dx:<PI_UID>&dimension=ou:<ous>&dimension=pe:<periods>"
 ```
 
 Drop to line level to check the units behind a number:
 
 ```bash
-curl -s -u "$AUTH" "$BASE/api/analytics/events/query/<PROGRAM>.json?dimension=pe:<period>&dimension=ou:<ou>&stage=<stage>"
+curl -sg -u "$AUTH" "$BASE/api/analytics/events/query/<PROGRAM>.json?dimension=pe:<period>&dimension=ou:<ou>&stage=<stage>"
 # or aggregated: /api/analytics/enrollments/aggregate/<PROGRAM>.json?...
 ```
 

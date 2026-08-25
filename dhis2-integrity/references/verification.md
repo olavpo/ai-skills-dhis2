@@ -49,6 +49,10 @@ verification theater.
    enrollments and confirm no rule references a deleted object and behaviour is unchanged.
 5. **Dangling references:** scan favorites' `dataDimensionItems`, indicator numerator/denominator,
    predictor & validation expressions, min-max, and dataset/section membership for any deleted UID.
+6. **User-facing artefacts:** for each dashboard/visualisation that was touched or references changed
+   objects, fetch the data it actually renders (`GET /api/visualizations/<uid>/data.json`, or replay its
+   analytics query) and confirm it still returns rows. A favorite can pass the dangling-reference scan
+   yet render empty — verify the artefact the user looks at, not only the objects you changed.
 
 `scripts/verify_outputs.py` automates layers 1, 2, 3 and 5 between two instances.
 
