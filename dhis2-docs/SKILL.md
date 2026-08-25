@@ -44,6 +44,24 @@ dhis-core-version-241      DHIS2 2.41
 dhis-core-version-master   development branch
 ```
 
+Older doc pages show API-versioned paths like `/api/33/configuration/corsAllowlist` — the numeric prefix is optional and the unversioned path (`/api/configuration/corsAllowlist`) works on current servers. Don't copy `/api/NN/` verbatim from examples.
+
+---
+
+## Reading DHIS2 core source
+
+When the docs don't settle a question (exact authority semantics, what an endpoint really validates), read the implementation. A blobless sparse clone of [dhis2/dhis2-core](https://github.com/dhis2/dhis2-core) is fast (~53 MB, under a minute) and greppable:
+
+```bash
+git clone --filter=blob:none --no-checkout --depth 1 --branch 2.42 \
+    https://github.com/dhis2/dhis2-core /tmp/dhis2-core
+cd /tmp/dhis2-core
+git sparse-checkout set dhis-2/dhis-api dhis-2/dhis-services dhis-2/dhis-web-api
+git checkout   # REQUIRED: sparse-checkout alone leaves zero files, which looks like a failed clone
+```
+
+For a single known file, `raw.githubusercontent.com/dhis2/dhis2-core/<branch>/<path>` also works. GitHub code search requires auth, so grep the sparse clone instead.
+
 ---
 
 ## Working against an instance
