@@ -94,7 +94,15 @@ python scripts/fetch_metadata.py --url $DHIS2_URL --auth token:$PAT \
 
 ### Copy a slice between instances
 
-See `references/workflows.md` for the recipe — it covers fetching specific types with `--filter`, transforming, and importing with `--passes 2 --exclude users,userGroups`.
+```bash
+# Import a directory of per-type files (note: the input is a named flag, --src)
+python scripts/import_metadata.py --src ./export/split \
+    --url $DHIS2_URL --auth $DHIS2_AUTH \
+    --schemas ./export/schemas.json \
+    --exclude users,userGroups
+```
+
+With `--schemas`, circular clusters import as one payload and a single pass suffices; without it, add `--passes 2` so a second pass resolves forward references (only errors that persist on the final pass are real). See `references/workflows.md` for the full recipe — fetching specific types with `--filter`, transforming, then importing.
 
 ### Investigate an import failure
 
@@ -139,6 +147,10 @@ The flags above only *strip* translations (`--delocalize`); producing them is a 
 - **The import is huge (tens of thousands of org units or more).** Don't POST it as one payload per type. Use `--chunk-size 5000` — org units are then imported shallow-first (parents before children) in async batches with task polling — plus `--resume` after any crash. See `references/workflows.md`.
 
 - **Many reference errors after import.** Run `import_metadata.py --passes 2` so a second pass can pick up forward refs (e.g. programs <-> programRules). If errors persist, they're usually source data quality (UID points to nothing in the export) — the import report will tell you which UID is missing.
+
+- **409 `PropertyValueException: not-null property references a null or transient value` when POSTing a whole metadata bundle to an empty instance** (e.g. `DataSet.periodType` — even though every dataset in the payload has a valid `periodType`). The named property is a red herring: Hibernate flushed an object before a dependency it hadn't persisted yet. Don't debug the payload — import per-type in dependency order (`import_metadata.py`'s default), which succeeds on the same data.
+
+- **Metadata and data imported fine, but an app or analytics shows an empty state.** On a fresh instance the admin user has no org units assigned, so `/api/me` returns no `organisationUnits` and everything renders empty. After importing the hierarchy, assign its root to the user's `organisationUnits`, `dataViewOrganisationUnits` and `teiSearchOrganisationUnits` — on 2.42+ via JSON Patch (`Content-Type: application/json-patch+json`; a plain-JSON `PATCH /api/users/<id>` is rejected).
 
 - **categoryOptionCombos: migrate them, don't regenerate.** The importer imports COCs by default so their UIDs survive — section `greyedFields`, predictor `outputCombo`, and visualization `dataElementOperand`s reference COCs by UID and silently break if the target regenerates them with fresh UIDs. Only skip them consciously (`--exclude categoryOptionCombos` + `POST /api/maintenance/categoryOptionComboUpdate` afterwards) when COC-level references don't matter. Run the maintenance endpoint after import either way to fill any gaps.
 

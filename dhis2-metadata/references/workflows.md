@@ -221,4 +221,4 @@ If you're importing into 2.40 or 2.43+ and the dependency order or type list dif
 - **Removed types**: just leave them out of the source dir; the importer skips missing files.
 - **EMBEDDED_OWNED set**: this list (currently `mapViews`) holds types that are owned by a parent and shouldn't be imported standalone (UID collision). If you find another such type causing conflicts, add it.
 
-When in doubt: run `import_metadata.py --dry-run` first to see the order, then run with `--passes 2` to resolve any forward-reference cycles.
+When in doubt: run `import_metadata.py --dry-run` first to see the order, then run with `--passes 2` to resolve any forward-reference cycles. On multi-pass runs, judge success by the **final pass's** error count (the script prints it per pass) — pass-1 `E5002`s that a later pass resolves are deferred forward references, not real failures.

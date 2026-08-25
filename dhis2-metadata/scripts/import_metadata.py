@@ -53,8 +53,8 @@ ORDER = [
     "categoryCombos",
     "categoryOptionCombos",
     "organisationUnitLevels",
+    "organisationUnits",  # before groups: groups own member refs to org units
     "organisationUnitGroups", "organisationUnitGroupSets",
-    "organisationUnits",
     "trackedEntityAttributes", "trackedEntityTypes", "relationshipTypes",
     "indicatorTypes",
     "dataElements", "dataElementGroups", "dataElementGroupSets",
@@ -546,9 +546,11 @@ def main():
                       f"present, importing {len(items)}")
         return items
 
+    pass_errors = []
     for pass_n in range(1, args.passes + 1):
         if args.passes > 1:
             print(f"\n=== Pass {pass_n}/{args.passes} ===")
+        errors_before = overall["errors"]
         for group in groups:
             if len(group) > 1:
                 # circular cluster: one payload so the server resolves the cycle
@@ -562,10 +564,22 @@ def main():
                 continue
             for label, batch in batches_for(ptype, items, args.chunk_size):
                 send({ptype: batch}, f"{ptype}{label}")
+        pass_errors.append(overall["errors"] - errors_before)
 
     print(f"\n=== Summary ===")
     print(f"Created: {overall['created']}, updated: {overall['updated']}, "
           f"ignored: {overall['ignored']}, errors: {overall['errors']}")
+    if args.passes > 1:
+        # Earlier-pass errors are often forward references a later pass
+        # resolves (E5002); only errors that persist on the last pass are real.
+        print(f"Object errors per pass: "
+              f"{', '.join(f'pass {i + 1}: {n}' for i, n in enumerate(pass_errors))}")
+        if pass_errors[-1]:
+            print(f"Investigate the {pass_errors[-1]} final-pass errors; "
+                  f"earlier-pass-only errors were deferred forward references.")
+        else:
+            print("No errors on the final pass — earlier-pass errors were "
+                  "deferred forward references, since resolved.")
     if failed_types:
         print(f"\nServer errors:")
         for t, s in failed_types:
