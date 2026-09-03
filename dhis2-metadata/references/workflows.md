@@ -1,6 +1,8 @@
 # DHIS2 metadata workflows
 
-Common recipes for the three scripts. Read this when you need a starting point but the inline examples in `SKILL.md` aren't enough.
+Recipes and verified traps for the three scripts. Read this when the inline examples in `SKILL.md` aren't enough.
+
+**Contributor rule:** this file records only what a frontier model gets wrong or cannot know — behaviour verified on a live instance, tagged with the DHIS2 version it was seen on (`verified 2.42.5`). Do not add generic API explanations, error-code glossaries, or how-to steps the model already produces unprompted; a baseline probe (2026-09) showed it knows field-filter syntax, the standard PII fields, E5002/E4000/E4007 and the `createdBy` shape without help. Untested claims go nowhere.
 
 ## 1. Prepare metadata for AI consumption (read-only analysis)
 
@@ -27,17 +29,12 @@ Result: `./export/split/<plural>.json` files (e.g. `dataElements.json`, `program
 
 ## 2. Investigate import/export errors
 
-Goal: explain why a metadata import failed.
+The model knows the common codes (`E5002` invalid reference, `E4000` missing required property, `E4007` collection size, `E4061` dashboard item reference). What it does not know:
 
-1. Have the user paste the import report or the metadata file.
-2. If it's a metadata file, locate the problem objects — look for objects referencing UIDs that aren't in the file, missing required fields per the schema, or fields that DHIS2 will reject (e.g. category with >50 options, visualization with >255 series items).
-3. If it's an import report (response from `/api/metadata` or `/api/dataValueSets`), explain each error code:
-   - `E5002`: invalid reference (target UID not present or not yet imported)
-   - `E4000`: missing required property
-   - `E4007`: collection size out of allowed range
-   - `E4061`: dashboard item references object that doesn't exist
-   - `E1127`: category exceeds 50-option limit
-4. Propose minimal fixes (add the missing object, drop the offending field, change import order).
+- `E1127` category >50 options and `E1130` COC count mismatch (2.43+) are **target-side caps/validation**, not payload bugs — see §7 known failure classes for the `dhis.conf` keys and the fix.
+- `HTTP 409, status=ERROR, zero error reports` is a whole-batch Hibernate flush crash, not "no errors" — §7.
+- `E5002` on the **first** of several passes is usually a deferred forward reference; judge by the final pass.
+- Pre-import scan (§5) catches the late-failing dashboard/visualization references before an import cycle is spent.
 
 ## 3. Copy a slice of metadata between instances
 
@@ -73,30 +70,10 @@ Sharing travels unless you removed it: `--unshare` at export, or `--skip-sharing
 
 ## 4. Generate realistic dummy data for a program or dataset
 
-Goal: write a script that pushes plausible test data to `/api/tracker` or `/api/dataValueSets`.
+No shipped generator: fetch the program/dataset with `--types programs,programStages,programStageDataElements,dataElements,optionSets,options,trackedEntityAttributes,trackedEntityTypes --schemas --minimize --split`, read the split files, write a one-off script. The model knows how (respect `valueType`/`optionSet`, `/api/tracker?async=false`, `/api/dataValueSets`, small org-unit allow-list, small N first). Traps it does not know:
 
-The skill itself doesn't ship a dummy-data script — every program has different value types, option sets, and constraints, so the right shape of script depends on the metadata. The workflow is:
-
-1. Fetch the program (or dataset) and its full transitive metadata: programStages, programStageDataElements, dataElements, optionSets, options, trackedEntityAttributes.
-
-   ```bash
-   python scripts/fetch_metadata.py --url ... --auth ... \
-       --types programs,programStages,programStageDataElements,dataElements,optionSets,options,trackedEntityAttributes,trackedEntityTypes \
-       --out ./prog
-   ```
-
-2. Add `--schemas --minimize --split` to that fetch (or run `transform_metadata.py --minimize --split-dir`) so the model can read individual files without spending tokens on irrelevant fields.
-
-3. Read the relevant files and write a Python script that:
-   - Iterates the data elements / TEAs in scope.
-   - For each, generates values matching its `valueType` (TEXT, INTEGER, BOOLEAN, DATE, NUMBER, etc.) and respects its `optionSet` (pick from the available options) and any value-range constraints.
-   - For tracker programs: creates trackedEntities + enrollments + events through `/api/tracker?async=false`.
-   - For aggregate datasets: builds a `dataValueSets.json` payload and POSTs to `/api/dataValueSets`.
-   - Picks org units from a small allow-list (don't fan out across thousands of facilities — it makes the data unrealistic and the import slow).
-
-4. Always default to a small N (e.g. 50 trackedEntities, 5 events each) for the first run. Confirm with the user before generating thousands.
-
-**2.43 gotcha for aggregate payloads:** `POST /api/dataValueSets` on 2.43+ requires each data element to belong to a data set of the matching period type, AND that data set to be assigned to the target org units — otherwise the whole payload fails with "Data set detection failed…" / "Data set X not usable with org unit(s)…". 2.40–2.42 accepted dataset-less values silently, so a generator that worked there fails wholesale on 2.43. Check dataset membership and OU assignment before generating.
+- **2.43+ `POST /api/dataValueSets` requires a data set** (verified 2.43): every data element must belong to a data set of the matching period type **and** that data set must be assigned to the target org units, or the whole payload fails with "Data set detection failed…" / "Data set X not usable with org unit(s)…". 2.40–2.42 accepted dataset-less values silently, so a generator that worked there fails wholesale on 2.43.
+- On a fresh instance the importing user has no org units, so tracker payloads fail on ownership/search scope until the root is assigned (§10, JSON Patch on 2.42+).
 
 ## 5. Validate metadata for issues before importing
 
@@ -178,25 +155,22 @@ These come from a full seed → export → import → re-export → diff round-t
 
 ## 8. Document a program as human-readable Markdown
 
-Goal: readable configuration documentation for implementers and reviewers — a different deliverable from the AI prep in §1. Like dummy data (§4), don't reach for a shipped generator: run the §1 prep, then write a one-off script over the split files producing this structure (proven on real tracker programs):
+Same approach as §4: prep, then a one-off script over the split files. Structure (per program: TET + attribute table; stages → sections → data-element tables; option-set appendix with "used by") is what the model produces anyway. Traps:
 
-- One `#` section per program: the tracked entity type, then a table of its tracked entity attributes (ID, name, value type, option set — link option-set names to the appendix).
-- `## Programme structure`: stages in order, each with `repeatable`, then its sections in order, each with a data-element table (same columns as the TEA table). Finish each stage with a "Not in sections" table for stage DEs that appear in no section — silently dropping them is the common mistake.
-- **Ordering gotcha**: display order lives on the *join* objects — `programTrackedEntityAttributes` (program level) and `programStageDataElements` (stage level) carry `sortOrder`, not the DE/TEA itself. Sections and stages carry their own `sortOrder`.
-- `# Appendix — OptionSets`: one entry per option set *actually used*, with ID, `valueType`, an options table (ID, code, name; sort by option `sortOrder`; cap at ~50 rows with an "N options skipped" note — option sets can have thousands) and a "Used by" table of the DEs/TEAs referencing it.
-- Program-indicator variant: per PI a table of name/ID/aggregationType/expression/filter, plus the stages, DEs and TEAs the expressions reference — parse `#{stageUid.deUid}` and `A{teaUid}` tokens and resolve UIDs to names. (Authoring or reviewing the expressions themselves is the dhis2-indicators skill.)
+- **Display order lives on the join objects** — `programTrackedEntityAttributes` (program level) and `programStageDataElements` (stage level) carry `sortOrder`, not the DE/TEA itself. Sections and stages carry their own `sortOrder`.
+- **Stage data elements that appear in no section are silently dropped** unless you add a "Not in sections" table per stage.
+- Option sets can have thousands of options — cap the appendix (~50 rows + "N skipped").
+- Program-indicator variant: resolve `#{stageUid.deUid}` and `A{teaUid}` tokens to names. Authoring/reviewing the expressions is the dhis2-indicators skill.
 
 ## 9. Translate metadata to another locale
 
-Goal: produce translations (the opposite of `--delocalize`). The model does the translating itself; the reusable knowledge is the format and the traps.
+The model does the translating; the record format is known to it (`translations: [{locale, property, value}]`, `property` in SCREAMING_SNAKE: `shortName` → `SHORT_NAME`). Traps:
 
-- **Which fields are translatable** is per-type schema data: properties with `translatable: true` in `schemas.json` (`name`, `shortName`, `description`, form names, …).
-- **Two distinct targets — confirm which the user wants**: (a) *add* translations for a new locale, leaving the primary properties alone; (b) *switch the primary language* — set translated values as the main properties and store the originals as `translations` records for the source locale.
-- **Record format**: entries in the object's `translations` array look like `{"locale": "fr", "property": "SHORT_NAME", "value": "…"}` — `property` is the field name in SCREAMING_SNAKE (`shortName` → `SHORT_NAME`, `formName` → `FORM_NAME`).
-- **Length limits apply to translations too**: a translated `SHORT_NAME` must still fit 50 chars.
-- **Dedupe `(property, locale)` per object before importing** — duplicates reject the whole object with `E1106` (failure classes, §7).
-- **Never translate `programRuleVariables` names.** Program rules reference variables *by name* — `#{varName}`, `A{varName}`, `d2:hasValue('varName')` — so translating the name silently breaks every rule using it, and the damage only shows up as rules that stop firing. Exclude the type entirely.
-- **Keep terminology consistent** across objects (the same domain term translated the same way everywhere): translate with the related objects in context, or build up a glossary as you go, rather than translating each object in isolation.
+- **Never translate `programRuleVariables` names.** Program rules reference variables *by name* (`#{varName}`, `A{varName}`, `d2:hasValue('varName')`); translating the name silently breaks every rule using it and the damage only shows as rules that stop firing. Exclude the type entirely.
+- **Duplicate `(property, locale)` per object rejects the whole object with `E1106`** (verified 2.42, common in old databases) — dedupe before importing.
+- Length limits apply to translations too (`SHORT_NAME` ≤ 50).
+- Which fields are translatable is per-type schema data (`translatable: true` in `schemas.json`), not a fixed list.
+- Confirm the target: *add* a locale (primary properties untouched) vs *switch primary language* (translated values become the properties, originals stored as `translations` for the source locale).
 
 ## 10. Troubleshooting
 

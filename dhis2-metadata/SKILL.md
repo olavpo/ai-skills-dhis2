@@ -73,7 +73,7 @@ python scripts/import_metadata.py --src ./slice/split --schemas ./slice/schemas.
 
 Without `--schemas` on import, add `--passes 2` for forward references; judge by the final pass's errors. Import does not strip sharing unless `--skip-sharing` is passed — decide at export time with `--unshare`.
 
-Full recipes in `references/workflows.md`: import-error decoding (§2), dummy data (§4), pre-import validation (§5), huge imports (§7), program documentation (§8), translating metadata (§9), troubleshooting (§10).
+Recipes and verified traps in `references/workflows.md`: import-error traps (§2), dummy data (§4), pre-import validation (§5), huge imports (§7), program documentation (§8), translating metadata (§9), troubleshooting (§10).
 
 ## Bundled schemas
 
