@@ -361,9 +361,10 @@ deliverable, and optionally round-trip-import it into one more clean instance to
 - `scripts/integrity.py` — run checks (summary + slow), `finishedTime`-aware waiting, inventory print,
   and a `details <check>` command. The cure for the async/cache trap.
 - `scripts/db_client.py` — logged psycopg2 wrapper for the guard-blocked SQL fixes.
-- `scripts/export_metadata_safe.py` — **slow, throttled, per-type** metadata export (gentle on large
-  live instances) that **anonymizes PII** on the way out (mirrors dhis2-metadata's `--anonymize`).
-  Prefer this over a single `/api/metadata.json` call when pulling a dump from production.
+- For a **gentle, anonymized export from a large live instance**, use the dhis2-metadata skill's
+  `fetch_metadata.py --all-types --page-size 200 --delay 0.3 --anonymize --unshare` — it excludes PII
+  and sharing server-side (`fields=:owner,!email,…`) so they never leave the server. (The former
+  `export_metadata_safe.py` here was a duplicate and has been removed.)
 - `scripts/metadata_dump.py` — fast full-metadata export / import / diff (small instances or sandbox).
 - `scripts/gen_synthetic_data.py` — **populate synthetic data so fixes are realistically exercised** (empty
   DBs never trip the `E1120`/`E4030` guards and give nothing to A/B-diff). Aggregate via `/api/dataValueSets`
