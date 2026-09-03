@@ -1,19 +1,32 @@
-"""Fetch metadata and/or the schema definitions from a live DHIS2 instance.
+"""Fetch metadata and/or schemas from a live DHIS2 instance, optionally transformed.
+
+The transformation flags are shared with transform_metadata.py. Here they work
+in two layers: matching fields are excluded server-side via the `fields=`
+parameter (e.g. `:owner,!sharing,!translations,!email,...`) so the data never
+leaves the server, and the local transform pass then runs on the download to
+catch what field filtering cannot reach (embedded objects, user references
+inside collections). `createdBy`/`lastUpdatedBy` are excluded by default: they
+carry the creator's real name and username on every object and are re-stamped
+on import anyway. Pass an explicit --fields to take full control.
 
 Examples:
-    python fetch_metadata.py --url http://localhost:9021 --auth claude:Test12345 \\
+    # Plain export + schemas
+    python fetch_metadata.py --url http://localhost:9021 --auth user:pass \\
         --metadata --schemas --out ./export
 
-    # Fetch only specific object types
+    # Anonymized, unshared, untranslated, split per type — ready for AI or sharing
     python fetch_metadata.py --url ... --auth user:pass \\
-        --types dataElements,indicators,programs --out ./export
+        --metadata --schemas --anonymize --unshare --delocalize --split --out ./export
 
-    # Gentle full export from a production instance: every metadata type,
-    # paginated and throttled so no single request is heavy on the server
+    # Gentle full export from production: every type, paginated and throttled
     python fetch_metadata.py --url ... --auth token:$PAT \\
-        --all-types --page-size 200 --delay 0.3 --exclude users,userGroups --out ./export
+        --all-types --page-size 200 --delay 0.3 --exclude users --anonymize --out ./export
 
-    # Incremental: only objects created/changed since a date
+    # Only specific types, filtered
+    python fetch_metadata.py --url ... --auth user:pass \\
+        --types dataElements,indicators,programs --filter "name:like:Malaria" --out ./slice
+
+    # Incremental: only objects created/changed since a date (per-type modes only)
     python fetch_metadata.py --url ... --auth user:pass \\
         --all-types --page-size 200 --since 2026-01-01 --out ./export
 """
@@ -22,8 +35,12 @@ import json
 import os
 import sys
 import time
+
 import requests
 from requests.auth import HTTPBasicAuth
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import transform_metadata as tm  # noqa: E402
 
 TRANSIENT_ERRORS = (requests.exceptions.ConnectionError,
                     requests.exceptions.Timeout,
@@ -62,9 +79,16 @@ def metadata_types(session, base):
                   if s.get("metadata") and s.get("relativeApiEndpoint"))
 
 
-def fetch_type(session, base, ptype, args, filters):
+def build_fields(args, opts):
+    """The `fields=` value: explicit --fields wins, else :owner minus exclusions."""
+    if args.fields:
+        return args.fields
+    return ",".join([":owner"] + tm.fields_exclusions(opts, strip_audit_refs=True))
+
+
+def fetch_type(session, base, ptype, args, fields, filters):
     """Fetch one metadata type; paginated when --page-size is set."""
-    params = {"fields": args.fields}
+    params = {"fields": fields}
     if filters:
         params["filter"] = filters
     if args.root_junction:
@@ -94,6 +118,14 @@ def fetch_type(session, base, ptype, args, filters):
             time.sleep(args.delay)
 
 
+def fetch_bulk(session, base, args, fields, excluded):
+    """One /api/metadata request; excluded types are switched off server-side."""
+    params = {"fields": fields}
+    for t in excluded:
+        params[t] = "false"
+    return fetch(session, f"{base}/metadata.json", params=params)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -103,45 +135,63 @@ def main():
                    help="user:password or 'token:<PAT>' for personal access token "
                         "(default: $DHIS2_AUTH, or token:$DHIS2_API_TOKEN)")
     p.add_argument("--out", default=".", help="Output directory")
-    p.add_argument("--metadata", action="store_true",
-                   help="Fetch full metadata.json in ONE request (heavy on large "
-                        "instances; prefer --all-types --page-size for production)")
-    p.add_argument("--schemas", action="store_true", help="Fetch schemas.json (with property details)")
-    p.add_argument("--types", default=None,
-                   help="Comma-separated metadata types to fetch instead of full metadata "
-                        "(e.g. dataElements,indicators,programs)")
-    p.add_argument("--all-types", action="store_true",
-                   help="Fetch every metadata type the instance exposes (discovered "
-                        "via /api/schemas). Combine with --page-size/--delay for a "
-                        "server-friendly full export.")
-    p.add_argument("--exclude", default="",
-                   help="Comma-separated types to skip (used with --types/--all-types)")
-    p.add_argument("--filter", action="append", default=None,
-                   help="DHIS2 filter expression applied per type (e.g. 'name:like:Malaria'). "
-                        "Repeatable; multiple filters combine with AND unless --root-junction OR. "
-                        "Use with --types.")
-    p.add_argument("--root-junction", default=None, choices=["AND", "OR"],
-                   help="How multiple --filter expressions combine (server default: AND)")
-    p.add_argument("--since", default=None,
-                   help="Only objects created/changed on or after this date "
-                        "(adds a lastUpdated:ge: filter; ISO date, e.g. 2026-01-01). "
-                        "lastUpdated is set on creation too, so this captures both.")
-    p.add_argument("--page-size", type=int, default=0,
-                   help="Fetch each type page by page with this many objects per "
-                        "request instead of one unbounded request (lower = gentler "
-                        "on the server; 200 is a good production default). "
-                        "0 (default) = single request per type.")
-    p.add_argument("--delay", type=float, default=0.0,
-                   help="Seconds to sleep between requests (pages and types), "
-                        "spreading load on a production server (e.g. 0.3)")
-    p.add_argument("--fields", default=":owner",
-                   help="Field set for type-specific fetches (default ':owner', which returns "
-                        "all owned/persisted fields and is the right shape for re-import).")
+
+    what = p.add_argument_group("what to fetch")
+    what.add_argument("--metadata", action="store_true",
+                      help="Full metadata.json in ONE request (heavy on large "
+                           "instances; prefer --all-types --page-size for production)")
+    what.add_argument("--schemas", action="store_true",
+                      help="Fetch schemas.json (with property details)")
+    what.add_argument("--types", default=None,
+                      help="Comma-separated metadata types to fetch instead of full metadata "
+                           "(e.g. dataElements,indicators,programs)")
+    what.add_argument("--all-types", action="store_true",
+                      help="Fetch every metadata type the instance exposes (discovered "
+                           "via /api/schemas). Combine with --page-size/--delay for a "
+                           "server-friendly full export.")
+    what.add_argument("--exclude", default="",
+                      help="Comma-separated types to skip (e.g. users,userGroups); "
+                           "works in every mode")
+    what.add_argument("--filter", action="append", default=None,
+                      help="DHIS2 filter expression applied per type (e.g. 'name:like:Malaria'). "
+                           "Repeatable; multiple filters combine with AND unless --root-junction OR. "
+                           "Per-type modes only.")
+    what.add_argument("--root-junction", default=None, choices=["AND", "OR"],
+                      help="How multiple --filter expressions combine (server default: AND)")
+    what.add_argument("--since", default=None,
+                      help="Only objects created/changed on or after this date "
+                           "(adds a lastUpdated:ge: filter; ISO date, e.g. 2026-01-01). "
+                           "lastUpdated is set on creation too, so this captures both.")
+    what.add_argument("--fields", default=None,
+                      help="Explicit field set (default: ':owner' minus createdBy/"
+                           "lastUpdatedBy and minus whatever the transform flags exclude). "
+                           "Passing this disables the default exclusions.")
+
+    how = p.add_argument_group("server load")
+    how.add_argument("--page-size", type=int, default=0,
+                     help="Fetch each type page by page with this many objects per "
+                          "request instead of one unbounded request (lower = gentler "
+                          "on the server; 200 is a good production default). "
+                          "0 (default) = single request per type.")
+    how.add_argument("--delay", type=float, default=0.0,
+                     help="Seconds to sleep between requests (pages and types), "
+                          "spreading load on a production server (e.g. 0.3)")
+
+    tr = p.add_argument_group("transform (same flags as transform_metadata.py; "
+                              "excluded server-side where possible, then applied locally)")
+    tm.Options.add_arguments(tr)
+    tr.add_argument("--split", action="store_true",
+                    help="Also write per-type files to <out>/split/")
     args = p.parse_args()
+    opts = tm.Options.from_args(args)
 
     if not args.url or not args.auth:
         p.error("--url and --auth are required (or set DHIS2_BASE_URL and "
                 "DHIS2_AUTH or DHIS2_API_TOKEN)")
+    if not (args.metadata or args.schemas or args.types or args.all_types):
+        p.error("nothing to fetch: pass --metadata, --schemas, --types, or --all-types")
+    if opts.minimize and not args.schemas:
+        p.error("--minimize needs the instance's schemas: add --schemas")
 
     os.makedirs(args.out, exist_ok=True)
 
@@ -154,33 +204,35 @@ def main():
 
     base = args.url.rstrip("/") + "/api"
 
-    # Probe instance + version
     info = fetch(session, f"{base}/system/info")
-    version = info.get("version", "?")
-    print(f"Connected to {args.url} (DHIS2 {version})")
+    print(f"Connected to {args.url} (DHIS2 {info.get('version', '?')})")
 
+    by_plural = by_klass = None
     if args.schemas:
         out = os.path.join(args.out, "schemas.json")
         data = fetch(session, f"{base}/schemas.json", params={"fields": "*,properties"})
         with open(out, "w") as f:
             json.dump(data, f)
         print(f"Saved: {out} ({len(data.get('schemas', []))} schemas)")
+        by_plural, by_klass = tm.index_schemas(data)
 
+    fields = build_fields(args, opts)
+    excluded = {t.strip() for t in args.exclude.split(",") if t.strip()}
     filters = list(args.filter) if args.filter else []
     if args.since:
         filters.append(f"lastUpdated:ge:{args.since}")
 
+    merged = None
     if args.types or args.all_types:
         if args.types:
             types = [t.strip() for t in args.types.split(",") if t.strip()]
         else:
             types = metadata_types(session, base)
-        excluded = {t.strip() for t in args.exclude.split(",") if t.strip()}
         types = [t for t in types if t not in excluded]
         merged = {}
         for ptype in types:
             try:
-                items = fetch_type(session, base, ptype, args, filters)
+                items = fetch_type(session, base, ptype, args, fields, filters)
             except requests.exceptions.HTTPError as e:
                 # With --all-types some discovered endpoints may 4xx/5xx
                 # (permissions, version quirks); skip rather than abort.
@@ -193,22 +245,29 @@ def main():
             print(f"  {ptype}: {len(items)}")
             if args.delay:
                 time.sleep(args.delay)
+    elif args.metadata:
+        if filters:
+            print("Note: --filter/--since only apply to --types/--all-types; ignored.",
+                  file=sys.stderr)
+        merged = fetch_bulk(session, base, args, fields, excluded)
+        merged = {k: v for k, v in merged.items() if k not in excluded}
+
+    if merged is not None:
+        if not args.fields:
+            # Server-side !createdBy/!lastUpdatedBy only reaches top-level objects;
+            # embedded ones (programStageDataElements, mapViews, ...) carry their own.
+            merged = tm.strip_keys(merged, tm.AUDIT_REF_FIELDS)
+        if opts:
+            merged = tm.transform(merged, opts, by_plural, by_klass)
         out = os.path.join(args.out, "metadata.json")
         with open(out, "w") as f:
             json.dump(merged, f)
-        print(f"Saved: {out}")
-    elif args.metadata:
-        out = os.path.join(args.out, "metadata.json")
-        data = fetch(session, f"{base}/metadata.json")
-        with open(out, "w") as f:
-            json.dump(data, f)
-        sized = sum(len(v) for v in data.values() if isinstance(v, list))
-        print(f"Saved: {out} ({sized} objects across {sum(1 for v in data.values() if isinstance(v, list))} types)")
-
-    if not (args.metadata or args.schemas or args.types or args.all_types):
-        print("Nothing fetched. Pass --metadata, --schemas, --types, or --all-types.",
-              file=sys.stderr)
-        sys.exit(2)
+        n_types = sum(1 for v in merged.values() if isinstance(v, list))
+        n_obj = sum(len(v) for v in merged.values() if isinstance(v, list))
+        print(f"Saved: {out} ({n_obj} objects across {n_types} types; fields={fields})")
+        if args.split:
+            files = tm.write_split(merged, os.path.join(args.out, "split"), quiet=True)
+            print(f"Saved: {len(files)} per-type files to {os.path.join(args.out, 'split')}")
 
 
 if __name__ == "__main__":

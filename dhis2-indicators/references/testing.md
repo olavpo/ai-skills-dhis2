@@ -51,8 +51,8 @@ Dependency exports carry `createdBy`/`user`/`sharing` references to users that d
 Use the `dhis2-metadata` skill to handle the import cleanly. It is metadata-only — it does not enter data, import tracker data, run analytics, or verify results.
 
 - `fetch_metadata.py --types … --filter … --out ./export` pulls types from a reference instance (or use the dependency-export endpoints above).
-- `split_metadata.py bundle.json --output-dir ./split --unshare --delocalize` writes one file per type, cleaned of sharing/translations. Use `--unshare --delocalize` for a fresh-instance import; **skip `--minimize`** (it can strip a rarely-used owned property and break the round-trip — that flag is for analysis).
-- `import_metadata.py --src ./split --url $BASE --auth $AUTH --passes 2` POSTs each type in dependency order. This is what removes the manual ordering gotchas: `indicatorTypes` before `indicators`, `trackedEntityTypes`/`programStages` before `programIndicators`, `skipSharing` on by default, `categoryOptionCombos` skipped (server regenerates), and a second pass resolves forward refs (programs ↔ program rules).
+- `transform_metadata.py bundle.json --split-dir ./split --unshare --delocalize` writes one file per type, cleaned of sharing/translations. Use `--unshare --delocalize` for a fresh-instance import; **skip `--minimize`** (it can strip a rarely-used owned property and break the round-trip — that flag is for analysis).
+- `import_metadata.py --src ./split --url $BASE --auth $AUTH --passes 2` POSTs each type in dependency order. This is what removes the manual ordering gotchas: `indicatorTypes` before `indicators`, `trackedEntityTypes`/`programStages` before `programIndicators`, `categoryOptionCombos` imported with their UIDs, and a second pass resolves forward refs (programs ↔ program rules). Sharing was already stripped by `--unshare`; when importing a raw export instead, add `--skip-sharing`.
 
 After import, still run `POST /api/maintenance/categoryOptionComboUpdate`, and still confirm indicator-type **factors** — the skill moves objects, it doesn't check that Percentage really is ×100. A single-bundle metadata POST is a fine alternative for small, self-contained exports.
 
@@ -126,7 +126,7 @@ Separate the **value** comparison from the **rounding** comparison, or you will 
 
 ### 1. Metadata and setup
 
-Import the program dependency export with `import_metadata.py` (dependency order handles `trackedEntityTypes`/`programStages` before `programIndicators`; `--passes 2` resolves the program ↔ program-rule cycle; `skipSharing` on by default). Create the org unit hierarchy and assign the program to org units and the importing user. Validate expression and filter via the description endpoints first.
+Import the program dependency export with `import_metadata.py` (dependency order handles `trackedEntityTypes`/`programStages` before `programIndicators`; `--passes 2` resolves the program ↔ program-rule cycle; `--skip-sharing` unless the export was run through `--unshare`). Create the org unit hierarchy and assign the program to org units and the importing user. Validate expression and filter via the description endpoints first.
 
 ### 2. Generate test data
 
@@ -194,7 +194,7 @@ Compare the aggregated value, your engine-layer recomputation of expression+filt
 # Checklist
 
 - [ ] Fresh, empty, disposable instance — never a real or shared one.
-- [ ] Metadata supplied as dependency exports; split and imported in dependency order with `skipSharing=true` (dhis2-metadata skill, `--unshare --delocalize`, no `--minimize`).
+- [ ] Metadata supplied as dependency exports; transformed and imported in dependency order with sharing stripped (dhis2-metadata skill, `--unshare --delocalize`, no `--minimize`; or `--skip-sharing` on import).
 - [ ] Version recorded; expressions validated via description endpoints.
 - [ ] Indicator types created with correct factors before importing indicators (aggregate only).
 - [ ] Org unit hierarchy with ≥2 siblings under a shared parent; dataset/program assigned to leaves and to the importing user.

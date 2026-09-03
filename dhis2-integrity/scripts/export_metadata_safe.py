@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Export ALL metadata from a DHIS2 instance SLOWLY (per type, paginated, throttled) and anonymize it.
 
-Why this exists: dhis2-metadata's fetch_metadata.py pulls the whole instance in one
-`/api/metadata.json` call (or per-type with paging=false) — fine for small instances, but on a large
-production instance that single response can spike memory and hurt the live server. This script walks
-each metadata type page-by-page with a delay between requests, so the load is spread out, then strips
-PII so the dump is safe to take off-site / restore onto a sandbox.
+NOTE: dhis2-metadata's `fetch_metadata.py --all-types --page-size 200 --delay 0.3 --anonymize`
+now does the same job, and better — it excludes PII/sharing/translations server-side via
+`fields=:owner,!email,...` so they never leave the server. Prefer it; this script is kept for
+callers that depend on its single-file interface.
 
-The anonymization rules MIRROR the dhis2-metadata skill's `split_metadata.py --anonymize` (the canonical
-reference): strip email/phone/names/usernames/addresses everywhere, replace required user fields with
-placeholders so user objects stay valid, and reduce createdBy/lastUpdatedBy to {id}. This script keeps
-it self-contained so the output is a single, ready-to-use anonymized metadata.json.
+Walks each metadata type page-by-page with a delay between requests, so the load is spread out,
+then strips PII so the dump is safe to take off-site / restore onto a sandbox.
+
+The anonymization rules MIRROR the dhis2-metadata skill's `transform_metadata.py --anonymize` (the
+canonical reference): strip email/phone/names/usernames/addresses everywhere, replace required user
+fields with placeholders so user objects stay valid, and reduce createdBy/lastUpdatedBy to {id}.
 
 Auth via env (same as the other scripts): DHIS2_BASE_URL + DHIS2_API_TOKEN, or DHIS2_USER/DHIS2_PASS.
 

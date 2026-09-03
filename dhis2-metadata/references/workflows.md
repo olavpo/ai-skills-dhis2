@@ -7,26 +7,23 @@ Common recipes for the three scripts. Read this when you need a starting point b
 Goal: turn a 50–100 MB metadata.json into something the model can reason about. Anonymize PII, strip translations and sharing, remove non-essential fields, split per type so the model can grep/Read individual files.
 
 ```bash
-# From a live instance
+# From a live instance: transforms are applied server-side (fields=:owner,!sharing,...)
+# and locally, and --split writes the per-type files in one go
 python scripts/fetch_metadata.py \
-    --url http://localhost:9021 \
-    --auth user:pass \
-    --metadata --schemas \
-    --out ./export
-
-# Or, if you already have a metadata.json file, skip the fetch step and
-# put schemas.json next to it (or pass --schemas explicitly).
-
-# Transform + split
-python scripts/split_metadata.py ./export/metadata.json \
-    --schemas ./export/schemas.json \
-    --output-dir ./export/split \
+    --url http://localhost:9021 --auth user:pass \
+    --metadata --schemas --split --out ./export \
     --anonymize --minimize --unshare --delocalize
+
+# Metadata already on disk: same flags, local pass only
+python scripts/transform_metadata.py ./export/metadata.json \
+    --schemas ./export/schemas.json \
+    --anonymize --minimize --unshare --delocalize \
+    --split-dir ./export/split
 ```
 
-Result: `./export/split/<plural>.json` files (e.g. `dataElements.json`, `programs.json`). The model can Read them individually instead of loading 60MB at once.
+Result: `./export/split/<plural>.json` files (e.g. `dataElements.json`, `programs.json`). The model can Read them individually instead of loading 60MB at once. `./export/metadata.json` is the same transformed content in one file.
 
-If schemas.json is unavailable, `--minimize` falls back to a hardcoded blacklist; results are coarser but still usable. Prefer providing the right-version schema from `references/`.
+`--minimize` refuses to run without a schemas file — pass the live one or the right version from `references/`; a wrong version silently keeps or strips the wrong properties.
 
 ## 2. Investigate import/export errors
 
@@ -55,11 +52,11 @@ python scripts/fetch_metadata.py \
     --filter "name:like:Malaria" \
     --out ./slice
 
-# Sanity-prep before sending
-python scripts/split_metadata.py ./slice/metadata.json \
-    --schemas <bundled-schemas-for-target-version> \
-    --output-dir ./slice/split \
-    --unshare --delocalize  # keep names; do NOT minimize if you want full re-import fidelity
+# Sanity-prep before sending (or pass --unshare --delocalize --split to the fetch above)
+python scripts/transform_metadata.py ./slice/metadata.json \
+    --unshare --delocalize \
+    --split-dir ./slice/split
+# keep names; do NOT --minimize if you want full re-import fidelity
 
 # Import to target, exclude users to avoid clobbering admin
 python scripts/import_metadata.py \
@@ -69,6 +66,8 @@ python scripts/import_metadata.py \
     --exclude users,userGroups \
     --passes 2  # second pass resolves forward refs (program <-> programRule etc.)
 ```
+
+Sharing travels unless you removed it: `--unshare` at export, or `--skip-sharing` on import (sends `skipSharing=true`). A raw export whose sharing references users/groups the target lacks needs one of the two.
 
 **Critical safety**: never import users without thinking. The standard DHIS2 admin UID is `M5zQapPyTZI` on virtually every demo/dev instance. Importing an anonymized payload that contains a user with that UID will rename and disable the target's admin and lock you out. Always `--exclude users` unless you have explicit user-import requirements and have verified the UIDs.
 
@@ -86,7 +85,7 @@ The skill itself doesn't ship a dummy-data script — every program has differen
        --out ./prog
    ```
 
-2. Run `split_metadata.py --minimize` so the model can read individual files without spending tokens on irrelevant fields.
+2. Add `--schemas --minimize --split` to that fetch (or run `transform_metadata.py --minimize --split-dir`) so the model can read individual files without spending tokens on irrelevant fields.
 
 3. Read the relevant files and write a Python script that:
    - Iterates the data elements / TEAs in scope.
@@ -116,25 +115,26 @@ Quick checks the model can do over the split files:
 Goal: take a complete, PII-free copy of a production configuration off-site (for analysis, for a sandbox restore, for sharing with partners) **without hurting the live server**. A single `/api/metadata.json` request on a big instance can spike server memory and slow real users; instead walk each type page-by-page with a delay.
 
 ```bash
-# 1. Gentle export: every metadata type, 200 objects per request, 0.3s between requests
+# Every metadata type, 200 objects per request, 0.3s between requests. PII, sharing and
+# translations are excluded server-side (fields=:owner,!email,!sharing,...) so they never
+# leave the server; the local pass catches embedded objects; --split writes per-type files.
+# If org unit names or GPS points are themselves sensitive (schools, clinics), add
+# --redact-ou-names / --drop-coordinates.
 python scripts/fetch_metadata.py --url https://emis.example.org --auth token:$PAT \
-    --all-types --page-size 200 --delay 0.3 \
-    --exclude users,userGroups \
-    --schemas --out ./export
-
-# 2. Anonymize + split. If org unit names or GPS points are themselves sensitive
-#    (schools, clinics), add --redact-ou-names / --drop-coordinates.
-python scripts/split_metadata.py ./export/metadata.json \
-    --output-dir ./export/split \
-    --anonymize --unshare --delocalize --drop-coordinates
+    --all-types --page-size 200 --delay 0.3 --schemas \
+    --exclude users \
+    --anonymize --unshare --delocalize --drop-coordinates \
+    --split --out ./export
 ```
 
 Notes:
+- Go through the "decide with the user" table in SKILL.md **before** the dump leaves the server: sharing, translations, users, org unit names and coordinates are each a deliberate choice, not a default.
 - Tune `--page-size` down (100, 50) and `--delay` up if the server is struggling; the export gets slower but each request stays cheap. Types are fetched with `order=id:asc` so pages stay stable while objects change under you.
 - `--since 2026-01-01` turns this into an incremental refresh (objects created **or** changed since that date — `lastUpdated` is set on creation too).
-- Keep `--exclude users,userGroups` unless there's an explicit reason to move users; it composes with the import-side safety rule (recipe 3).
-- Decide with the user whether org unit names/coordinates count as PII for their context **before** the dump leaves the server. Anonymization here is "safe to share", not deniability — see the safety notes in SKILL.md.
+- Keep `--exclude users` unless there's an explicit reason to move users; it composes with the import-side safety rule (recipe 3). `userGroups` can stay: with `--anonymize` their member list is reduced to UIDs, and excluding them cascades into notification templates and dashboards (§7).
+- `--anonymize` cannot recognise PII stored in custom attributes (`attributeValues` on org units, users, …). Ask what the instance's attributes hold; drop them with a one-off pass if needed.
 - Transient connection drops are retried automatically with backoff; a type that errors under `--all-types` is skipped with a warning instead of aborting the export.
+- Verify before handing over: grep the output for a known real name/username from the source; it should not appear anywhere (that check is how the `userGroups.users[]` leak was found).
 
 ## 7. Import a very large metadata file (tens of thousands of org units and up)
 
@@ -166,6 +166,7 @@ Interpreting failures:
 These come from a full seed → export → import → re-export → diff round-trip; expect them whenever the source database is older than the target's validation rules.
 
 - **`HTTP 409, status=ERROR, zero error reports` = whole-batch flush crash.** One object whose *required* reference resolves to nothing (e.g. `DataElement.categoryCombo`, `MapView.legendSet`) makes Hibernate throw at commit and the entire payload is lost, even with `atomicMode=NONE` — per-row error reporting only catches references the validator checks. The response `message` (not the typeReports) names the property. Bisect the batch (halve → retry) to isolate poison objects; a single object import gives the exact cause with `importReportMode=FULL`.
+- **`E1130` "Importing N CategoryOptionCombos does not match the expected amount of M for CategoryCombo X"** (2.43+; verified 2.43.1 with the Sierra Leone demo seed, absent on 2.40–2.42 with the same data). 2.43 validates that the COCs imported for a category combo equal its option-combination count; old databases carry stale/duplicate COCs that fail this per combo. Not caused by any transform — the raw export fails identically. Fix the source (drop the stale COCs; the dhis2-integrity skill covers COC deduplication) or exclude the affected COCs and run `categoryOptionComboUpdate` afterwards.
 - **`E1106` "duplicate translation records"** — old databases often carry duplicate `(property, locale)` translation rows that predate validation; each one rejects its whole object. Repair by deduping `translations` arrays in the split files (keep first per property+locale), then re-import.
 - **`E1127` category >50 options** — such categories exist happily in seeded databases but exceed the API's default caps. Fix on the **target's** `dhis.conf` (restart required): `metadata.categories.max_options` (default 50), `metadata.categories.max_per_combo` (5), `metadata.categories.max_combinations` (500) — verified working on 2.42. Only if you can't touch dhis.conf, exclude the whole chain (category → categoryCombos using it → dataElements on those combos → their dataSetElements) or it triggers the flush-crash class above. The `E4007` 255-item collection cap is NOT configurable.
 - **`SENDMESSAGE` program rule actions crash if their template is missing** — `templateUid` is a plain string, invisible to reference validation, so a missing `programNotificationTemplate` is a flush crash, not an E5002. Import notification templates (and the userGroups they reference) first.
@@ -197,7 +198,21 @@ Goal: produce translations (the opposite of `--delocalize`). The model does the 
 - **Never translate `programRuleVariables` names.** Program rules reference variables *by name* — `#{varName}`, `A{varName}`, `d2:hasValue('varName')` — so translating the name silently breaks every rule using it, and the damage only shows up as rules that stop firing. Exclude the type entirely.
 - **Keep terminology consistent** across objects (the same domain term translated the same way everywhere): translate with the related objects in context, or build up a glossary as you go, rather than translating each object in isolation.
 
-## DHIS2 schema concepts (what the script's --minimize is doing)
+## 10. Troubleshooting
+
+- **Don't trust `response.uid` on a metadata POST.** A failed create (e.g. a name conflict on `/api/attributes`) can still return a generated `response.uid` for an object that was never persisted — a later GET on it 404s. Check `status`/`httpStatus`; uid-presence alone means nothing.
+- **`--minimize` keeps a property the user expected stripped, or strips one they expected kept.** Schema property names are the source of truth. The script uses `name` (not `fieldName`) for non-collection properties because that's what the JSON serialization uses — an easy bug class. Verify by inspecting the schema entry: if `owner=true && persisted=true` and the name isn't in `BOOKKEEPING_FIELDS`, it should be kept.
+- **A field filter with brackets returns nothing from curl.** `fields=legends[id,name]` is eaten by curl's URL globbing; pass `-g`. (Nested exclusions like `legends[:owner,!lastUpdatedBy]` do work server-side, but the transform scripts handle embedded objects locally instead of generating per-type nested filters.)
+- **`import_metadata.py` returns 500 on a type.** Check the server log — the response body often loses the cause. Common cause: a required reference was stripped (often by an over-eager `--minimize`) so an `IdentifiableObject.getUid()` call sees null. Re-run without `--minimize`, or add the missing field manually.
+- **An async import task completes with NO summary.** The server almost certainly crashed or ran out of memory mid-import. Shrink the payload (`--chunk-size`), give the server breathing room (`--batch-delay 1`), and re-run with `--resume` (§7).
+- **Many reference errors after import.** `--passes 2` lets a second pass pick up forward refs. If errors persist they're usually source data quality — the import report names the missing UID.
+- **409 `PropertyValueException: not-null property references a null or transient value` when POSTing a whole bundle to an empty instance** (e.g. `DataSet.periodType` even though every dataset has one). The named property is a red herring: Hibernate flushed an object before a dependency it hadn't persisted yet. Import per-type in dependency order (`import_metadata.py`'s default).
+- **Metadata and data imported fine, but an app or analytics shows an empty state.** On a fresh instance the admin has no org units assigned. Assign the hierarchy root to the user's `organisationUnits`, `dataViewOrganisationUnits` and `teiSearchOrganisationUnits` — on 2.42+ via JSON Patch (`Content-Type: application/json-patch+json`; plain-JSON `PATCH /api/users/<id>` is rejected).
+- **categoryOptionCombos: migrate them, don't regenerate.** The importer imports COCs by default so their UIDs survive — section `greyedFields`, predictor `outputCombo`, and visualization `dataElementOperand`s reference COCs by UID. Only skip them consciously (`--exclude categoryOptionCombos` + `POST /api/maintenance/categoryOptionComboUpdate` afterwards). Run the maintenance endpoint after import either way to fill gaps.
+- **Import limits blocking valid-looking config (E1127).** Category caps are configurable in the **target's** `dhis.conf` (restart required): `metadata.categories.max_options` (50), `max_per_combo` (5), `max_combinations` (500). The 255-item collection cap behind `E4007` is not configurable.
+- **UID-uniqueness conflicts** (`duplicate key value violates unique constraint`) on a type owned by a parent object: add it to `EMBEDDED_OWNED` in the import script.
+
+## DHIS2 schema concepts (what --minimize is doing)
 
 Every property in a schema has flags that explain how it's stored:
 
@@ -210,7 +225,7 @@ Every property in a schema has flags that explain how it's stored:
 | `propertyType=COLLECTION` + `embeddedObject=true` | Owned sub-objects (e.g. `dashboardItems` inside a dashboard) |
 | `propertyType=COLLECTION` + `embeddedObject=false` | Plain references (e.g. a program's `organisationUnits`) |
 
-The minimize step keeps `owner=true && persisted=true` properties (minus bookkeeping like `lastUpdated`/`createdBy`) and reduces references to `{id: ...}`. That's enough to recreate the object on import while removing 30–60% of the bytes and most of the noise.
+The minimize step keeps `owner=true && persisted=true` properties (minus bookkeeping like `lastUpdated`/`createdBy`) and reduces references to `{id: ...}`, recursing into embedded objects with their own schema. On a `fields=*` export that removes 30–60% of the bytes; on the `:owner` export the fetch script produces it is ~10–15%, mostly from embedded objects (which `:owner` renders with `access`, `displayName`, `sharing` etc.) and bookkeeping.
 
 ## Adapting the import script across versions
 
@@ -219,6 +234,6 @@ If you're importing into 2.40 or 2.43+ and the dependency order or type list dif
 - **New types**: edit `ORDER` in `scripts/import_metadata.py`. Unknown types are appended at the end, which is OK if they have no dependents but problematic if they do.
 - **Renamed types**: the splitter writes whatever plural name appears in the source. If 2.43 renames `eventVisualizations` to something else, the file will be named differently — adjust `ORDER` accordingly.
 - **Removed types**: just leave them out of the source dir; the importer skips missing files.
-- **EMBEDDED_OWNED set**: this list (currently `mapViews`) holds types that are owned by a parent and shouldn't be imported standalone (UID collision). If you find another such type causing conflicts, add it.
+- **EMBEDDED_OWNED set**: types owned by a parent that must not be imported standalone (UID collision). Currently empty — `mapViews` used to be here but is now imported deliberately before `maps`. If a type causes `duplicate key value violates unique constraint`, add it.
 
 When in doubt: run `import_metadata.py --dry-run` first to see the order, then run with `--passes 2` to resolve any forward-reference cycles. On multi-pass runs, judge success by the **final pass's** error count (the script prints it per pass) — pass-1 `E5002`s that a later pass resolves are deferred forward references, not real failures.

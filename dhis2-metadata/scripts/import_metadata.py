@@ -1,7 +1,7 @@
 """Import per-type metadata files into a DHIS2 instance in dependency order.
 
 Reads a directory of `<plural>.json` files (each containing an array of
-objects, as produced by split_metadata.py), wraps each into a `{plural: [...]}`
+objects, as produced by fetch_metadata.py --split or transform_metadata.py), wraps each into a `{plural: [...]}`
 payload, and POSTs them to /api/metadata one type at a time.
 
 Why per-type and not one big payload?
@@ -415,8 +415,11 @@ def main():
     p.add_argument("--strategy", default="CREATE_AND_UPDATE",
                    choices=["CREATE", "UPDATE", "CREATE_AND_UPDATE", "DELETE"])
     p.add_argument("--atomic-mode", default="NONE", choices=["ALL", "NONE"])
-    p.add_argument("--skip-sharing", action="store_true", default=True)
-    p.add_argument("--no-skip-sharing", dest="skip_sharing", action="store_false")
+    p.add_argument("--skip-sharing", action="store_true", default=False,
+                   help="Send skipSharing=true so the target keeps/derives its own "
+                        "sharing. Off by default: whether sharing travels is decided "
+                        "at export time (fetch/transform --unshare). Turn on when a raw "
+                        "export references users/groups the target doesn't have.")
     p.add_argument("--timeout", type=int, default=600)
     p.add_argument("--passes", type=int, default=1,
                    help="Run the import N times. Useful for resolving forward refs "
