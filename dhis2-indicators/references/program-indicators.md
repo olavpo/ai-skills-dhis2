@@ -24,6 +24,7 @@ A program indicator aggregates a value computed from the events or enrollments o
 - `aggregationType` — how unit values combine: COUNT, SUM, AVERAGE, COUNT (distinct values), MIN, MAX, etc.
 - `expression` — computes one value per unit.
 - `filter` — boolean deciding which units are included.
+- The `expression` must evaluate to a **number**. A boolean such as `d2:hasValue(V{event_date})` parses but is invalid as an expression; put conditions in the filter, or turn them into a number with `d2:condition("…", 1, 0)`. For a plain event count the expression is `1` or `V{event_count}`.
 - `analyticsPeriodBoundaries` — which date(s) place a unit in a period.
 - `decimals`, `displayName`, `shortName`.
 
