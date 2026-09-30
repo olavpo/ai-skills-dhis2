@@ -7,6 +7,7 @@
 - Aggregation type
 - Expression building blocks
 - d2 functions (the useful ones)
+- Multi-select (MULTI_TEXT) values
 - Filter vs expression
 - Analytics period boundaries (the part people get wrong)
 - Examples
@@ -76,7 +77,20 @@ Operands available in the expression (and filter):
 - `d2:zing(x)` (negative→0), `d2:oizp(x)` (0 if zero/neg else 1), `d2:zpvc(...)` (count of zero-or-positive values).
 - `d2:floor`, `d2:round`, `d2:modulus`, `d2:left`, `d2:right`, `d2:concatenate`, `d2:validatePattern`.
 
-Confirm signatures against `dhis2-docs` for your version — the set grows release to release.
+Confirm signatures against `dhis2-docs` for your version — the set grows release to release. **Validate before concluding a function is missing**: `POST /api/programIndicators/filter/description` (or `/expression/description`) with the candidate, and try the unprefixed form too (next section).
+
+## Multi-select (MULTI_TEXT) values
+
+2.41+ has two functions for multi-select values, and **in program indicators they have no `d2:` prefix**:
+
+- `containsItems(#{stage.de}, 'R01')`: true if the comma-separated value holds the item `R01` as a whole item. Use this for counting per option of a multi-select field.
+- `contains(#{stage.de}, 'R01')`: a substring match. Only safe when no code is part of another (`R1` matches `R10`).
+
+Program *rules* use the prefixed forms (`d2:contains`, `d2:validatePattern`), while indicators, program indicators, predictors and validation rules use the unprefixed forms. Validating `d2:containsItems(...)` as a PI filter returns "Expression is not valid" / "Invalid string token 'd'", which reads as "PIs cannot do this". A session built 204 rule-assigned yes/no flag data elements to work around a function that was available all along. Verified on 2.42.6.
+
+Related facts from the same work (2.42.6):
+- `V{current_date}` is allowed in PI filters and is evaluated at query time ("overdue as of today"). Test against the real date, not a fixed one.
+- After changing a PI, analytics keeps serving the old definition until `POST /api/maintenance/cacheClear`.
 
 ## Filter vs expression
 
@@ -144,6 +158,8 @@ The modern replacement for "one PI per age/sex combination": a single PI produce
 2. On the **PI**, set `categoryMappingIds` (referencing the program's mappings) and a disaggregation `categoryCombo` built from those categories.
 3. Run `POST /api/maintenance?categoryOptionComboUpdate=true` so the combo's COCs exist.
 4. Verify: the disaggregated cells must sum to the undisaggregated PI total (and, when migrating, match the legacy one-PI-per-cell values).
+
+Confirmed on 2.42.6 as well: one mapped PI replaced about 60 per-option PIs. Two write-side traps: `categoryMappingIds` is not validated (a bogus UID is stored with 200 and no error reports), and `optionMappings[].optionId` is checked for existence but not for membership in that category. Re-read the program after writing mappings.
 
 **Reuse existing categories and category options** — category options are shared objects, so a new category for disaggregation can be assembled from options that already exist in other categories; don't mint duplicates. Field-level details are version-sensitive — check the program-indicator disaggregation section of the docs (`dhis2-docs` skill) for your version.
 

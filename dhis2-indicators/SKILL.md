@@ -81,6 +81,8 @@ The full procedure — fresh-instance setup, importing metadata (via the `dhis2-
 - Referencing `#{de}` (all COCs) when you meant one disaggregation, or vice versa.
 - Text/option-set data elements can't feed an aggregate indicator (no numeric value to sum); model as COCs or booleans.
 - Program indicator: EVENT vs ENROLLMENT double-counting; selection logic in the expression instead of the filter; null treated as zero; period boundary using the wrong date.
+- Concluding a function doesn't exist because the `d2:` form failed validation. Multi-select `containsItems()`/`contains()` are **unprefixed** in indicators and PIs (2.41+); `d2:` is the program-rule form. See `references/program-indicators.md`.
+- A division by zero *inside* an expression aborts the whole analytics request (409 E7132), unlike a zero denominator, which just gives no value.
 - DE configured wrong at the source — `aggregationType` not SUM, or a `#{de.coc}` pointing at a COC outside the DE's current combo — breaks results while the expression looks fine. Lint the metadata (step 4).
 - Program rule variable names are functional identifiers — program rules reference them by *name* (`#{varName}`, `A{varName}`, `d2:hasValue('varName')`), so renaming or translating a variable while tidying metadata silently breaks every rule using it. The failure shows up as rules that stop firing, not as an error.
 - Zeros vanish — the importer drops a `0` for DEs with `zeroIsSignificant=false`, and analytics omits stored zeros unless `keyIncludeZeroValuesInAnalytics` is on. Set both when a reported zero must count.
