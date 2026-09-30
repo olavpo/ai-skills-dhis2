@@ -79,7 +79,7 @@ Older apps may predate both conventions — note divergence as findings, referen
 
 1. **Capability check** — as above.
 2. **Read context** — `README.md`, `MANUAL.md`, `package.json`, `manifest.webapp`/`d2.config.js`. Identify the app's purpose, what it reads, what it mutates. List every mutating endpoint now — this drives instance choice and cleanup planning.
-3. **Static review** — read every file under `src/`. Note the API surface; cross-check questionable endpoints against `dhis2-docs`. Run the project's own `lint`/`tsc`/test scripts and record the baseline before changing anything. Beyond bugs, always check for:
+3. **Static review** — read every file under `src/`. If you were given only a built bundle (no `src/`, no `package.json`), recover the source from the shipped sourcemaps: `assets/*.js.map` usually carry the complete `sourcesContent`. Write out the entries whose `sources` path is not under `node_modules`, and say in the report that the review ran on recovered source. Note the API surface; cross-check questionable endpoints against `dhis2-docs`. Run the project's own `lint`/`tsc`/test scripts and record the baseline before changing anything. Beyond bugs, always check for:
    - **Dead/unused code** — unexported functions never called, unreferenced files, commented-out blocks, dependencies in `package.json` nothing imports.
    - **Duplicated or near-duplicated logic** that could be harmonized into shared code or one level of abstraction — but *only* when the shared version is simpler than the copies. Simplicity is the goal: two loosely similar blocks don't justify a forced abstraction; three near-identical ones usually do. Frame it as a finding with the concrete shared shape, not a blanket "DRY this up".
    - **App icon** — the app declares an icon (`d2.config.js` or `manifest.webapp`) and the referenced file exists in the repo. A missing icon shows as a broken/generic tile in the app menu.
@@ -176,16 +176,15 @@ curl -sg -u "$DHIS2_USER:$DHIS2_PASS" -F "file=@build/bundle/<app>.zip" \
   "$DHIS2_URL/api/apps"
 
 # 3. Drive the installed app directly
-#    URL: $DHIS2_URL/api/apps/<app-key>/index.html
-#    On 2.42+ the instance wraps the app in a global-shell iframe even at
-#    that URL — locate the app's frame via page.frames rather than assuming
-#    the top document. See references/playwright-patterns.md.
+#    URL: $DHIS2_URL/api/apps/<app-key>/index.html?redirect=false
+#    Without ?redirect=false, 2.42+ redirects into the global-shell iframe
+#    and every locator needs a frame hop. See references/playwright-patterns.md.
 
 # 4. Uninstall during cleanup (expect 204)
 curl -sg -u "$DHIS2_USER:$DHIS2_PASS" -X DELETE "$DHIS2_URL/api/apps/<app-key>"
 ```
 
-For Playwright against the dev server, don't inject cookies — script the dev shell's own "Please sign in" form with `--proxy` pointing at the instance (see `references/playwright-patterns.md`). Cookie injection only works when app and API origins are same-site; that trap and the forwarder workaround (still needed for legacy vanilla apps) are covered in the same reference.
+**Scripted checks: drive the installed bundle.** The dev server stays the default for *serving* the app to the user and for the iterative fix loop. For Playwright runs, including ad-hoc checks during a fix, the installed bundle loaded with `?redirect=false` is the reliable path: it is same-origin, needs no frame handling and behaves identically across versions. The recipe, and the `M_<key>` authority that test users need, are the first pattern in `references/playwright-patterns.md`. If you must script against the dev server, use the shell's own "Please sign in" form with `--proxy`, and first check that `localhost:<proxyPort>/api/me` returns JSON (the same reference covers this and the SameSite trap).
 
 ## Architecture assessment and migration
 
@@ -204,7 +203,7 @@ Any test data you create must be deleted before reporting. Track every mutation:
 
 ```python
 created_uids = []  # append every uid you POST
-# ... at end of test, regardless of pass/fail:
+# ... in a `finally`, never inside the test's success branch:
 for uid in created_uids:
     requests.delete(f"{base}/api/programRules/{uid}", auth=...)
 ```
@@ -228,8 +227,9 @@ PROJECT_DIR/
 ```
 
 - **Reports**: create a dated folder per review (`docs/review-2026-07-09-whitespace/`). Screenshots and probes referenced from the report go alongside it, not in `/tmp`. Previous reviews stay put — dated folders let them coexist.
-- **Tests**: everything browser/API-driving lives in `e2e/` — **not** `tests/` or `test/e2e/`, which get confused with the unit-test dir (`test/`, vitest/jest) that platform scaffolds already have. **This rule is for suites you create.** If the repo already has a working e2e suite elsewhere (e.g. `tests/e2e/` from an earlier review), extend it where it is — don't relocate it silently. If relocation is worth it, propose it as a LOW housekeeping finding, and include updating every README/docs reference to the old path.
-- **The moment you create `e2e/`, extend `.gitignore`**: `__pycache__/`, the results/screenshot output dir, and any auth/state files. A `py_compile` run leaves `.pyc` files that a later broad `git add` sweeps into a commit unnoticed.
+- **Tests**: everything browser/API-driving lives in `e2e/` — **not** `tests/` or `test/e2e/`, which collide with the unit-test dir (`test/`, vitest/jest) that platform scaffolds already have when the new suite is JS/TS. A Python suite does not collide, but `e2e/` is still the default. **This rule is for suites you create.** If the repo already has a working e2e suite elsewhere (e.g. `tests/e2e/` from an earlier review), extend it where it is — don't relocate it silently. If relocation is worth it, propose it as a LOW housekeeping finding, and include updating every README/docs reference to the old path.
+- **The first time you run Python anywhere in the repo, extend `.gitignore`**: `__pycache__/`, the results/screenshot output dir, and any auth/state files. A `py_compile` run leaves `.pyc` files that a later broad `git add` sweeps into a commit unnoticed. The trigger is running Python, not creating `e2e/`: a repo that already has `tests/e2e/` never hits the latter.
+- **Report output must pass the project's formatter.** If the repo's `lint` runs `prettier -c .`, the Markdown and JSON you write under `docs/review-*/` break it. Run `prettier --write` on your own report folder only, never on the whole `docs/` tree, since that reformats earlier reviews. Alternatively, add the folder to `.prettierignore` (the project's call).
 - **Keep worthwhile e2e suites in-repo**: when a suite is worth re-running (e.g. the acceptance suite for a migration — "same flows must pass before and after"), parameterize the instance URL (env var like `DHIS2_URL`, no hard-coded hosts) and offer to commit the suite. Ask the user before committing.
 - **Publishable vs session-internal — decide per document, at creation time.** Findings with root-cause analysis, version-compatibility results, and user documentation are repo history: commit them. State-change/ops logs (`STATE-CHANGES.md` — broker instances, SQL run, package installs, host ports), skill-improvement notes, and most screenshots are session-internal: they document internal test infrastructure that doesn't belong in a public product repo, even when nothing in them is secret. Write session-internal docs *outside* the repo or under a gitignored path **from the start**, so a later broad `git add` can't publish them by accident — deliver them to the user separately.
 - **Existing sprawl**: if the repo already has ad-hoc test scripts at the root, old `REVIEW-*.md` files, or screenshots strewn about, propose consolidating them into this layout as a small housekeeping finding (LOW severity) — don't silently rearrange the repo as part of the review itself.
