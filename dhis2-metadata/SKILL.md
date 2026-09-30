@@ -41,7 +41,7 @@ Nothing sensitive is removed silently, so ask which of these apply — most user
 
 All flags compose. In `fetch_metadata.py` each also becomes server-side `!field` exclusions, so removed data never leaves the server; the local pass still runs because field filtering does not reach embedded objects (legends inside legendSets, members inside userGroups).
 
-- **`--anonymize`** — strips PII/credential fields everywhere, reduces user references to `{id}`, gives top-level users placeholder `firstName`/`surname`/`username` so they stay importable. Cannot see PII stored in custom `attributeValues` — check those with the user.
+- **`--anonymize`** — strips PII/credential fields everywhere, reduces user references to `{id}`, gives top-level users placeholder `firstName`/`surname`/`username` so they stay importable, removes `href` (the server URL) and cuts the export's `system` block to its `version`. Cannot see PII stored in custom `attributeValues` or free text (descriptions, comments) — check those with the user.
 - **`--unshare`**, **`--delocalize`** — remove sharing/access fields, remove `translations`.
 - **`--minimize`** — keep only schema `owner && persisted` properties minus bookkeeping, reduce references to `{id}`. Needs the version-matching `schemas.json`. Analysis only: on a `:owner` export it saves ~10–15% (embedded objects carry the noise), and it can strip a rarely-used owned property that a round-trip needs.
 - **`--redact-ou-names`**, **`--drop-coordinates`** — org unit placeholders / geometry removal.
