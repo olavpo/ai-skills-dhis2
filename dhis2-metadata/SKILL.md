@@ -81,7 +81,7 @@ Recipes and verified traps in `references/workflows.md`: import-error traps (§2
 
 ## Critical safety notes
 
-1. **Never import users without explicit thought.** The standard admin UID `M5zQapPyTZI` is identical across most demo/dev instances; an anonymized payload containing it renames and disables the target's admin. Default to `--exclude users` on cross-instance imports and confirm before importing `users.json`. Excluding `userGroups` cascades into notification templates and dashboards; importing userGroups with membership stripped is safe.
+1. **Never import users without explicit thought.** A user object in the payload overwrites any target user with the same UID (or username) — renaming, re-roling or disabling it — and the target's accounts are not yours to change. Make no assumptions about admin accounts or their UIDs: on production systems the built-in admin is usually disabled, and UIDs differ per system. Default to `--exclude users` on cross-instance imports and confirm before importing `users.json`. Excluding `userGroups` cascades into notification templates and dashboards; importing userGroups with membership stripped is safe.
 2. **Imports modify shared systems.** Confirm target URL and auth first, especially if not localhost or a sandbox. `--dry-run` only previews ordering; validate on a throwaway instance (`dhis2-instances` skill) when it matters.
 3. **`--minimize` requires a matching schema**, or the server rejects the payload with E4000.
 4. **Anonymize is "safe to share", not deniability.** User objects stay (with placeholders), UIDs stay, custom attribute values are untouched.

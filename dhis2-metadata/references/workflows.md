@@ -66,7 +66,7 @@ python scripts/import_metadata.py \
 
 Sharing travels unless you removed it: `--unshare` at export, or `--skip-sharing` on import (sends `skipSharing=true`). A raw export whose sharing references users/groups the target lacks needs one of the two.
 
-**Critical safety**: never import users without thinking. The standard DHIS2 admin UID is `M5zQapPyTZI` on virtually every demo/dev instance. Importing an anonymized payload that contains a user with that UID will rename and disable the target's admin and lock you out. Always `--exclude users` unless you have explicit user-import requirements and have verified the UIDs.
+**Critical safety**: never import users without thinking. A user object in the payload overwrites any target user with the same UID or username (renaming, re-roling or disabling it), which can lock people out. Don't assume anything about admin accounts or their UIDs (production systems usually have the built-in admin disabled); if users must move, list the target's existing users first and check for UID/username collisions. Always `--exclude users` unless you have explicit user-import requirements and have verified the UIDs.
 
 ## 4. Generate realistic dummy data for a program or dataset
 
