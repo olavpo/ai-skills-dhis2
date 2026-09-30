@@ -64,6 +64,13 @@ This calls `GET /api/metadata.json?...` for all metadata types. Notes:
   twice** (the second pass resolves references created by the first), then read the summary.
 - **Sharing & users.** If you imported users, logins/passwords come across; if you skipped them,
   ownership/sharing references may dangle — usually harmless for a structural-cleanup sandbox.
+- **A restored or imported sandbox has `lastUpdated` = import time** (`created` survives). Any rule that
+  depends on age ("not updated since", abandonment, stale favourites) must read `lastUpdated` from the
+  **source export**. On the sandbox itself, such a pass finds nothing: the first favourites pass in one
+  engagement planned 0 deletions.
+- **Check free disk space before restoring a large dump.** In the agent sandbox, `df -h /` shows the
+  host's Docker filesystem, which every sibling instance shares. A 14 GB restore used ~50 GB there, and
+  Postgres sort spills briefly took several more.
 - **`generateMetadataDependencies`/`download=true`** on the export side keeps a self-contained set; the
   bundled script already requests a complete export.
 

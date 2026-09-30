@@ -53,6 +53,10 @@ verification theater.
    objects, fetch the data it actually renders (`GET /api/visualizations/<uid>/data.json`, or replay its
    analytics query) and confirm it still returns rows. A favorite can pass the dangling-reference scan
    yet render empty — verify the artefact the user looks at, not only the objects you changed.
+7. **Dependency closure of every kept dataset** (after deletions): `GET /api/dataSets/<uid>/metadata.json`
+   exports the dataset's full dependency closure, so a 200 for all N kept datasets proves nothing a
+   dataset needs was deleted. This is a much stronger signal than row counts, and needs neither a control
+   instance nor a DB route.
 
 `scripts/verify_outputs.py` automates layers 1, 2, 3 and 5 between two instances.
 

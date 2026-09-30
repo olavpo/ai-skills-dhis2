@@ -12,7 +12,8 @@ events across all stages filling program-stage data elements.
 Deterministic (seeded) so re-runs reproduce the same fixture. Aggregate values go
 via /api/dataValueSets (chunked); tracker via /api/tracker (async, polled).
 
-Env: DHIS2_BASE_URL + DHIS2_AUTH (user:pass or token:XXX), or --url/--auth.
+Env: DHIS2_BASE_URL + DHIS2_AUTH (user:pass or token:XXX), or --url/--auth. The d2_client.py
+convention (DHIS2_API_TOKEN, or DHIS2_USER + DHIS2_PASS) is accepted too, so one .env serves both.
 """
 import argparse, os, sys, json, time, random, hashlib
 import requests
@@ -145,21 +146,31 @@ def gen_aggregate(d2, n_ou, n_period, chunk, optionset_cache, dry):
                               "categoryOptionCombo":coc,"value":v}
                         if aoc != "__default__":
                             dv["attributeOptionCombo"] = aoc
-                        values.append(dv)
+                        values.append((dset["id"], dv))
     print(f"  built {len(values)} aggregate data values", flush=True)
     if dry:
         return
-    sent = 0
-    for i in range(0, len(values), chunk):
-        batch = values[i:i+chunk]
-        r = d2.post("dataValueSets.json", {"dataValues":batch}, importStrategy="CREATE_AND_UPDATE",
-                    skipAudit="true")
-        try:
-            j = r.json(); ic = j.get("importCount") or j.get("response",{}).get("importCount",{})
-        except Exception:
-            ic = {"raw": r.text[:200]}
-        sent += len(batch)
-        print(f"  dvset {i//chunk+1}: {ic}  ({sent}/{len(values)})", flush=True)
+    # One payload per dataset, with "dataSet" set: from 2.43 a data element in several datasets is
+    # rejected ("Data set detection failed, found multiple sets") unless the payload names its dataset.
+    by_ds = {}
+    for ds_id, dv in values:
+        by_ds.setdefault(ds_id, []).append(dv)
+    sent, n = 0, 0
+    for ds_id, dvs in by_ds.items():
+        for i in range(0, len(dvs), chunk):
+            batch = dvs[i:i+chunk]; n += 1
+            r = d2.post("dataValueSets.json", {"dataSet": ds_id, "dataValues": batch},
+                        importStrategy="CREATE_AND_UPDATE", skipAudit="true")
+            try:
+                j = r.json(); resp = j.get("response", j)
+                ic = resp.get("importCount") or {}
+                conflicts = resp.get("conflicts") or []
+            except Exception:
+                ic, conflicts = {"raw": r.text[:200]}, []
+            sent += len(batch)
+            print(f"  dvset {n} (dataSet {ds_id}): HTTP {r.status_code} {ic}  ({sent}/{len(values)})", flush=True)
+            for c in conflicts[:3]:
+                print(f"    conflict: {c.get('errorCode','')} {str(c.get('value') or c.get('object',''))[:160]}", flush=True)
 
 
 def gen_tracker(d2, n_tei, dry):
@@ -192,6 +203,10 @@ def gen_tracker(d2, n_tei, dry):
         if not ous:
             print(f"  program {p['name']!r}: no org units, skipping", flush=True); continue
         tet = (p.get("trackedEntityType") or {}).get("id")
+        if not tet:
+            # event programs (WITHOUT_REGISTRATION) have no TET: nesting them under trackedEntities fails
+            # server-side ("TrackedEntity.getTrackedEntityType() is null") and sinks the whole job
+            print(f"  program {p['name']!r} ({ptype}): no tracked entity type, skipping", flush=True); continue
         aoc = None
         cc = p.get("categoryCombo") or {}
         cocs = [c["id"] for c in cc.get("categoryOptionCombos",[])]
@@ -255,7 +270,14 @@ def gen_tracker(d2, n_tei, dry):
             last = st[-1] if st else {}
             if done or last.get("completed"):
                 break
-    rep = d2.get(f"tracker/jobs/{loc}/report.json")
+    rr = d2.s.get(f"{d2.base}/api/tracker/jobs/{loc}/report.json", timeout=300)
+    if rr.status_code != 200:
+        # a job that died server-side has no report (404) — its notifications are the only record
+        print(f"  tracker report HTTP {rr.status_code} — job log:", flush=True)
+        for x in (st if isinstance(st, list) else [])[:10]:
+            print(f"    {x.get('level','')} {str(x.get('message',''))[:200]}", flush=True)
+        return
+    rep = rr.json()
     st = rep.get("status"); stats = rep.get("stats")
     print(f"  tracker import status={st} stats={stats}", flush=True)
     ve = rep.get("validationReport",{}).get("errorReports",[])
@@ -270,8 +292,10 @@ def gen_tracker(d2, n_tei, dry):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default=os.environ.get("DHIS2_BASE_URL"))
-    ap.add_argument("--auth", default=os.environ.get("DHIS2_AUTH") or
-                    (f"token:{os.environ['DHIS2_API_TOKEN']}" if os.environ.get("DHIS2_API_TOKEN") else None))
+    env_auth = (os.environ.get("DHIS2_AUTH")
+                or (f"token:{os.environ['DHIS2_API_TOKEN']}" if os.environ.get("DHIS2_API_TOKEN") else None)
+                or (f"{os.environ['DHIS2_USER']}:{os.environ.get('DHIS2_PASS','')}" if os.environ.get("DHIS2_USER") else None))
+    ap.add_argument("--auth", default=env_auth)
     ap.add_argument("--ous", type=int, default=3, help="aggregate: org units per dataset")
     ap.add_argument("--periods", type=int, default=2, help="aggregate: periods per dataset")
     ap.add_argument("--teis", type=int, default=5, help="tracker: TEIs per program")

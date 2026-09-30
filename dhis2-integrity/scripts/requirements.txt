@@ -1,0 +1,5 @@
+# pip install -r scripts/requirements.txt
+httpx            # d2_client.py, integrity.py, playbook setup cell
+python-dotenv    # optional: .env loading in d2_client.py
+requests         # gen_synthetic_data.py
+psycopg2-binary  # optional: db_client.py and direct-SQL fixes only

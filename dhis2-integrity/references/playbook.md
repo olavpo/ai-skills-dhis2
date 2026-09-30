@@ -40,6 +40,20 @@ Table of contents:
   `summary.count` says hundreds. **Trust the summary count, and derive the actual issue list yourself**
   with a direct API query (fetch the objects and group/compare in code) or SQL. Never conclude "it's
   fixed" from `details=0` alone — confirm with the summary count and/or a direct query.
+  `details?checks=a,b` has also been seen to ignore the filter and serve stale lists (empty while the
+  summary said 17) — SQL (`ST_AsText(geometry)='POINT(0 0)'`, `NOT ST_IsValid(geometry)`) was right.
+- **A `cacheClear` during a run empties the summary**, and on **2.43.1** it can leave every later
+  DATA_INTEGRITY job `SCHEDULED`/`NOT_STARTED` (none `RUNNING`) until **Tomcat restarts**; the summary
+  then returns `{}` indefinitely. Fix scripts and merge endpoints clear caches, so this strikes mid-
+  engagement. `GET /api/jobConfigurations?filter=jobType:eq:DATA_INTEGRITY&fields=jobStatus,lastExecutedStatus`
+  shows it; `integrity.py` checks this and refuses to print a partial run as an inventory.
+- **On 2.40 a bare `GET /dataIntegrity/summary` returns `{}`** even after the job completes — results come
+  back only for explicitly named `?checks=a,b,c` (`integrity.py` always names them). A second POST while a
+  run is in progress returns `409 E1004`.
+- **Check names differ between versions** (2.38 has ~39 checks, several named differently from 2.40+:
+  `org_units_being_orphaned`, `program_rules_without_action`, …). A precondition or verify naming a check
+  the target lacks must fail, not read as 0 — the playbook's `check()` raises on unknown names. Take names
+  from the target's own `GET /api/dataIntegrity`, never from another version's playbook.
 
 ## 2. Triage taxonomy
 
@@ -230,6 +244,42 @@ applied. Start from each check's own `recommendation`.
   (≥4 chars) rather than auto-renaming.
 - **`datasets_not_assigned_to_org_units`:** **common and usually benign** — datasets mid-configuration or
   deliberately **archived**. Don't auto-assign (you'd guess the OU scope). **Flag/accept** for the owner.
+- **Structurally broken COCs (disjoint, wrong cardinality, foreign options): scan references BEFORE
+  deleting any.** A COC can be broken as structure yet still be referenced as text or by FK — deleting
+  366 broken COCs in one engagement orphaned 235 indicator operands (66 indicators) and 2 custom forms,
+  and only one was remappable. Before the delete, search `indicator.numerator`/`denominator`,
+  `dataentryform.htmlcode`, `dataelementoperand`, `minmaxdataelement`, and section greyed fields for each
+  COC UID; referenced ones go to **keep/flag**, not delete. If you have to restore one, restore its
+  `datavalue` rows as well as the COC row: restoring the metadata alone left 38 sum changes that could
+  not be explained until the data was copied too.
+- **Deletion landmines on long-lived instances:**
+  - Orphan category options: the delete returns 500 "Transaction silently rolled back" (the same NPE
+    class as program stages).
+  - Empty option groups that `SHOWOPTIONGROUP` rule actions still reference.
+  - Test datasets referenced by `datadimensionitem` reporting-rate items.
+  - On 2.43.1, some programs imported from 2.38 fail `DELETE /api/programs/{id}` with `409 current
+    transaction is aborted`, even with no stages. The §6 FK-graph cascade removes them.
+- **Bulk deletion of unreferenced objects: use `POST /api/metadata?importStrategy=DELETE` in chunks of
+  ~200** rather than one `DELETE` per object. 7,676 favourites took ~2 min this way, against ~70 min at
+  ~110 objects/min one at a time.
+- **Clearing an org unit's data without a DB route:** `POST /api/maintenance/dataPruning/organisationUnits/{uid}`.
+  It removes data values **and their audit rows**, completeness and events, and needs `ALL`. A
+  `dataValueSets?importStrategy=DELETE` only soft-deletes, and the `deleted=true` rows plus
+  `datavalueaudit` still veto the org-unit delete. Audit history cannot be archived through the API:
+  `/api/audits/dataValue` lists it, but nothing imports it back, so the change proposal must say the
+  history is lost. Archive before any destructive org-unit step:
+  - Export the units and their ancestors, dataset and program assignments, user memberships and
+    favourite references.
+  - Export all data values across every dataset.
+  - Prove archive → delete → restore to identical counts on the sandbox.
+  - Traps: exporting data for units outside your data-view hierarchy fails with `409 E2012`; grant the
+    scope temporarily, then revert. `dataValueSets` returns `400` with an empty body for datasets with
+    zero data elements.
+- **2.38 specifics:**
+  - There is no `cascadeSharing` (`404 Property cascadeSharing does not exist on Dashboard`); cascade
+    group access one item at a time via `/api/sharing`.
+  - The dashboards list endpoint hides non-public dashboards even from superusers; enumerate with
+    `/dashboards/gist` or by UID.
 - **duplicates (combos / COCs / indicators / DEs / org units / categories):** use the **merge endpoints**
   (§5). NB: if a check-refresh (`fresh()`) times out and returns an **empty** issue list, you'll merge
   *nothing* and wrongly conclude "no duplicates" — always confirm the list is non-empty (re-run with a
@@ -438,6 +488,29 @@ Proven surgical patterns:
   combo's API delete NPE (500) / FK-block. Map source COC→survivor COC by option-set and repoint operands
   before deleting the source.
 
+**PostgreSQL at scale — bulk cleanups on 10M+ row tables:**
+- **Commit, then vacuum, then continue.** Never delete parents in the same transaction as a mass child
+  delete. With 22M dead `datavalue` rows, each FK check (`SELECT 1 FROM datavalue WHERE dataelementid=$1
+  FOR KEY SHARE`) walks the dead index entries, and 2,792 parent deletes ran for more than 5 min.
+  COMMIT the child delete, `VACUUM` the child table (it cannot run inside a transaction), then delete the
+  parents in a new transaction.
+- **Stock DHIS2 lacks many FK indexes.** On 2.40 there is no index on `datadimensionitem`'s data-element
+  FK columns, nor on `datavalue.{periodid,sourceid,categoryoptioncomboid}`, so any cascading metadata
+  delete seq-scans. Creating the ~197 missing FK indexes took 4 s for all tables under 50 MB and cut a
+  multi-minute stall to 7 s. Do it before a bulk metadata delete, and drop the indexes afterwards if the
+  target is production.
+- **Batch whole-table UPDATEs by ctid block range:** `WHERE ctid >= '(lo,0)'::tid AND ctid < '(hi,0)'::tid`
+  plus a predicate that matches only rows not yet done, so the batch is idempotent and resumable.
+  Batching by business key turns it into random I/O (~4× slower), and `LIMIT n` loops are O(n²).
+- **"No space left on device" from VACUUM or a parallel query is usually `/dev/shm`, not disk.** It
+  appears as `could not resize shared memory segment`, from Docker's 64 MB default. Run
+  `PGOPTIONS="-c max_parallel_maintenance_workers=0" psql -c "vacuum analyze …"`, or `VACUUM (PARALLEL 0)`.
+  For queries, set `max_parallel_workers_per_gather=0`. Don't put `SET …; VACUUM …` in one `psql -c`:
+  it runs as a transaction, and VACUUM refuses.
+- **Legacy tables:** a dump from a long-lived instance can carry ~47 pre-2.40 tables (`patient*`,
+  `importdatavalue`, `validationcriteria`, …) that a stock Flyway init of the same version never creates.
+  Diff `pg_tables` against a freshly initialised instance of that version to find them.
+
 SQL safety checklist:
 1. **Find ALL foreign-key references first** — query `information_schema` for FKs pointing at the table,
    then count rows per referencing column for your target ids. Don't delete until the only remaining
@@ -508,6 +581,16 @@ Dedicated endpoints skip that revalidation — e.g. sharing changes should go th
   follow it with a `categoryOptionCombos/merge` dedup pass (group the survivor's COCs by option-set, merge
   each dup group into one) + `cacheClear`&`categoryOptionComboUpdate`. Validated on SL 2.43: combo merge →
   4 dup COCs → COC merge cleared them; both endpoints exist on 2.43 (405 on 2.42 → SQL, see §5).
+- **Every merge, not just the SQL path, needs two follow-ups:**
+  - **Find the duplicate COCs from SQL-derived option sets.** After merges the API listing served
+    pre-merge option sets from cache: it found 0 groups where SQL found 198.
+  - **Text-repoint `dataentryform.htmlcode`** from source to target. `categoryOptionCombos/merge` (2.43.1)
+    moves data values and operands but not form HTML: 860 `deUID-cocUID-val` cells still named deleted
+    COCs.
+  - `categories/merge` strips foreign options from COCs that already had the wrong cardinality, which
+    creates duplicates even when no combo merge ran.
+  - `categoryCombos/merge` returns `409 Duplicate CategoryOptionCombo` when the **target** already holds
+    duplicates. Run the COC dedup pass **before** the combo merge as well as after.
 - **A "new" check appearing after fixes is NOT automatically self-inflicted — verify vs the source.**
   one engagement's `indicators_with_invalid_denominator=3` became `indicators_with_invalid_numerator=5` after a
   `categoryOptionComboUpdate`; it looked like a regression but all 5 referenced DEs/COCs/indicators that

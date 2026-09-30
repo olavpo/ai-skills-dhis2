@@ -116,14 +116,15 @@ Two boundaries within advisory mode:
 
 ## Setup
 
-- Use the **dhis2-api** skill for the connection (`.env` with `DHIS2_BASE_URL` + token, or
+- Use the **dhis2-docs** skill for the connection (`.env` with `DHIS2_BASE_URL` + token, or
   basic auth). All the bundled scripts read the same env vars: `DHIS2_BASE_URL`, and either
   `DHIS2_API_TOKEN` or `DHIS2_USER`/`DHIS2_PASS`.
 - For the sandbox/dump workflow, use the **dhis2-instances** skill (d2-broker) to create an empty
   instance to restore into.
 - Direct SQL (optional, for guard-blocked fixes): `pip install psycopg2-binary`; find the DB
   (often published on the host gateway — `references/playbook.md` §sql explains how to locate it).
-- `pip install httpx python-dotenv` for the scripts.
+- `pip install -r scripts/requirements.txt` (httpx, python-dotenv, requests; psycopg2-binary only for
+  direct SQL).
 
 ## The workflow
 
@@ -186,6 +187,10 @@ grouped by severity. Persist the raw JSON.
   `orgunits_no_coordinates` had simply vanished from the report.) **Verify each fixed check with a direct
   SQL query** — authoritative and fast — rather than trusting a low post-fix inventory. Two consecutive
   agreeing runs are NOT enough here (two partial runs can agree).
+- **A cache clear mid-run empties the summary**, and on 2.43.1 it can leave data-integrity jobs stuck in
+  `SCHEDULED` until Tomcat restarts. `integrity.py` now exits non-zero when that happens, when a run
+  times out, or when the summary is missing checks, and it lists slow checks that did not complete as
+  unknown. Treat any `⛔` or `⚠️` line as "no inventory yet", never as an all-clear (playbook §1).
 
 ### 2. Triage (don't fix blindly)
 Bucket every failing check into: **deterministic-safe**, **judgment/destructive**,
@@ -277,6 +282,26 @@ and its verify cells failed loudly instead of pretending success. Rules for auth
   meant staging).
 - derive-at-runtime steps must ALSO guard inside their loop (act only on objects matching the recorded
   names/UIDs and expected state), so a precondition slip degrades to a no-op, not a wrong write.
+- **use the target version's check names.** Names differ across versions (2.38 has ~39, several with
+  other names). `check()` raises on an unknown name, and a rendered precondition raises on a timeout,
+  so neither can skip a fix as "already 0". Without that, an unknown name timed out, read as 0, and the
+  fix was skipped as if applied.
+
+**API-only targets (hosted instances with no PostgreSQL route) are common.** The manifest has no
+API-only variant yet, so give each DB-dependent fix an API re-expression in its rationale or as a
+second fix, and flag the ones that cannot be re-expressed. Re-expressions from one hosted 2.38
+engagement:
+- PostGIS validity → a list of known-bad geometries.
+- Audit-based "viewed in 12 months" → view counts.
+- SQL data removal → `POST /api/maintenance/dataPruning/organisationUnits/{uid}` (playbook §3).
+
+**Authoring gotchas that cost re-runs:**
+- `code` steps are assembled as Python f-strings. Double every literal `{}` in generated code. A segment
+  accidentally left as a plain string ships literal `{o['id']}` into URLs (400s at replay).
+- The runner cannot set gate variables such as `CONFIRMED_INTENT`; the operator edits the cell.
+- There is no bilingual output. National teams often need their own language, so add a post-processor
+  for translated cells when that applies.
+- Rendered file names are slugified from the engagement name.
 
 Keep these guarantees in every step (they apply to the manifest and all its renderings):
 - **UID-based**, never instance-specific numeric ids. SQL cells call `resolve_id(table, uid)` to look up
