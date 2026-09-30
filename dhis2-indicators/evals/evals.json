@@ -1,0 +1,76 @@
+{
+  "skill_name": "dhis2-indicators",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm setting up ANC indicators on a 2.41 instance that was built from the Sierra Leone demo. I need two aggregate indicators: (1) ANC 1-3 dropout rate, as a percentage of women who came for ANC 1st visit but not a 3rd, and (2) % of ANC 1st visits done at outreach (vs fixed). Our metadata extract is in evals/files/sl-anc-extract.json, including my draft of the dropout rate. The district managers want the district figure to be the average of the facility rates. Can you fix my draft, write both indicators as JSON I can POST to /api/indicators (save it as indicators.json), and tell me anything else I should check before I trust the numbers?",
+      "expected_output": "indicators.json with two indicators on the Percent (factor 100) type ItPercent01: dropout numerator #{fbfJHSPpUQD} - #{Jtf34kNZhzP}, denominator #{fbfJHSPpUQD}, no *100 in the expression; outreach numerator #{fbfJHSPpUQD.pq2XI5kz2BY}, denominator #{fbfJHSPpUQD}. Explains the draft is 100x too large (factor + *100) and that the inner division aborts the analytics request with 409 E7132 where ANC 1st visit is 0; flags ANC 3rd visit aggregationType AVERAGE (should be SUM); explains parent values are sum(num)/sum(den), not an average of facility rates; asks about or flags a naming convention; recommends validating each expression with GET /api/expressions/description.",
+      "files": ["evals/files/sl-anc-extract.json"],
+      "assertions": [
+        "indicators.json is valid JSON containing exactly two indicator objects, each with numerator, denominator and indicatorType fields",
+        "Both indicators reference indicator type ItPercent01 (factor 100), and neither numerator nor denominator contains a '* 100' or '*100' multiplier",
+        "The dropout indicator has denominator #{fbfJHSPpUQD} (not '1') and numerator #{fbfJHSPpUQD} - #{Jtf34kNZhzP}, i.e. the division has moved out of the numerator",
+        "The outreach indicator's numerator is #{fbfJHSPpUQD.pq2XI5kz2BY} (the Outreach category option combo), not a filter/condition on a category option and not the whole #{fbfJHSPpUQD}",
+        "States that the draft is inflated because the Percent type already multiplies by 100 (so the draft is 100x too big)",
+        "States that a division inside the numerator is not null-safe: where ANC 1st visit is 0 it aborts the analytics request (409 / E7132, division by zero), unlike a zero denominator which just yields no value",
+        "Flags that ANC 3rd visit (Jtf34kNZhzP) has aggregationType AVERAGE in the extract and should be SUM, and that the expression review alone would not catch this",
+        "Tells the user that analytics computes the district value as sum of numerators / sum of denominators, not the average of facility percentages, and does not build an average-of-rates workaround without flagging this"
+      ],
+      "requires": "offline",
+      "notes": "Aggregate authoring traps: double factor, inner division E7132, COC enumeration, DE aggregationType lint, parent recombination; expressions checkable live via GET /api/expressions/description on any SL demo."
+    },
+    {
+      "id": 2,
+      "prompt": "We're on 2.42.3 with the Sierra Leone demo Child Programme. We added a multi-select data element 'CH Postnatal danger signs' to the Baby Postnatal stage (see evals/files/child-programme-danger-signs.json). I need program indicators for (a) number of postnatal visits per month where convulsions (DS1) were recorded, (b) number of postnatal visits per month with skin pustules (DS10), and (c) number of children with any danger sign recorded at a postnatal visit, per quarter. I tried the filter d2:containsItems(#{ZzYYXq4fJie.PnDangrSg01}, 'DS1') in Maintenance and it says 'Expression is not valid' / 'Invalid string token d', so I guess PIs can't handle multi-select. My colleague suggests a program rule that assigns 12 yes/no data elements instead. Should we do that? If not, give me the PIs as JSON for POST /api/programIndicators (save as program-indicators.json).",
+      "expected_output": "Advises against the 12 flag data elements: containsItems() exists in PIs on 2.41+ but without the d2: prefix (d2: is the program-rule form). program-indicators.json has (a) and (b) as EVENT/COUNT PIs with filters V{program_stage_id} == 'ZzYYXq4fJie' && containsItems(#{ZzYYXq4fJie.PnDangrSg01}, 'DS1' / 'DS10'); warns that contains() would make 'DS1' match 'DS10'; (c) is ENROLLMENT type (children, not visits) with a d2:hasValue-style filter and a caveat to probe that the event DE resolves in ENROLLMENT type; every PI carries explicit analyticsPeriodBoundaries (API-created PIs are otherwise unbounded), with (c) bounded on the Baby Postnatal event date rather than enrollment date; validate with POST /api/programIndicators/filter/description (text/plain).",
+      "files": ["evals/files/child-programme-danger-signs.json"],
+      "assertions": [
+        "Says containsItems is available in program indicators and the error comes from the d2: prefix: indicators/PIs use the unprefixed containsItems(), the d2: form belongs to program rules",
+        "Recommends against the 12 rule-assigned yes/no data elements",
+        "program-indicators.json is valid JSON and every filter that tests an option uses 'containsItems(' with no 'd2:containsItems' anywhere in the file",
+        "Warns that contains() is a substring match that would count 'DS10' (and 'DS11', 'DS12') as DS1, so containsItems is required here",
+        "PIs (a) and (b) use analyticsType EVENT with aggregationType COUNT (or SUM of 1) and keep the option test in the filter rather than a d2:condition in the expression",
+        "PI (c) uses analyticsType ENROLLMENT, explaining that EVENT type would count a child once per postnatal visit on the repeatable stage",
+        "Every PI in program-indicators.json has a non-empty analyticsPeriodBoundaries array, and the answer says a PI POSTed via the API without boundaries is unbounded (same all-time value for every period)",
+        "Says to check the filters with POST /api/programIndicators/filter/description (raw text/plain body; GET returns 405), or with an equivalent live validation step, before using the PIs"
+      ],
+      "requires": "offline",
+      "notes": "MULTI_TEXT trap (d2: prefix error read as 'unsupported'), contains vs containsItems substring, EVENT vs ENROLLMENT, API boundary omission; filters checkable live via /api/programIndicators/filter/description once the DE is imported."
+    },
+    {
+      "id": 3,
+      "prompt": "This rate looks wrong and I can't see why. On our Sierra Leone demo copy (2.42) I scripted a small Child Programme dashboard: postnatal visits, low birth weight births, postnatal visits for LBW babies, and an aggregate % indicator on top. The export and what analytics returns for Sierra Leone Jan-Mar 2024 are in evals/files/lbw-dashboard-export.json. Postnatal visits is 1.0 every month, LBW births is 1284 in every single month, and the % is always 0. Yesterday I changed something on the postnatal visits PI through the API and the chart still shows exactly the same numbers, so I don't think that was it. Is it the Percent indicator type? What's broken and how do I fix and prove it?",
+      "expected_output": "Four separate root causes: PiPncVisit1 uses aggregationType AVERAGE on V{event_count} (returns ~1; must be COUNT/SUM); PiLbwBirth1 has no analyticsPeriodBoundaries because it was created via the API, so it is unbounded and returns the same all-time value for every period (add the EVENT_DATE start/end boundaries); PiPncLbw001 is an EVENT PI anchored on Baby Postnatal events but reads a Birth-stage DE, which is null on those rows, so it is always 0 (anchor on the Birth stage, or ENROLLMENT with a probe to confirm it resolves); the unchanged chart after the fix is analytics caching / not clearing the cache or re-running analytics, not proof that the change was irrelevant. The Percent type (factor 100) is correct. Proof: cacheClear or _cb, re-run analytics, throwaway probe PIs or line-level events query, period-edge test.",
+      "files": ["evals/files/lbw-dashboard-export.json"],
+      "assertions": [
+        "Identifies that PiPncVisit1 combines a count-style expression (V{event_count}) with aggregationType AVERAGE, which yields ~1, and says to change it to COUNT (or SUM)",
+        "Identifies that PiLbwBirth1 has no analyticsPeriodBoundaries and that an API-created PI without boundaries is unbounded, which explains the identical 1284 in every month; supplies the EVENT_DATE AFTER_START/BEFORE_END boundaries as the fix",
+        "Identifies that PiPncLbw001 is an EVENT-type PI on Baby Postnatal events reading a Birth-stage data element (#{A03MvHHogjR.UXz7xuGCEhU}), which is null on those rows, so the filter never matches even though the expression validates",
+        "Gives a concrete fix for the cross-stage PI (anchor on the Birth stage, or switch to ENROLLMENT) and, if ENROLLMENT is proposed, says to confirm with a probe that the event data element resolves in enrollment analytics",
+        "Explains the unchanged chart after yesterday's change as analytics caching or stale analytics (cache clear via /api/maintenance/cacheClear, a cache-busting parameter, and/or re-running analytics), not as evidence the change didn't matter",
+        "States that the Percent indicator type (factor 100) is not the cause and leaves it unchanged",
+        "Proposes a verification step specific to PIs: throwaway probe PIs, a line-level /api/analytics/events/query check, or boundary-date test events on both sides of a month edge"
+      ],
+      "requires": "offline",
+      "notes": "Debugging case with several independent silent PI bugs (AVERAGE on count, missing boundaries, cross-stage EVENT ref, cache) plus a false lead (indicator type) that must not be blamed."
+    },
+    {
+      "id": 4,
+      "prompt": "Before we copy the Sierra Leone demo's 'ANC 1-3 Dropout Rate' and 'ANC 3 Coverage' indicators into a new national 2.42 system, I want proof they compute what their names say. The SL demo instance is at http://dhis2-agent-sl242:8080 (admin/district). Can you check the definitions and test them properly, and give me a short report with the evidence?",
+      "expected_output": "Fetches both indicators and their types from the SL demo; validates numerators/denominators via GET /api/expressions/description and quotes the returned descriptions; lints referenced DEs (aggregationType, valueType, COCs in the current combo, zeroIsSignificant) and notes ANC 3 Coverage is annualized with an Expected pregnancies denominator; tests on a fresh EMPTY 2.42 instance (not the seeded demo) using the dataset dependency export plus indicators and indicatorTypes separately; enters distinct values per cell across two sibling org units with a zero-denominator case, checks imported+updated equals payload size, runs analytics and polls to completion, computes expected values two ways (engine and intent), checks parent = sum(num)/sum(den) and monthly vs yearly annualization; saves artifacts; reports agreement or the defect.",
+      "files": [],
+      "assertions": [
+        "Validates each numerator and denominator with GET /api/expressions/description and reports the returned status/description for each",
+        "Checks the referenced data elements' configuration (aggregationType, valueType/domainType, and that any #{de.coc} COC belongs to the DE's current category combo), not only the expressions",
+        "Runs the data test on a fresh, empty instance (created without a seed, e.g. via the d2-broker) rather than by entering or reading data on the seeded SL demo",
+        "Imports the dataset dependency export and supplies the indicators and their indicator types separately, then confirms the indicator-type factors on the test instance",
+        "Enters distinct per-cell values (not constants) across at least two sibling org units under one parent, and checks the import with imported + updated == number of data values in the payload",
+        "Computes expected values two independent ways (re-evaluating the stored expression, and from the indicator's meaning) and compares both to analytics output",
+        "Checks the parent org unit value as sum of numerators over sum of denominators, and addresses the annualized flag on ANC 3 Coverage (monthly value scaled vs yearly)",
+        "Triggers analytics and waits for the ANALYTICS_TABLE task to complete before querying (or re-runs it after data changes)"
+      ],
+      "requires": "dhis2-instance: Sierra Leone demo 2.42 (reference metadata) plus an empty unseeded 2.42 instance from the d2-broker (test)",
+      "notes": "Only live case: exercises the full testing.md method (description endpoints, lint, fresh-instance test, two-way expected values) and the trap of testing on the populated demo."
+    }
+  ]
+}

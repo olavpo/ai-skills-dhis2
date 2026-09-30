@@ -14,7 +14,8 @@
         "Gives a concrete mechanism for 'contacts per index case' (d2:relationshipCount on the index program, or an event count if contacts are events)",
         "Defines TPT completion with an explicit cohort/denominator (e.g. contacts who started TPT in a period)",
         "Marks unverified behaviour as such or recommends testing the design on a disposable/test instance"
-      ]
+      ],
+      "requires": "offline"
     },
     {
       "id": 2,
@@ -29,7 +30,8 @@
         "Keeps the change additive: no change of tracked entity type, no moving existing data between programs, existing relationship kept",
         "Notes that program rules cannot read another tracked entity's data, so filling the values needs a script, job or custom app (or manual entry)",
         "Handles children without a linked mother (e.g. an 'unknown' category rather than 'No')"
-      ]
+      ],
+      "requires": "offline"
     },
     {
       "id": 3,
@@ -44,7 +46,8 @@
         "Addresses follow-up by other actors: ownership/transfer, org unit assignment or working lists",
         "States that the data model should stay the same whichever entry tool is used",
         "Considers how the household is represented (roster, attributes on child, or household entity) with a trade-off"
-      ]
+      ],
+      "requires": "offline"
     }
   ]
 }

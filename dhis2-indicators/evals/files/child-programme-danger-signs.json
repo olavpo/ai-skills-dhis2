@@ -1,0 +1,58 @@
+{
+  "_comment": "Trimmed extract of the Sierra Leone demo Child Programme with ONE synthetic addition: the MULTI_TEXT data element 'CH Postnatal danger signs' (UID PnDangrSg01) and its option set, added to the Baby Postnatal stage. Program and stage UIDs are the SL demo ones.",
+  "programs": [
+    {
+      "id": "IpHINAT79UW",
+      "name": "Child Programme",
+      "programType": "WITH_REGISTRATION",
+      "programStages": [
+        { "id": "A03MvHHogjR", "name": "Birth", "repeatable": false },
+        { "id": "ZzYYXq4fJie", "name": "Baby Postnatal", "repeatable": true }
+      ]
+    }
+  ],
+  "programStages": [
+    {
+      "id": "ZzYYXq4fJie",
+      "name": "Baby Postnatal",
+      "program": { "id": "IpHINAT79UW" },
+      "repeatable": true,
+      "programStageDataElements": [
+        { "dataElement": { "id": "PnDangrSg01" } }
+      ]
+    }
+  ],
+  "dataElements": [
+    {
+      "id": "PnDangrSg01",
+      "name": "CH Postnatal danger signs",
+      "shortName": "CH PNC danger signs",
+      "valueType": "MULTI_TEXT",
+      "domainType": "TRACKER",
+      "aggregationType": "NONE",
+      "optionSet": { "id": "OsDangrSg01" }
+    }
+  ],
+  "optionSets": [
+    {
+      "id": "OsDangrSg01",
+      "name": "CH Postnatal danger signs",
+      "valueType": "MULTI_TEXT",
+      "options": [
+        { "code": "DS1",  "name": "Convulsions" },
+        { "code": "DS2",  "name": "Not feeding well" },
+        { "code": "DS3",  "name": "Fast breathing" },
+        { "code": "DS4",  "name": "Severe chest indrawing" },
+        { "code": "DS5",  "name": "Fever (37.5 C or above)" },
+        { "code": "DS6",  "name": "Low body temperature" },
+        { "code": "DS7",  "name": "Movement only when stimulated" },
+        { "code": "DS8",  "name": "Yellow palms or soles" },
+        { "code": "DS9",  "name": "Umbilicus red or draining pus" },
+        { "code": "DS10", "name": "Skin pustules" },
+        { "code": "DS11", "name": "Eye discharge" },
+        { "code": "DS12", "name": "Diarrhoea with blood" }
+      ]
+    }
+  ],
+  "exampleStoredValues": [ "DS1,DS5", "DS10", "DS2,DS11,DS12", "DS5" ]
+}

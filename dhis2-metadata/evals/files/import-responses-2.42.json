@@ -1,0 +1,376 @@
+[
+  {
+    "pass": 1,
+    "type": "trackedEntityTypes",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "WARNING",
+      "message": "One or more errors occurred, please see full details in import report.",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "WARNING",
+        "stats": {"created": 0, "updated": 0, "deleted": 0, "ignored": 1, "total": 1},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.trackedentity.TrackedEntityType",
+            "stats": {"created": 0, "updated": 0, "deleted": 0, "ignored": 1, "total": 1},
+            "objectReports": [
+              {
+                "klass": "org.hisp.dhis.trackedentity.TrackedEntityType",
+                "index": 0,
+                "uid": "nEenWmSyUEp",
+                "errorReports": [
+                  {
+                    "message": "Missing required property `shortName`",
+                    "mainKlass": "org.hisp.dhis.trackedentity.TrackedEntityType",
+                    "errorCode": "E4000",
+                    "errorProperty": "shortName",
+                    "errorProperties": ["shortName"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "pass": 1,
+    "type": "categories",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "WARNING",
+      "message": "One or more errors occurred, please see full details in import report.",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "WARNING",
+        "stats": {"created": 11, "updated": 0, "deleted": 0, "ignored": 1, "total": 12},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.category.Category",
+            "stats": {"created": 11, "updated": 0, "deleted": 0, "ignored": 1, "total": 12},
+            "objectReports": [
+              {
+                "klass": "org.hisp.dhis.category.Category",
+                "index": 7,
+                "uid": "Qd7yVb3mNz1",
+                "displayName": "Age in single years (0-59)",
+                "errorReports": [
+                  {
+                    "message": "Category `Qd7yVb3mNz1` must have at most 50 options, but has 60",
+                    "mainKlass": "org.hisp.dhis.category.Category",
+                    "errorCode": "E1127",
+                    "errorProperty": "categoryOptions",
+                    "errorProperties": ["Qd7yVb3mNz1", "50", "60"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "pass": 1,
+    "type": "categoryCombos",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "WARNING",
+      "message": "One or more errors occurred, please see full details in import report.",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "WARNING",
+        "stats": {"created": 8, "updated": 0, "deleted": 0, "ignored": 1, "total": 9},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.category.CategoryCombo",
+            "stats": {"created": 8, "updated": 0, "deleted": 0, "ignored": 1, "total": 9},
+            "objectReports": [
+              {
+                "klass": "org.hisp.dhis.category.CategoryCombo",
+                "index": 4,
+                "uid": "Hx2pLw8cRt5",
+                "displayName": "Sex and single-year age",
+                "errorReports": [
+                  {
+                    "message": "Invalid reference [Qd7yVb3mNz1] (Category) on object Sex and single-year age [Hx2pLw8cRt5] (CategoryCombo) for association `categories`",
+                    "mainKlass": "org.hisp.dhis.category.CategoryCombo",
+                    "errorCode": "E5002",
+                    "errorProperties": ["Qd7yVb3mNz1", "Category", "Sex and single-year age [Hx2pLw8cRt5]", "CategoryCombo", "categories"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "pass": 1,
+    "type": "dataElements",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "ERROR",
+      "message": "not-null property references a null or transient value : org.hisp.dhis.dataelement.DataElement.categoryCombo",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "ERROR",
+        "stats": {"created": 0, "updated": 0, "deleted": 0, "ignored": 0, "total": 0},
+        "typeReports": []
+      }
+    }
+  },
+  {
+    "pass": 1,
+    "type": "programStages",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "WARNING",
+      "message": "One or more errors occurred, please see full details in import report.",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "WARNING",
+        "stats": {"created": 0, "updated": 0, "deleted": 0, "ignored": 2, "total": 2},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.program.ProgramStage",
+            "stats": {"created": 0, "updated": 0, "deleted": 0, "ignored": 2, "total": 2},
+            "objectReports": [
+              {
+                "klass": "org.hisp.dhis.program.ProgramStage",
+                "index": 0,
+                "uid": "A03MvHHogjR",
+                "errorReports": [
+                  {
+                    "message": "Invalid reference [IpHINAT79UW] (Program) on object Birth [A03MvHHogjR] (ProgramStage) for association `program`",
+                    "mainKlass": "org.hisp.dhis.program.ProgramStage",
+                    "errorCode": "E5002",
+                    "errorProperties": ["IpHINAT79UW", "Program", "Birth [A03MvHHogjR]", "ProgramStage", "program"]
+                  }
+                ]
+              },
+              {
+                "klass": "org.hisp.dhis.program.ProgramStage",
+                "index": 1,
+                "uid": "ZzYYXq4fJie",
+                "errorReports": [
+                  {
+                    "message": "Invalid reference [IpHINAT79UW] (Program) on object Baby Postnatal [ZzYYXq4fJie] (ProgramStage) for association `program`",
+                    "mainKlass": "org.hisp.dhis.program.ProgramStage",
+                    "errorCode": "E5002",
+                    "errorProperties": ["IpHINAT79UW", "Program", "Baby Postnatal [ZzYYXq4fJie]", "ProgramStage", "program"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "pass": 1,
+    "type": "visualizations",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "WARNING",
+      "message": "One or more errors occurred, please see full details in import report.",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "WARNING",
+        "stats": {"created": 14, "updated": 0, "deleted": 0, "ignored": 1, "total": 15},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.visualization.Visualization",
+            "stats": {"created": 14, "updated": 0, "deleted": 0, "ignored": 1, "total": 15},
+            "objectReports": [
+              {
+                "klass": "org.hisp.dhis.visualization.Visualization",
+                "index": 3,
+                "uid": "Tn5wKc8RvBq",
+                "displayName": "ANC: Coverage by district (monthly)",
+                "errorReports": [
+                  {
+                    "message": "Invalid reference [Uvn6LCg7dVU] (Indicator) on object ANC: Coverage by district (monthly) [Tn5wKc8RvBq] (Visualization) for association `dataDimensionItems`",
+                    "mainKlass": "org.hisp.dhis.visualization.Visualization",
+                    "errorCode": "E5002",
+                    "errorProperties": ["Uvn6LCg7dVU", "Indicator", "ANC: Coverage by district (monthly) [Tn5wKc8RvBq]", "Visualization", "dataDimensionItems"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "pass": 2,
+    "type": "trackedEntityTypes",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "WARNING",
+      "message": "One or more errors occurred, please see full details in import report.",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "WARNING",
+        "stats": {"created": 0, "updated": 0, "deleted": 0, "ignored": 1, "total": 1},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.trackedentity.TrackedEntityType",
+            "stats": {"created": 0, "updated": 0, "deleted": 0, "ignored": 1, "total": 1},
+            "objectReports": [
+              {
+                "klass": "org.hisp.dhis.trackedentity.TrackedEntityType",
+                "index": 0,
+                "uid": "nEenWmSyUEp",
+                "errorReports": [
+                  {
+                    "message": "Missing required property `shortName`",
+                    "mainKlass": "org.hisp.dhis.trackedentity.TrackedEntityType",
+                    "errorCode": "E4000",
+                    "errorProperty": "shortName",
+                    "errorProperties": ["shortName"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "pass": 2,
+    "type": "categories",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "WARNING",
+      "message": "One or more errors occurred, please see full details in import report.",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "WARNING",
+        "stats": {"created": 0, "updated": 11, "deleted": 0, "ignored": 1, "total": 12},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.category.Category",
+            "stats": {"created": 0, "updated": 11, "deleted": 0, "ignored": 1, "total": 12},
+            "objectReports": [
+              {
+                "klass": "org.hisp.dhis.category.Category",
+                "index": 7,
+                "uid": "Qd7yVb3mNz1",
+                "displayName": "Age in single years (0-59)",
+                "errorReports": [
+                  {
+                    "message": "Category `Qd7yVb3mNz1` must have at most 50 options, but has 60",
+                    "mainKlass": "org.hisp.dhis.category.Category",
+                    "errorCode": "E1127",
+                    "errorProperty": "categoryOptions",
+                    "errorProperties": ["Qd7yVb3mNz1", "50", "60"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "pass": 2,
+    "type": "dataElements",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "ERROR",
+      "message": "not-null property references a null or transient value : org.hisp.dhis.dataelement.DataElement.categoryCombo",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "ERROR",
+        "stats": {"created": 0, "updated": 0, "deleted": 0, "ignored": 0, "total": 0},
+        "typeReports": []
+      }
+    }
+  },
+  {
+    "pass": 2,
+    "type": "programStages",
+    "httpStatusCode": 200,
+    "body": {
+      "httpStatus": "OK",
+      "httpStatusCode": 200,
+      "status": "OK",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "OK",
+        "stats": {"created": 2, "updated": 0, "deleted": 0, "ignored": 0, "total": 2},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.program.ProgramStage",
+            "stats": {"created": 2, "updated": 0, "deleted": 0, "ignored": 0, "total": 2},
+            "objectReports": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "pass": 2,
+    "type": "visualizations",
+    "httpStatusCode": 409,
+    "body": {
+      "httpStatus": "Conflict",
+      "httpStatusCode": 409,
+      "status": "WARNING",
+      "message": "One or more errors occurred, please see full details in import report.",
+      "response": {
+        "responseType": "ImportReport",
+        "status": "WARNING",
+        "stats": {"created": 0, "updated": 14, "deleted": 0, "ignored": 1, "total": 15},
+        "typeReports": [
+          {
+            "klass": "org.hisp.dhis.visualization.Visualization",
+            "stats": {"created": 0, "updated": 14, "deleted": 0, "ignored": 1, "total": 15},
+            "objectReports": [
+              {
+                "klass": "org.hisp.dhis.visualization.Visualization",
+                "index": 3,
+                "uid": "Tn5wKc8RvBq",
+                "displayName": "ANC: Coverage by district (monthly)",
+                "errorReports": [
+                  {
+                    "message": "Invalid reference [Uvn6LCg7dVU] (Indicator) on object ANC: Coverage by district (monthly) [Tn5wKc8RvBq] (Visualization) for association `dataDimensionItems`",
+                    "mainKlass": "org.hisp.dhis.visualization.Visualization",
+                    "errorCode": "E5002",
+                    "errorProperties": ["Uvn6LCg7dVU", "Indicator", "ANC: Coverage by district (monthly) [Tn5wKc8RvBq]", "Visualization", "dataDimensionItems"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+]

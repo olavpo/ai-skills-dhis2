@@ -1,0 +1,711 @@
+{
+ "system": {
+  "id": "5b9c6e0e-7f1a-4d3e-9a55-2f0c1d7a9b31",
+  "rev": "a1b2c3d",
+  "version": "2.42.1",
+  "date": "2025-11-03T09:15:02.311"
+ },
+ "categoryOptions": [
+  {
+   "id": "xYerKDKCefk",
+   "name": "default",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "default"
+  },
+  {
+   "id": "cOpMale0001",
+   "name": "Male",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Male",
+   "code": "MALE"
+  },
+  {
+   "id": "cOpFemale01",
+   "name": "Female",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Female",
+   "code": "FEMALE"
+  }
+ ],
+ "categories": [
+  {
+   "id": "GLevLNI9wkl",
+   "name": "default",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "default",
+   "dataDimensionType": "DISAGGREGATION",
+   "dataDimension": false,
+   "categoryOptions": [
+    {
+     "id": "xYerKDKCefk"
+    }
+   ]
+  },
+  {
+   "id": "catSex00001",
+   "name": "Sex",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Sex",
+   "dataDimensionType": "DISAGGREGATION",
+   "dataDimension": true,
+   "categoryOptions": [
+    {
+     "id": "cOpMale0001"
+    },
+    {
+     "id": "cOpFemale01"
+    }
+   ]
+  },
+  {
+   "id": "catSexMF001",
+   "name": "Sex (m/f)",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Sex (m/f)",
+   "dataDimensionType": "DISAGGREGATION",
+   "dataDimension": true,
+   "categoryOptions": [
+    {
+     "id": "cOpMale0001"
+    },
+    {
+     "id": "cOpFemale01"
+    }
+   ]
+  }
+ ],
+ "categoryCombos": [
+  {
+   "id": "bjDvmb4bfuf",
+   "name": "default",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "dataDimensionType": "DISAGGREGATION",
+   "skipTotal": false,
+   "categories": [
+    {
+     "id": "GLevLNI9wkl"
+    }
+   ],
+   "categoryOptionCombos": [
+    {
+     "id": "HllvX50cXC0"
+    }
+   ]
+  },
+  {
+   "id": "ccSex000001",
+   "name": "Sex",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "dataDimensionType": "DISAGGREGATION",
+   "skipTotal": false,
+   "categories": [
+    {
+     "id": "catSex00001"
+    }
+   ],
+   "categoryOptionCombos": [
+    {
+     "id": "cocSexM0001"
+    },
+    {
+     "id": "cocSexF0001"
+    },
+    {
+     "id": "cocSexM0002"
+    }
+   ]
+  },
+  {
+   "id": "ccSexDel001",
+   "name": "Sex DELETE",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "dataDimensionType": "DISAGGREGATION",
+   "skipTotal": false,
+   "categories": [
+    {
+     "id": "catSex00001"
+    }
+   ],
+   "categoryOptionCombos": [
+    {
+     "id": "cocSDelM001"
+    },
+    {
+     "id": "cocSDelF001"
+    }
+   ]
+  },
+  {
+   "id": "ccSexMF0001",
+   "name": "Sex (m/f)",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "dataDimensionType": "DISAGGREGATION",
+   "skipTotal": false,
+   "categories": [
+    {
+     "id": "catSexMF001"
+    }
+   ],
+   "categoryOptionCombos": [
+    {
+     "id": "cocSMFM0001"
+    },
+    {
+     "id": "cocSMFF0001"
+    }
+   ]
+  }
+ ],
+ "categoryOptionCombos": [
+  {
+   "id": "HllvX50cXC0",
+   "name": "default",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryOptions": [
+    {
+     "id": "xYerKDKCefk"
+    }
+   ]
+  },
+  {
+   "id": "cocSexM0001",
+   "name": "Male",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "categoryCombo": {
+    "id": "ccSex000001"
+   },
+   "categoryOptions": [
+    {
+     "id": "cOpMale0001"
+    }
+   ]
+  },
+  {
+   "id": "cocSexF0001",
+   "name": "Female",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "categoryCombo": {
+    "id": "ccSex000001"
+   },
+   "categoryOptions": [
+    {
+     "id": "cOpFemale01"
+    }
+   ]
+  },
+  {
+   "id": "cocSexM0002",
+   "name": "Male",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "categoryCombo": {
+    "id": "ccSex000001"
+   },
+   "categoryOptions": [
+    {
+     "id": "cOpMale0001"
+    }
+   ]
+  },
+  {
+   "id": "cocSDelM001",
+   "name": "Male",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "categoryCombo": {
+    "id": "ccSexDel001"
+   },
+   "categoryOptions": [
+    {
+     "id": "cOpMale0001"
+    }
+   ]
+  },
+  {
+   "id": "cocSDelF001",
+   "name": "Female",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "categoryCombo": {
+    "id": "ccSexDel001"
+   },
+   "categoryOptions": [
+    {
+     "id": "cOpFemale01"
+    }
+   ]
+  },
+  {
+   "id": "cocSMFM0001",
+   "name": "Male",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "categoryCombo": {
+    "id": "ccSexMF0001"
+   },
+   "categoryOptions": [
+    {
+     "id": "cOpMale0001"
+    }
+   ]
+  },
+  {
+   "id": "cocSMFF0001",
+   "name": "Female",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "categoryCombo": {
+    "id": "ccSexMF0001"
+   },
+   "categoryOptions": [
+    {
+     "id": "cOpFemale01"
+    }
+   ]
+  }
+ ],
+ "dataElements": [
+  {
+   "id": "deMalConf01",
+   "name": "Malaria cases confirmed",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria cases confirmed",
+   "domainType": "AGGREGATE",
+   "valueType": "INTEGER_ZERO_OR_POSITIVE",
+   "aggregationType": "SUM",
+   "zeroIsSignificant": false,
+   "categoryCombo": {
+    "id": "ccSex000001"
+   }
+  },
+  {
+   "id": "deMalTest01",
+   "name": "Malaria cases tested",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria cases tested",
+   "domainType": "AGGREGATE",
+   "valueType": "INTEGER_ZERO_OR_POSITIVE",
+   "aggregationType": "SUM",
+   "zeroIsSignificant": false,
+   "categoryCombo": {
+    "id": "ccSex000001"
+   }
+  },
+  {
+   "id": "deOPD000001",
+   "name": "OPD visits",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "OPD visits",
+   "domainType": "AGGREGATE",
+   "valueType": "INTEGER_ZERO_OR_POSITIVE",
+   "aggregationType": "SUM",
+   "zeroIsSignificant": false,
+   "categoryCombo": {
+    "id": "ccSexDel001"
+   }
+  },
+  {
+   "id": "deMalRDT001",
+   "name": "Malaria RDT positive",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria RDT positive",
+   "domainType": "AGGREGATE",
+   "valueType": "INTEGER_ZERO_OR_POSITIVE",
+   "aggregationType": "SUM",
+   "zeroIsSignificant": false,
+   "categoryCombo": {
+    "id": "ccSexMF0001"
+   }
+  },
+  {
+   "id": "deInfra0001",
+   "name": "Facilities with all basic infrastructure",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Facilities with all basic infrastructure",
+   "domainType": "AGGREGATE",
+   "valueType": "INTEGER_ZERO_OR_POSITIVE",
+   "aggregationType": "SUM",
+   "zeroIsSignificant": false,
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  },
+  {
+   "id": "deFacAss001",
+   "name": "Facilities assessed",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Facilities assessed",
+   "domainType": "AGGREGATE",
+   "valueType": "INTEGER_ZERO_OR_POSITIVE",
+   "aggregationType": "SUM",
+   "zeroIsSignificant": false,
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  },
+  {
+   "id": "deMalSpec01",
+   "name": "Malaria case - species",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria case - species",
+   "domainType": "TRACKER",
+   "valueType": "TEXT",
+   "aggregationType": "NONE",
+   "zeroIsSignificant": false,
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  }
+ ],
+ "indicatorTypes": [
+  {
+   "id": "itPercent01",
+   "name": "Percent",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "factor": 100,
+   "number": false
+  },
+  {
+   "id": "itPerCent02",
+   "name": "Per cent",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "factor": 100,
+   "number": false
+  },
+  {
+   "id": "itNumber001",
+   "name": "Number (factor 1)",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "factor": 1,
+   "number": true
+  }
+ ],
+ "indicators": [
+  {
+   "id": "inMalConf01",
+   "name": "Malaria confirmation rate",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria confirmation rate",
+   "numerator": "#{deMalConf01}",
+   "numeratorDescription": "",
+   "denominator": "#{deMalTest01}",
+   "denominatorDescription": "",
+   "indicatorType": {
+    "id": "itPercent01"
+   },
+   "annualized": false
+  },
+  {
+   "id": "inMalConf02",
+   "name": "Malaria  confirmation rate ",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria  confirmation rate",
+   "numerator": "#{deMalConf01}",
+   "numeratorDescription": "",
+   "denominator": "#{deMalTest01}",
+   "denominatorDescription": "",
+   "indicatorType": {
+    "id": "itPerCent02"
+   },
+   "annualized": false
+  },
+  {
+   "id": "inBEmONC001",
+   "name": "BEmONC facilities with all basic infrastructure",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "BEmONC facilities with all basic infrastructure",
+   "numerator": "#{deInfra0001}",
+   "numeratorDescription": "",
+   "denominator": "#{deFacAss001}",
+   "denominatorDescription": "",
+   "indicatorType": {
+    "id": "itPercent01"
+   },
+   "annualized": false
+  },
+  {
+   "id": "inCEmONC001",
+   "name": "CEmONC facilities with all basic infrastructure",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "CEmONC facilities with all basic infrastructure",
+   "numerator": "#{deInfra0001}",
+   "numeratorDescription": "",
+   "denominator": "#{deFacAss001}",
+   "denominatorDescription": "",
+   "indicatorType": {
+    "id": "itPercent01"
+   },
+   "annualized": false
+  },
+  {
+   "id": "inOPDMale01",
+   "name": "OPD visits male",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "OPD visits male",
+   "numerator": "#{deOPD000001.cocSDelM001}",
+   "numeratorDescription": "",
+   "denominator": "1",
+   "denominatorDescription": "",
+   "indicatorType": {
+    "id": "itNumber001"
+   },
+   "annualized": false
+  },
+  {
+   "id": "inRepOPD001",
+   "name": "OPD monthly reporting rate",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "OPD monthly reporting rate",
+   "numerator": "#{dsOPD000001.REPORTING_RATE}",
+   "numeratorDescription": "",
+   "denominator": "1",
+   "denominatorDescription": "",
+   "indicatorType": {
+    "id": "itNumber001"
+   },
+   "annualized": false
+  },
+  {
+   "id": "inANCcov001",
+   "name": "ANC 1st visit coverage",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "ANC 1st visit coverage",
+   "numerator": "#{deAncMiss01}",
+   "numeratorDescription": "",
+   "denominator": "#{deFacAss001}",
+   "denominatorDescription": "",
+   "indicatorType": {
+    "id": "itPercent01"
+   },
+   "annualized": false
+  }
+ ],
+ "dataEntryForms": [
+  {
+   "id": "dfOPD000001",
+   "name": "OPD monthly form",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "style": "NORMAL",
+   "format": 2,
+   "htmlCode": "<table><tr><td>OPD visits - Male</td><td><input id=\"deOPD000001-cocSDelM001-val\" name=\"entryfield\" /></td></tr><tr><td>OPD visits - Female</td><td><input id=\"deOPD000001-cocSDelF001-val\" name=\"entryfield\" /></td></tr></table>"
+  }
+ ],
+ "dataSets": [
+  {
+   "id": "dsOPD000001",
+   "name": "OPD monthly",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "OPD monthly",
+   "periodType": "Monthly",
+   "formType": "CUSTOM",
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "dataEntryForm": {
+    "id": "dfOPD000001"
+   },
+   "openFuturePeriods": 0,
+   "expiryDays": 0,
+   "timelyDays": 15,
+   "dataSetElements": [
+    {
+     "dataSet": {
+      "id": "dsOPD000001"
+     },
+     "dataElement": {
+      "id": "deOPD000001"
+     }
+    }
+   ],
+   "organisationUnits": []
+  },
+  {
+   "id": "dsMal000001",
+   "name": "Malaria monthly",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria monthly",
+   "periodType": "Monthly",
+   "formType": "DEFAULT",
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "openFuturePeriods": 0,
+   "expiryDays": 0,
+   "timelyDays": 15,
+   "dataSetElements": [
+    {
+     "dataSet": {
+      "id": "dsMal000001"
+     },
+     "dataElement": {
+      "id": "deMalConf01"
+     }
+    },
+    {
+     "dataSet": {
+      "id": "dsMal000001"
+     },
+     "dataElement": {
+      "id": "deMalTest01"
+     }
+    },
+    {
+     "dataSet": {
+      "id": "dsMal000001"
+     },
+     "dataElement": {
+      "id": "deMalRDT001"
+     }
+    }
+   ],
+   "organisationUnits": []
+  }
+ ],
+ "validationRules": [
+  {
+   "id": "vrConfTst01",
+   "name": "Malaria confirmed <= tested",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "importance": "MEDIUM",
+   "periodType": "Monthly",
+   "operator": "less_than_or_equal_to",
+   "leftSide": {
+    "expression": "AVG(#{deMalConf01})",
+    "description": "Confirmed",
+    "missingValueStrategy": "SKIP_IF_ANY_VALUE_MISSING"
+   },
+   "rightSide": {
+    "expression": "#{deMalTest01}",
+    "description": "Tested",
+    "missingValueStrategy": "SKIP_IF_ANY_VALUE_MISSING"
+   },
+   "organisationUnitLevels": []
+  }
+ ],
+ "programs": [
+  {
+   "id": "prMal000001",
+   "name": "Malaria case investigation",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria case investigation",
+   "programType": "WITHOUT_REGISTRATION",
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappings": [],
+   "programStages": [
+    {
+     "id": "psMal000001"
+    }
+   ],
+   "organisationUnits": []
+  }
+ ],
+ "programStages": [
+  {
+   "id": "psMal000001",
+   "name": "Case investigation",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "program": {
+    "id": "prMal000001"
+   },
+   "repeatable": false,
+   "sortOrder": 1,
+   "programStageDataElements": [
+    {
+     "id": "psdeMalSp01",
+     "programStage": {
+      "id": "psMal000001"
+     },
+     "dataElement": {
+      "id": "deMalSpec01"
+     },
+     "compulsory": false,
+     "sortOrder": 1
+    }
+   ]
+  }
+ ],
+ "programIndicators": [
+  {
+   "id": "piMalEvt001",
+   "name": "Malaria cases investigated",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria cases investigated",
+   "program": {
+    "id": "prMal000001"
+   },
+   "analyticsType": "EVENT",
+   "expression": "d2:hasValue(V{event_date})",
+   "aggregationType": "COUNT",
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "analyticsPeriodBoundaries": []
+  },
+  {
+   "id": "piMalPf0001",
+   "name": "Malaria cases - P. falciparum",
+   "created": "2021-04-12T10:00:00.000",
+   "lastUpdated": "2025-11-03T09:12:44.000",
+   "shortName": "Malaria cases - P. falciparum",
+   "program": {
+    "id": "prMal000001"
+   },
+   "analyticsType": "EVENT",
+   "expression": "1",
+   "aggregationType": "COUNT",
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "analyticsPeriodBoundaries": [],
+   "filter": "V{program_stage_id} == psMal000001 && #{psMal000001.deMalSpec01} == 'PF'"
+  }
+ ]
+}

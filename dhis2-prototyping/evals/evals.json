@@ -16,7 +16,8 @@
         "The plan includes a manual pass through the Android UI or dry-runs of all flows before final recordings",
         "The generator defines program indicators (or equivalent) for ANC1-4 coverage for both options, or states precisely why an option cannot produce one",
         "No DHIS2 server was contacted or modified during the run (per transcript)"
-      ]
+      ],
+      "requires": "offline"
     },
     {
       "id": 2,
@@ -33,7 +34,8 @@
         "The setup checklist includes location permission and a mock/test GPS location for 'use my location' on the emulator",
         "Tap/click and typed-character counts are derived from what actually ran (command/action logs), not only hand estimates",
         "A clock/time-zone check between emulator and server is included"
-      ]
+      ],
+      "requires": "offline"
     }
   ]
 }

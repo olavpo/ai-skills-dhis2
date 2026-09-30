@@ -15,7 +15,8 @@
         "Pins a specific SDK version (1.14.x) in Gradle and lists matching dependencies",
         "Mentions a concrete SDK sync/upload behaviour that affects error handling (e.g. atomicMode OBJECT/partial acceptance, conflicts stored locally, state flags)",
         "Kotlin code is syntactically plausible and consistent with the SDK API (no invented module or method names found by the grader)"
-      ]
+      ],
+      "requires": "offline"
     },
     {
       "id": 2,
@@ -30,7 +31,8 @@
         "Addresses hidden fields that hold values or are assigned (clear or show read-only) and the risk of server-side rejection",
         "Addresses version alignment between the rule engine and the SDK/Capture/server",
         "Recommends testing rule behaviour against Capture or the server with concrete cases"
-      ]
+      ],
+      "requires": "offline"
     }
   ]
 }
