@@ -1,0 +1,38 @@
+[
+  {
+    "query": "We're setting up TB contact tracing in DHIS2 2.41 for a district programme. Each index case has household contacts; every contact is screened once, and those under 5 or with HIV should start TB preventive therapy (TPT) and be followed monthly for 6 months. The programme wants: contacts per index case, % of contacts screened, % eligible contacts started on TPT by age group and sex, TPT completion, and all of that by whether the index case is bacteriologically confirmed. Should contacts be events on the index case or their own tracked entities? What would you build?",
+    "should_trigger": true
+  },
+  {
+    "query": "Can you review our design? Mothers are registered in an ANC program (TET Person), and at delivery the baby is registered as a new Person in our Child Health / EPI program, linked with a 'mother of' relationship. The ministry now wants immunisation coverage broken down by mother's education level and by whether the mother attended 4+ ANC visits. We're on 2.42. Can we get that from analytics, and if not, what should we change without breaking what's there?",
+    "should_trigger": true
+  },
+  {
+    "query": "The education ministry in our state wants a door-to-door census of children aged 5-18 with disabilities in 3 districts, then follow-up to get them into school or special services. They're planning to roll out a DHIS2 learner registry (EMIS) next year but it's not there yet. Connectivity outside town is poor, enumerators have cheap Android phones, and the local team only knows web development. How should we model this in tracker, and should we use Capture or build something?",
+    "should_trigger": true
+  },
+  {
+    "query": "Write me a program indicator for TPT completion: enrollments where the 6th monthly follow-up event has 'TPT completed' = yes, in DHIS2 2.42.",
+    "should_trigger": false
+  },
+  {
+    "query": "Scaffold a Kotlin Android app on the DHIS2 Android SDK 1.14 that registers households offline and syncs them.",
+    "should_trigger": false
+  },
+  {
+    "query": "Export the Child Health program with all its stages, rules and option sets from our instance so I can import it into a test server.",
+    "should_trigger": false
+  },
+  {
+    "query": "we have a household program where each kid is a repeatable stage event. schools now want to see 'their' out of school kids and transfer them when they enrol. is that possible or do we need to restructure?",
+    "should_trigger": true
+  },
+  {
+    "query": "Contacts are linked TEIs to the index case in our COVID program. Can analytics give me % of contacts of confirmed cases who were tested?",
+    "should_trigger": true
+  },
+  {
+    "query": "Spin up a clean DHIS2 2.42 instance and load the Sierra Leone demo so I can test something.",
+    "should_trigger": false
+  }
+]

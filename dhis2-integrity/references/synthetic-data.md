@@ -45,7 +45,16 @@ before the "original" snapshot** — the snapshot then becomes the true A/B cont
    element(s)…" / "Data set X not usable with org unit(s)…". 2.40–2.42 accepted the same payload with no
    data set at all, so synthetic aggregate data for dataset-less DEs silently fails wholesale on 2.43.
    Check dataset membership + assignment as a prerequisite, not just OU scope.
-4. **Scale caveat.** On very large instances (100k+ OUs) the generator's own large metadata fetches
+4. **2.43 also needs the dataset named when a DE sits in several.** A payload without `"dataSet"` is
+   rejected (`409 Data set detection failed, found multiple sets: [...]`) for any data element in more
+   than one dataset; the same payload imports on ≤2.42. The generator posts one payload per dataset with
+   `"dataSet"` set and prints the first conflicts per batch, not just `importCount`. Expect `E8031
+   Untimely data entry` for periods past a dataset's `expiryDays`.
+5. **Tracker programs without a tracked entity type** (event programs) are skipped. Nesting them under
+   `trackedEntities` fails server-side with `TrackedEntity.getTrackedEntityType() is null`. A job that
+   dies like that has no report (`GET /tracker/jobs/{id}/report.json` → 404); the generator then prints
+   the job's notifications instead.
+6. **Scale caveat.** On very large instances (100k+ OUs) the generator's own large metadata fetches
    (a multi-MB `dataSets` export) and bulk `dataValueSets` POSTs can OOM Tomcat on a shared host. Turn the
    knobs DOWN (`--ous 1 --periods 1 --chunk 500`) or accept that a metadata-only run is the realistic
    ceiling there and document it (do the data-dependent methodology on a smaller case instead).

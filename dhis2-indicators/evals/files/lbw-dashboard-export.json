@@ -1,0 +1,72 @@
+{
+  "_comment": "Program indicators and one aggregate indicator a user built on a Sierra Leone demo 2.42 copy, Child Programme (IpHINAT79UW). PI/indicator UIDs are synthetic; program, stage and data element UIDs are SL demo ones (Birth stage A03MvHHogjR, Baby Postnatal stage ZzYYXq4fJie, 'MCH Weight (g)' UXz7xuGCEhU lives on the Birth stage). All objects were created with POST /api/metadata from a script.",
+  "programIndicators": [
+    {
+      "id": "PiPncVisit1",
+      "name": "CH Postnatal visits",
+      "shortName": "CH PNC visits",
+      "program": { "id": "IpHINAT79UW" },
+      "analyticsType": "EVENT",
+      "aggregationType": "AVERAGE",
+      "expression": "V{event_count}",
+      "filter": "V{program_stage_id} == 'ZzYYXq4fJie'",
+      "analyticsPeriodBoundaries": [
+        { "boundaryTarget": "EVENT_DATE", "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD" },
+        { "boundaryTarget": "EVENT_DATE", "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD" }
+      ]
+    },
+    {
+      "id": "PiLbwBirth1",
+      "name": "CH Low birth weight births",
+      "shortName": "CH LBW births",
+      "program": { "id": "IpHINAT79UW" },
+      "analyticsType": "EVENT",
+      "aggregationType": "COUNT",
+      "expression": "1",
+      "filter": "V{program_stage_id} == 'A03MvHHogjR' && d2:hasValue(#{A03MvHHogjR.UXz7xuGCEhU}) && #{A03MvHHogjR.UXz7xuGCEhU} < 2500"
+    },
+    {
+      "id": "PiPncLbw001",
+      "name": "CH Postnatal visits for LBW babies",
+      "shortName": "CH PNC visits LBW",
+      "program": { "id": "IpHINAT79UW" },
+      "analyticsType": "EVENT",
+      "aggregationType": "COUNT",
+      "expression": "1",
+      "filter": "V{program_stage_id} == 'ZzYYXq4fJie' && d2:hasValue(#{A03MvHHogjR.UXz7xuGCEhU}) && #{A03MvHHogjR.UXz7xuGCEhU} < 2500",
+      "analyticsPeriodBoundaries": [
+        { "boundaryTarget": "EVENT_DATE", "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD" },
+        { "boundaryTarget": "EVENT_DATE", "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD" }
+      ]
+    }
+  ],
+  "indicatorTypes": [
+    { "id": "ItPercent01", "name": "Percent (Factor 100)", "factor": 100 }
+  ],
+  "indicators": [
+    {
+      "id": "InPncLbwPct",
+      "name": "CH Share of postnatal visits for LBW babies (%)",
+      "shortName": "CH PNC visits LBW %",
+      "indicatorType": { "id": "ItPercent01" },
+      "numerator": "I{PiPncLbw001}",
+      "denominator": "I{PiPncVisit1}",
+      "decimals": 1
+    }
+  ],
+  "observedAnalytics": {
+    "_query": "/api/analytics.json?dimension=dx:PiPncVisit1;PiLbwBirth1;PiPncLbw001;InPncLbwPct&dimension=pe:202401;202402;202403&filter=ou:ImspTQPwCqd",
+    "headers": ["dx", "pe", "value"],
+    "rows": [
+      ["PiPncVisit1", "202401", "1.0"],
+      ["PiPncVisit1", "202402", "1.0"],
+      ["PiPncVisit1", "202403", "1.0"],
+      ["PiLbwBirth1", "202401", "1284"],
+      ["PiLbwBirth1", "202402", "1284"],
+      ["PiLbwBirth1", "202403", "1284"],
+      ["InPncLbwPct", "202401", "0.0"],
+      ["InPncLbwPct", "202402", "0.0"],
+      ["InPncLbwPct", "202403", "0.0"]
+    ]
+  }
+}

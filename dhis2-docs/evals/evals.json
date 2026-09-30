@@ -1,0 +1,71 @@
+{
+  "skill_name": "dhis2-docs",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need a small bash script (save it as fix_anc_names.sh) for our DHIS2 2.42 server. It should (1) list every data element in the 'ANC' data element group (qfxEYY9xAl6) with id, name, shortName and its categoryCombo[id,name], and (2) change the shortName of 'ANC 1st visit' (fbfJHSPpUQD) to 'ANC1 visit' without touching anything else on the object. Use curl, and read the base URL and our personal access token from .env (DHIS2_BASE_URL, DHIS2_API_TOKEN). It'll run from cron, so it should fail loudly if the rename didn't take.",
+      "expected_output": "A bash script that uses curl -g for the bracketed fields= selection, authenticates with 'Authorization: ApiToken <token>' (not Bearer), updates shortName with PATCH using Content-Type application/json-patch+json and a JSON Patch array (plain-JSON PATCH gives 415 on 2.42), checks the HTTP status and then re-GETs the data element to confirm shortName changed, exiting non-zero otherwise.",
+      "files": [],
+      "requires": "offline",
+      "notes": "Script-writing case: the curl -g globbing trap, ApiToken header, and the 2.42 PATCH content-type split, all checkable in the file.",
+      "assertions": [
+        "fix_anc_names.sh exists and passes `bash -n fix_anc_names.sh` (syntactically valid)",
+        "Every curl call that sends a fields= selection containing brackets uses -g / --globoff (grep: the list request includes -g or --globoff)",
+        "Sends the token as `Authorization: ApiToken $DHIS2_API_TOKEN`, not `Bearer`",
+        "The rename uses PATCH with `Content-Type: application/json-patch+json` and a JSON Patch array body like [{\"op\":\"replace\",\"path\":\"/shortName\",\"value\":\"ANC1 visit\"}], not a plain {\"shortName\":...} JSON body (which returns 415 on 2.42)",
+        "Does not do a full-object GET-then-PUT to change the one field",
+        "After the PATCH, re-GETs /api/dataElements/fbfJHSPpUQD (e.g. fields=shortName) and exits non-zero if the value is not 'ANC1 visit', rather than trusting the 2xx status alone",
+        "Uses unversioned /api/... paths (no /api/NN/ prefix copied from docs examples)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "On our Sierra Leone demo copy (2.42) I want to send an external consultant two things: the full metadata of the Child Programme (IpHINAT79UW) as JSON so they can review the configuration, and a list of all data sets with a Monthly period type. I was going to use /api/programs/IpHINAT79UW?fields=:owner and /api/dataSets?filter=periodType:eq:Monthly. Can you pull both and save them as child_programme.json and monthly_datasets.json?",
+      "expected_output": "Warns that :owner (and /api/metadata default) exports include createdBy/lastUpdatedBy and user references rendered with name and username, so the export is stripped with fields=:owner,!createdBy,!lastUpdatedBy (or via the dhis2-metadata fetch); notes nested selections like createdBy[id] do not reduce the stub; notes filter=periodType:eq:Monthly returns 400 E1003 on 2.42 and instead fetches fields=id,name,periodType and filters client-side. Produces both files.",
+      "files": [],
+      "requires": "dhis2-instance: Sierra Leone demo 2.42",
+      "notes": "Privacy trap (:owner leaks editor names/usernames) plus a filter the docs imply works but fails on 2.42; outputs are checkable files.",
+      "assertions": [
+        "Explicitly warns that fields=:owner output includes createdBy/lastUpdatedBy (and/or user references) with editors' real names and usernames",
+        "child_programme.json is valid JSON and contains no \"username\" key anywhere (e.g. `jq '[.. | objects | select(has(\"username\"))] | length'` returns 0)",
+        "child_programme.json contains no createdBy or lastUpdatedBy keys",
+        "Removes the user stubs with field exclusion (!createdBy,!lastUpdatedBy) or the dhis2-metadata fetch, not by trying createdBy[id] (which the API ignores)",
+        "States that filter=periodType:eq:Monthly fails (400 E1003 'Unable to parse Monthly to PeriodType') rather than presenting it as working",
+        "monthly_datasets.json is valid JSON, was built by fetching fields including periodType and filtering client-side, and every entry has periodType 'Monthly'",
+        "Uses curl -g (or a non-curl client) for any bracketed or !-prefixed fields= selections"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I'm writing a Python cleanup report that has to run against two servers: a partner's DHIS2 2.40.12 and our 2.43.1. It should list data elements that are in at least one data set, with the data set names, and separately the ones not in any data set. I've been developing against https://play.im.dhis2.org/stable-2-42-5 from a saved config. My plan was filter=dataSetElements:!empty and fields=id,name,dataSetElements[dataSet[id,displayName]]. Anything I should watch out for? Also the report will be used to tell programme managers which data sets they have access to.",
+      "expected_output": "Says :!empty is not a valid operator on 2.40 (400 E1003) though it works on 2.43.1, so version-gate or filter client-side; says play.im.dhis2.org stable-<version> URLs rotate and vanish without redirect, so probe /api/system/info or use a current one/dev; warns nested dataSetElements[dataSet[...]] references are not sharing-filtered, so the report cannot be used as an access check; recommends pageSize/paging and writing large responses to file.",
+      "files": [],
+      "requires": "offline",
+      "notes": "Version-specific filter operator, rotating demo URLs, and the non-sharing-filtered inverse collection; tests advice rather than execution.",
+      "assertions": [
+        "States that the !empty operator is rejected on 2.40 (400 E1003 '!empty is not a valid operator') while it works on 2.43",
+        "Proposes a portable alternative: filter client-side on the dataSetElements list, or branch on /api/system/info version",
+        "Warns that play.im.dhis2.org stable-<major>-<minor>-<patch> URLs are removed without redirect when a new patch ships, and suggests probing (e.g. /api/system/info status) or using a current stable/dev URL",
+        "States that nested dataSetElements[dataSet[...]] references are NOT filtered by sharing, so the report shows data sets users may not have access to and must not be used as an access check",
+        "Does not claim that the nested query result reflects the calling user's data set access",
+        "Recommends paging (page/pageSize) or pageSize handling rather than a single unbounded request, or explicitly handles the pager"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "We're on DHIS2 2.41. I need to add https://reports.example.org to the CORS allowlist through the Web API. What's the exact request, and can you give me the link to the official docs section for our version? The example I found online uses /api/33/configuration/... so I'm not sure what's current.",
+      "expected_output": "Looks up the docs via llms-develop.txt, fetches the Settings and configuration page as .md, substitutes dhis-core-version-241 for the version segment, and gives the link for 2.41. Request: POST /api/configuration/corsAllowlist with Content-Type application/json and a JSON array of URLs; explains the /api/33/ prefix is optional and the unversioned path works.",
+      "files": [],
+      "requires": "offline (web access to docs.dhis2.org, no DHIS2 instance)",
+      "notes": "Pure documentation lookup: index-then-.md workflow, version-segment substitution, and not copying /api/NN/ paths.",
+      "assertions": [
+        "Fetched https://docs.dhis2.org/en/llms-develop.txt (or the master llms.txt) to locate the page rather than guessing a URL (check transcript)",
+        "Fetched the page as .md (e.g. .../settings-and-configuration.md) rather than the rendered .html (check transcript)",
+        "The docs link given to the user contains dhis-core-version-241, not the 243 stable segment the index links",
+        "The request path is /api/configuration/corsAllowlist without a numeric /api/33/ version segment, and the answer says the numeric prefix is optional",
+        "Uses POST with Content-Type application/json and a JSON array body such as [\"https://reports.example.org\"]",
+        "Does not invent a different endpoint (e.g. /api/systemSettings/corsAllowlist or a keyJ... setting key) for the CORS allowlist"
+      ]
+    }
+  ]
+}

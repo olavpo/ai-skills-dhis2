@@ -1,0 +1,11 @@
+{
+  "version": "0.3.1",
+  "name": "Metadata Renamer",
+  "description": "Bulk-rename data elements and make them private",
+  "launch_path": "index.html",
+  "icons": {
+    "48": "img/icon-48.png"
+  },
+  "developer": { "name": "Example developer" },
+  "activities": { "dhis": { "href": ".." } }
+}

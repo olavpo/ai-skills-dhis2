@@ -53,6 +53,10 @@ verification theater.
    objects, fetch the data it actually renders (`GET /api/visualizations/<uid>/data.json`, or replay its
    analytics query) and confirm it still returns rows. A favorite can pass the dangling-reference scan
    yet render empty — verify the artefact the user looks at, not only the objects you changed.
+7. **Dependency closure of every kept dataset** (after deletions): `GET /api/dataSets/<uid>/metadata.json`
+   exports the dataset's full dependency closure, so a 200 for all N kept datasets proves nothing a
+   dataset needs was deleted. This is a much stronger signal than row counts, and needs neither a control
+   instance nor a DB route.
 
 `scripts/verify_outputs.py` automates layers 1, 2, 3 and 5 between two instances.
 
@@ -77,7 +81,7 @@ Verify each logged change produced exactly its intended effect and nothing else:
 Cheap and immediate, but weaker against *unknown* side effects than a true A/B — hence "snapshot first".
 
 ### A global `datavalue` count is NOT a conservation test on a live-ish instance
-Background processes mutate data independently of your cleanup: on the HMIS 2.42 case ~16k datavalues were
+Background processes mutate data independently of your cleanup: in one 2.42 remediation ~16k datavalues were
 created by a `system-process` (predictor/scheduled job) between the control snapshot and the final check,
 and an analytics-table generation ran (bloating the fixed `pg_dump` 167MB→823MB — analytics tables, not
 data). So a raw `SELECT count(*) FROM datavalue` before/after can rise or fall for reasons unrelated to

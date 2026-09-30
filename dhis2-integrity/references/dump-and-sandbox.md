@@ -19,7 +19,7 @@ forms, tracker numbers) or fix data-dependent checks, you need a `pg_dump`-level
 The sandbox version must match the dump, or the import rejects objects or silently drops
 added/removed properties. If you don't know it, derive it by diffing the dump's property names against
 the bundled `dhis2-metadata/references/schemas-v4x.json`:
-- `attributeValues` present on most object types ⇒ **≥2.42**.
+- The export's top-level `system.version` (every `/api/metadata` export carries it) is the direct answer; use the markers below only when it's missing. `attributeValues` is **not** a marker: exports carry it on every version (as `[]` when empty). Only `/api/schemas` changed in 2.42 (property `name` `attributeValue` → `attributeValues`).
 - `programIndicators.categoryCombo` / `programs.categoryMappings` / `dataSets.displayOptions` ⇒ **2.42**.
 - none of the 2.42 markers, and users still carry the top-level `userCredentials`-free 2.41 structure ⇒ **2.41**.
 Quick check: load one `programs.json` / `dataElements.json` object and compare its keys to each schema's
@@ -53,17 +53,28 @@ This calls `GET /api/metadata.json?...` for all metadata types. Notes:
 
 ### Import gotchas (these bite everyone)
 
-- **Default objects collide.** Every DHIS2 instance ships a `default` category, categoryCombo,
-  categoryOption, and categoryOptionCombo — but with **different UIDs** per instance. A dump carries the
-  *source's* default UIDs; importing into a fresh instance that already has *different* default UIDs
-  creates duplicate "default" objects and can trip `categories_one_default_*` checks. Options: import
-  into an instance seeded from the **same base** as the source, or post-import reconcile the defaults
-  (map the source default UIDs to the target's, or delete the surplus). Flag this early.
+- **Default objects can collide — always check, many production systems predate 2.22.** Databases
+  created on 2.22 or later get fixed default UIDs: category option `xYerKDKCefk`, category
+  `GLevLNI9wkl`, category combo `bjDvmb4bfuf`, category option combo `HllvX50cXC0` (all Sierra Leone
+  demo versions and fresh instances use them). A database first created before 2.22 keeps its original
+  random default UIDs through every upgrade; no migration normalises them, and many long-running
+  national systems are in this group. So never assume the constants: read the four `default` objects of
+  both source and target and compare. If they differ,
+  importing into a fresh instance creates duplicate "default" objects and can trip
+  `categories_one_default_*` checks: import into an instance seeded from the **same base** as the
+  source, or map the source default UIDs to the target's before import. Flag this early.
 - **Dependency order / forward references.** The metadata importer resolves most ordering itself, but a
   single big import with `atomicMode=NONE` may leave a few objects rejected on the first pass — **import
   twice** (the second pass resolves references created by the first), then read the summary.
 - **Sharing & users.** If you imported users, logins/passwords come across; if you skipped them,
   ownership/sharing references may dangle — usually harmless for a structural-cleanup sandbox.
+- **A restored or imported sandbox has `lastUpdated` = import time** (`created` survives). Any rule that
+  depends on age ("not updated since", abandonment, stale favourites) must read `lastUpdated` from the
+  **source export**. On the sandbox itself, such a pass finds nothing: the first favourites pass in one
+  engagement planned 0 deletions.
+- **Check free disk space before restoring a large dump.** In the agent sandbox, `df -h /` shows the
+  host's Docker filesystem, which every sibling instance shares. A 14 GB restore used ~50 GB there, and
+  Postgres sort spills briefly took several more.
 - **`generateMetadataDependencies`/`download=true`** on the export side keeps a self-contained set; the
   bundled script already requests a complete export.
 

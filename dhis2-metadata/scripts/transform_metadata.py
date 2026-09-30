@@ -208,8 +208,13 @@ def minimize_object(obj, schema, by_klass):
             sub_schema = by_klass.get(p.get("itemKlass")) if (embedded and by_klass) else None
             if p.get("itemPropertyType") == "REFERENCE" and not embedded:
                 out[k] = [reduce_to_id(x) for x in v]
-            elif sub_schema is not None:
+            elif sub_schema is not None and schema_keep_keys(sub_schema)[0] - {"id"}:
                 out[k] = [minimize_object(x, sub_schema, by_klass) for x in v]
+            elif sub_schema is not None:
+                # Sub-schema marks nothing owned+persisted (AttributeValue on
+                # 2.40/2.41, EventRepetition): minimizing would leave {} per
+                # item, so keep the items as they are.
+                out[k] = v
             else:
                 out[k] = v
         else:
@@ -298,6 +303,9 @@ def transform(data, opts, by_plural=None, by_klass=None):
     out = {}
     for key, value in data.items():
         if not isinstance(value, list):
+            if opts.anonymize and key == "system" and isinstance(value, dict):
+                # server id, revision and export date identify the instance
+                value = {k: v for k, v in value.items() if k == "version"}
             out[key] = value
             continue
         items = value
@@ -311,6 +319,7 @@ def transform(data, opts, by_plural=None, by_klass=None):
         if opts.anonymize:
             items = [anonymize_user(it) for it in items] if key == "users" \
                 else anonymize(items)
+            items = strip_keys(items, {"href"})  # carries the server URL
         if key == "organisationUnits" and (opts.redact_ou_names or opts.drop_coordinates):
             items = [redact_org_unit(it, opts.redact_ou_names, opts.drop_coordinates)
                      for it in items]

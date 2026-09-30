@@ -116,14 +116,15 @@ Two boundaries within advisory mode:
 
 ## Setup
 
-- Use the **dhis2-api** skill for the connection (`.env` with `DHIS2_BASE_URL` + token, or
+- Use the **dhis2-docs** skill for the connection (`.env` with `DHIS2_BASE_URL` + token, or
   basic auth). All the bundled scripts read the same env vars: `DHIS2_BASE_URL`, and either
   `DHIS2_API_TOKEN` or `DHIS2_USER`/`DHIS2_PASS`.
 - For the sandbox/dump workflow, use the **dhis2-instances** skill (d2-broker) to create an empty
   instance to restore into.
 - Direct SQL (optional, for guard-blocked fixes): `pip install psycopg2-binary`; find the DB
   (often published on the host gateway — `references/playbook.md` §sql explains how to locate it).
-- `pip install httpx python-dotenv` for the scripts.
+- `pip install -r scripts/requirements.txt` (httpx, python-dotenv, requests; psycopg2-binary only for
+  direct SQL).
 
 ## The workflow
 
@@ -133,11 +134,13 @@ Track these as tasks; re-verify after every batch.
 - **Confirm/derive the DHIS2 version FIRST.** If creating the sandbox from a dump, **fingerprint the
   version from the dump before choosing the instance version** — guessing wrong makes the import reject or
   silently drop properties. Diff the dump's per-object property names against bundled `schemas-v4x.json`:
-  `attributeValues` present everywhere ⇒ ≥2.42; `programIndicators.categoryCombo`/`categoryMappings` ⇒
+  the export's top-level `system.version` if present; otherwise `programIndicators.categoryCombo`/`categoryMappings` ⇒
   2.42; their absence + the top-level user structure ⇒ 2.41. On the live instance just read
   `/api/system/info`. Version drives everything downstream: the integrity framework is 2.38+, and the
   **merge endpoints are version-dependent** — `categories`/`categoryCombos` merge are **2.43+** (absent on
-  2.42/2.41 → SQL for combo/category consolidation). See `references/playbook.md` §5.
+  2.42/2.41 → SQL for combo/category consolidation); `categoryOptionCombos/merge` is 2.42+, rewrites
+  indicator/predictor expressions, **deletes** the sources' data value and approval audits, and never
+  touches custom-form HTML. See `references/playbook.md` §5.
 - **Dump mode:** import the dump onto a fresh sandbox (matching version). `scripts/metadata_dump.py import`
   for small instances; for LARGE dumps (100k+ OUs, 100k+ users, giant OU-group memberships) use
   `dhis2-metadata/scripts/import_metadata.py --resume` and expect to fall back to **SQL for the bulk join
@@ -186,6 +189,10 @@ grouped by severity. Persist the raw JSON.
   `orgunits_no_coordinates` had simply vanished from the report.) **Verify each fixed check with a direct
   SQL query** — authoritative and fast — rather than trusting a low post-fix inventory. Two consecutive
   agreeing runs are NOT enough here (two partial runs can agree).
+- **A cache clear mid-run empties the summary**, and on 2.43.1 it can leave data-integrity jobs stuck in
+  `SCHEDULED` until Tomcat restarts. `integrity.py` now exits non-zero when that happens, when a run
+  times out, or when the summary is missing checks, and it lists slow checks that did not complete as
+  unknown. Treat any `⛔` or `⚠️` line as "no inventory yet", never as an all-clear (playbook §1).
 
 ### 2. Triage (don't fix blindly)
 Bucket every failing check into: **deterministic-safe**, **judgment/destructive**,
@@ -277,6 +284,26 @@ and its verify cells failed loudly instead of pretending success. Rules for auth
   meant staging).
 - derive-at-runtime steps must ALSO guard inside their loop (act only on objects matching the recorded
   names/UIDs and expected state), so a precondition slip degrades to a no-op, not a wrong write.
+- **use the target version's check names.** Names differ across versions (2.38 has ~39, several with
+  other names). `check()` raises on an unknown name, and a rendered precondition raises on a timeout,
+  so neither can skip a fix as "already 0". Without that, an unknown name timed out, read as 0, and the
+  fix was skipped as if applied.
+
+**API-only targets (hosted instances with no PostgreSQL route) are common.** The manifest has no
+API-only variant yet, so give each DB-dependent fix an API re-expression in its rationale or as a
+second fix, and flag the ones that cannot be re-expressed. Re-expressions from one hosted 2.38
+engagement:
+- PostGIS validity → a list of known-bad geometries.
+- Audit-based "viewed in 12 months" → view counts.
+- SQL data removal → `POST /api/maintenance/dataPruning/organisationUnits/{uid}` (playbook §3).
+
+**Authoring gotchas that cost re-runs:**
+- `code` steps are assembled as Python f-strings. Double every literal `{}` in generated code. A segment
+  accidentally left as a plain string ships literal `{o['id']}` into URLs (400s at replay).
+- The runner cannot set gate variables such as `CONFIRMED_INTENT`; the operator edits the cell.
+- There is no bilingual output. National teams often need their own language, so add a post-processor
+  for translated cells when that applies.
+- Rendered file names are slugified from the engagement name.
 
 Keep these guarantees in every step (they apply to the manifest and all its renderings):
 - **UID-based**, never instance-specific numeric ids. SQL cells call `resolve_id(table, uid)` to look up
@@ -338,7 +365,7 @@ deliverable, and optionally round-trip-import it into one more clean instance to
 ## Reference files
 
 - `references/playbook.md` — **the core reference.** Triage taxonomy, per-check fixes, the API
-  business-guards (`E1120`/`E4030`/`E4056`/`E8031`) and how to pass them, the 2.41+ merge/dedup
+  business-guards (`E1120`/`E4030`/`E4056`/`E8031`) and how to pass them, the per-version merge/dedup
   endpoints and their scoping rules, when/how to use direct SQL (table names, locating the DB),
   naming-convention rules, and the self-inflicted-wound watch-list.
 - `references/dump-and-sandbox.md` — version-fingerprint the dump, restore onto an empty sandbox

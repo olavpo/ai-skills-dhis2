@@ -16,6 +16,7 @@ Follow this order. Each step catches a different class of error.
 1. **Decide the kind.** Aggregate indicator or program indicator? See the decision below.
 2. **Define the expression** from the metadata, not from memory of field names. Resolve real data element / category-option-combo / attribute UIDs from the dataset or program. For aggregate indicators, choose the indicator **type** deliberately — its factor multiplies the result.
    - **Establish the naming convention first.** Before creating anything, confirm how names should be formed: any prefix or grouping tag, casing, how disaggregation is expressed in the name, the `shortName` rule (≤50 chars), and whether a `code` scheme is used. If the user hasn't given one, **ask** — don't invent it. Consistent names are how these objects stay findable in Maintenance and analytics, and renaming a batch afterwards is painful, so it's worth one question up front.
+   - **IDs for new objects** must be valid DHIS2 UIDs: exactly 11 characters, `[A-Za-z0-9]`, starting with a letter. Readable hand-made ids (`AncDrop1t3`, 12-character names) fail the import. Generate them (`GET /api/system/id?limit=N`, or `random.choice(ascii_letters) + ''.join(random.choices(ascii_letters + digits, k=10))` offline) or omit `id` and let the server assign one.
 3. **Validate the syntax** with the description endpoints (below) before any data exists. This catches bad references and malformed expressions in seconds.
 4. **Lint the underlying metadata.** Syntax validity doesn't mean the data elements are configured right. Check that each referenced DE has the expected `aggregationType` (usually SUM), a numeric `valueType`, and that every `#{de.coc}` COC belongs to the DE's current category combo. A DE silently set to `aggregationType: COUNT` breaks the result while the expression looks perfect — neither verification layer catches it. See the pre-flight lint in `references/testing.md`.
 5. **Test on a throwaway instance.** Import the metadata, create org units, enter known data, run analytics, and compare analytics output to independently-computed expected values. See `references/testing.md`.
@@ -59,6 +60,8 @@ The description/validation endpoints confirm references resolve and syntax parse
 
 A `200` with `"status": "OK"`, `"message": "Valid"`, and a human-readable description echoed back means every UID resolved. An error names the broken reference.
 
+**Importing:** `POST /api/indicators` / `POST /api/programIndicators` take **one object** per request. A file wrapped as `{"indicators":[...]}` or `{"programIndicators":[...]}` goes to `POST /api/metadata` (try `importMode=VALIDATE` first).
+
 ## Test it (don't skip)
 
 Syntax validity is not correctness. A numerator can be perfectly valid and still reference the wrong COC. Prove the calculation against known data on a fresh, disposable instance. The method, in brief:
@@ -81,6 +84,8 @@ The full procedure — fresh-instance setup, importing metadata (via the `dhis2-
 - Referencing `#{de}` (all COCs) when you meant one disaggregation, or vice versa.
 - Text/option-set data elements can't feed an aggregate indicator (no numeric value to sum); model as COCs or booleans.
 - Program indicator: EVENT vs ENROLLMENT double-counting; selection logic in the expression instead of the filter; null treated as zero; period boundary using the wrong date.
+- Concluding a function doesn't exist because the `d2:` form failed validation. Multi-select `containsItems()`/`contains()` are **unprefixed** in indicators and PIs (2.41+); `d2:` is the program-rule form. See `references/program-indicators.md`.
+- A division by zero *inside* an expression aborts the whole analytics request (409 E7132), unlike a zero denominator, which just gives no value.
 - DE configured wrong at the source — `aggregationType` not SUM, or a `#{de.coc}` pointing at a COC outside the DE's current combo — breaks results while the expression looks fine. Lint the metadata (step 4).
 - Program rule variable names are functional identifiers — program rules reference them by *name* (`#{varName}`, `A{varName}`, `d2:hasValue('varName')`), so renaming or translating a variable while tidying metadata silently breaks every rule using it. The failure shows up as rules that stop firing, not as an error.
 - Zeros vanish — the importer drops a `0` for DEs with `zeroIsSignificant=false`, and analytics omits stored zeros unless `keyIncludeZeroValuesInAnalytics` is on. Set both when a reported zero must count.

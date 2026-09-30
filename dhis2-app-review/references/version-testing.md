@@ -1,6 +1,6 @@
 # Testing across DHIS2 versions
 
-Most real bugs in DHIS2 apps come from version drift: an endpoint that worked in 2.40 changes shape in 2.42, a UI auth flow changes, a system setting key gets renamed (`keyCorsWhitelist` → `corsWhitelist` was a real example on 2.42.4).
+Most real bugs in DHIS2 apps come from version drift: an endpoint that worked in 2.40 changes shape in 2.42, a UI auth flow changes, an API path gains a new name (the CORS allowlist is `/api/configuration/corsWhitelist` on 2.40; 2.41 added the alias `/api/configuration/corsAllowlist`, which 404s on 2.40).
 
 ## Setup
 

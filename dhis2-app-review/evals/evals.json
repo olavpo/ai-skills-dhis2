@@ -1,0 +1,98 @@
+{
+  "skill_name": "dhis2-app-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Can you do a code review of our little admin tool in dhis2-app-review/evals/files/metadata-renamer before we hand it to the HMIS team? It bulk-renames data elements, makes them private and can duplicate them. It was built from the tool-template and the author only ever tested it on 2.40; our production servers are a mix of 2.41 and 2.42. No live testing for now, just a code review. The author's unit tests all pass.",
+      "expected_output": "Code-review-only scope: a single REVIEW-FINDINGS.md (severity-ranked, file:line refs, concrete fixes) under PROJECT_DIR/docs/review-<date>/, no UI-TEST-RESULTS.md, app source untouched. HIGH: patchName treats anything but 200 as failure though partial PATCH returns 204 on <=2.41, and the plain-JSON PATCH gets 415 on >=2.42 (needs JSON Patch, ideally with a 415 fallback), so renaming fails on both production versions; makePrivate JSON-patches /sharing, which returns 200 but is silently ignored, so objects stay public (use PUT /api/sharing?type=dataElement&id=...); duplicateDataElement treats response.uid as success although import reports carry a uid even on 409. Also: unit tests only assert request shape (would pass against a server that rejects the write); missing manifest icon file; dead code (src/legacy.js, commented block) and unused lodash dependency; three near-identical getX fetchers that could share one helper. Does not flag the absence of React/@dhis2/ui as a defect.",
+      "files": [
+        "dhis2-app-review/evals/files/metadata-renamer/package.json",
+        "dhis2-app-review/evals/files/metadata-renamer/manifest.webapp",
+        "dhis2-app-review/evals/files/metadata-renamer/.env.template",
+        "dhis2-app-review/evals/files/metadata-renamer/webpack.config.js",
+        "dhis2-app-review/evals/files/metadata-renamer/README.md",
+        "dhis2-app-review/evals/files/metadata-renamer/src/index.html",
+        "dhis2-app-review/evals/files/metadata-renamer/src/index.js",
+        "dhis2-app-review/evals/files/metadata-renamer/src/api.js",
+        "dhis2-app-review/evals/files/metadata-renamer/src/sharing.js",
+        "dhis2-app-review/evals/files/metadata-renamer/src/legacy.js",
+        "dhis2-app-review/evals/files/metadata-renamer/test/api.test.js"
+      ],
+      "assertions": [
+        "Flags patchName in src/api.js as broken across versions: the `status !== 200` check rejects the 204 that partial PATCH returns on <=2.41, AND plain `application/json` PATCH returns 415 on >=2.42 where JSON Patch is required (both halves stated)",
+        "Flags makePrivate in src/sharing.js as HIGH because a JSON Patch on /sharing returns 200 but is silently ignored (objects stay public), and recommends PUT /api/sharing?type=dataElement&id=<uid> instead",
+        "Flags duplicateDataElement for treating the presence of response.uid as success, stating that import reports include a uid even when the create failed (e.g. 409), and recommends checking status",
+        "Flags test/api.test.js as asserting only request shape (URL/method/body on a mocked fetch) rather than server effect, and recommends re-GETting the object to assert the change",
+        "Reports that manifest.webapp declares img/icon-48.png but the file does not exist in the repo",
+        "Reports src/legacy.js / the commented-out block as dead code AND lodash as a dependency nothing imports",
+        "Does NOT list the lack of React, @dhis2/ui or App Platform as a defect (judges the tool against tool-template conventions), and does not claim the .env-based proxy setup needs a CORS allowlist entry",
+        "Produces only REVIEW-FINDINGS.md (no UI-TEST-RESULTS.md / FIXES.md) in a dated docs/review-<YYYY-MM-DD>*/ folder with file:line references, and leaves src/ and test/ unmodified"
+      ],
+      "requires": "offline",
+      "notes": "Static-review checklist on a vanilla tool-template app with planted version-split and silent-no-op write bugs; tests the skill's server-quirk knowledge and code-review-only scope/report discipline."
+    },
+    {
+      "id": 2,
+      "prompt": "Our Playwright smoke test for the Facility Overview app (App Platform, key facility-overview) is at dhis2-app-review/evals/files/e2e-shell/test_smoke.py. It passes against our 2.41 test server but on 2.42 it times out or fails the title assertion, and occasionally fails on 2.41 too after the refresh click. We need it to run in CI against both 2.41 and 2.42. Please fix the script (don't touch the app) and tell me what was wrong.",
+      "expected_output": "A corrected Python script that runs on both sides of the 2.42 boundary: authenticates via Basic-auth GET /api/me and matches any cookie whose name contains JSESSIONID (not POST /api/auth/login, which 302s to the legacy login page on older versions and yields an anonymous cookie); loads /api/apps/facility-overview/index.html?redirect=false (or is frame-aware) because 2.42+ serves apps inside the global-shell iframe; sets the test-id attribute to data-test (or uses [data-test=...]) because @dhis2/ui renders data-test; replaces fixed wait_for_timeout calls with polling/deterministic waits; counts via the Pagination footer rather than DOM rows (client-side pagination, 'No items found' row); captures console/pageerror/requestfailed/response>=400 and fails on failed writes; reads BASE/credentials from env. Explains each cause.",
+      "files": [
+        "dhis2-app-review/evals/files/e2e-shell/test_smoke.py"
+      ],
+      "assertions": [
+        "The fixed script compiles (`python3 -m py_compile` on the output file succeeds)",
+        "Replaces POST /api/auth/login with Basic-auth GET /api/me for the session cookie, and explains that /api/auth/login can 302 to the legacy login page and silently yield an anonymous cookie",
+        "Matches the session cookie by substring 'JSESSIONID' rather than exact name equality",
+        "Loads the installed app with `?redirect=false` (or makes every text/locator lookup frame-aware), stating that 2.42+ serves installed apps inside the global-shell iframe so `page.inner_text('body')` reads the shell",
+        "Fixes get_by_test_id by calling `selectors.set_test_id_attribute('data-test')` or switching to `[data-test=...]` locators, explaining @dhis2/ui emits data-test not data-testid",
+        "Contains no fixed `wait_for_timeout(7000)`/`(3000)` used as the routing or post-click wait; waits on a condition (polling loop, wait_for_function, or locator wait) instead",
+        "Addresses the row-count comparison: reads the total from the Pagination footer (or otherwise accounts for client-side pagination / the 'No items found' row) instead of counting datatablerow elements",
+        "Registers a `response` listener (status >= 400) and/or console/pageerror listeners and fails the run when they fire"
+      ],
+      "requires": "offline",
+      "notes": "Trap-heavy Playwright repair: each planted bug (auth endpoint, shell iframe, data-test, fixed waits, DOM-row counting) is a specific reference-documented pitfall a general-knowledge fix misses."
+    },
+    {
+      "id": 3,
+      "prompt": "Before we recommend the Job Scheduler app (https://github.com/dhis2/scheduler-app, current master) to implementers on 2.41 and 2.42, can you functionally test it on both versions? Main flows: the job list loads, create a new 'Analytics table' job with a cron schedule, run it manually and watch it progress, then delete it. Use throwaway instances with the Sierra Leone demo; don't leave anything behind. I want a per-version results table.",
+      "expected_output": "Capability check; clone + build the zip; provision agent-* Sierra Leone instances one version at a time (never booting two concurrently, at most 2 alive); verify credentials up front and use the broker's local_admin superuser; install the zip via POST /api/apps accepting any 2xx (201 on 2.42, 204 on 2.41) and drive /api/apps/<key>/index.html?redirect=false; run scripts/probe.py before the suite; track created job UIDs and delete them in a finally with retries; poll job progress via the per-job /api/system/tasks/{type}/{id} endpoint, not the lagging global /api/system/tasks; UI-TEST-RESULTS.md with one column per version and REVIEW-FINDINGS.md in docs/review-<date>/; STATE-CHANGES.md kept outside the repo; uninstall (204) and delete the broker instances, or list any left.",
+      "files": [],
+      "assertions": [
+        "Creates broker instances named agent-* from the Sierra Leone seed and runs the versions sequentially: never boots two instances at the same time and never has more than 2 running",
+        "Verifies credentials with GET /api/me before building on an instance and uses the broker's local_admin account (or checks /api/me authorities for ALL) rather than assuming the seed's admin is a superuser",
+        "Installs the built zip via POST /api/apps and accepts any 2xx (201 on 2.42, 204 on 2.41) rather than hard-checking one status code, then drives the app via /api/apps/<key>/index.html?redirect=false or frame-aware locators",
+        "Runs scripts/probe.py (or an equivalent recon probe capturing frames, console errors and HTTP >= 400) before writing the full suite",
+        "Checks job progress/completion via the per-job /api/system/tasks/{type}/{id} endpoint (or the job's own status), not the global /api/system/tasks summary, or explicitly notes that the global map lags",
+        "Deletes the created job configuration in a finally/cleanup path independent of test success, uninstalls the app, and deletes (or explicitly lists) every agent-* instance created",
+        "Writes UI-TEST-RESULTS.md with one row per flow and one column per DHIS2 version (2.41, 2.42), naming the Sierra Leone seed, under PROJECT_DIR/docs/review-<YYYY-MM-DD>*/",
+        "Keeps STATE-CHANGES.md (instance names, job ids) outside the repo or in a gitignored path, and does not commit or push anything"
+      ],
+      "requires": "dhis2-instance: Sierra Leone demo 2.41 and 2.42 via d2-broker; network to github.com and npm registry",
+      "notes": "Live multi-version functional run: tests provisioning discipline (sequential, local_admin), installed-bundle driving, job-progress endpoint quirk, cleanup and publishable-vs-internal report split."
+    },
+    {
+      "id": 4,
+      "prompt": "Architecture question on dhis2-app-review/evals/files/metadata-renamer: a colleague says it's 'not a real DHIS2 app' because it isn't React and should be rewritten on the App Platform before we give it to more users. Two data managers will use it occasionally for clean-up. Should we migrate? If yes, go ahead and start the migration.",
+      "expected_output": "Architecture assessment grounded in the code: it is a tool-template vanilla app (webpack.config.js + manifest.webapp + .env, no d2.config.js) and must be judged against those conventions; lack of React is not itself a defect. Fit criteria favour staying vanilla (small admin utility, few screens, one or two maintainers, no i18n/App Hub/@dhis2/ui need), but the review's recurring bugs in the hand-rolled fetch layer (status-code checks, PATCH content type, sharing patch, uid-as-success) are a legitimate argument for app-runtime; recommendation with concrete costs (roughly how much code to rewrite) and benefits, written into REVIEW-FINDINGS.md. Does not start the migration: migration is a separate task, done by scaffolding with the target skill and using the review's UI suite as acceptance tests.",
+      "files": [
+        "dhis2-app-review/evals/files/metadata-renamer/package.json",
+        "dhis2-app-review/evals/files/metadata-renamer/manifest.webapp",
+        "dhis2-app-review/evals/files/metadata-renamer/.env.template",
+        "dhis2-app-review/evals/files/metadata-renamer/webpack.config.js",
+        "dhis2-app-review/evals/files/metadata-renamer/src/index.js",
+        "dhis2-app-review/evals/files/metadata-renamer/src/api.js",
+        "dhis2-app-review/evals/files/metadata-renamer/src/sharing.js"
+      ],
+      "assertions": [
+        "Identifies the app as a vanilla/tool-template app from its markers (webpack.config.js + manifest.webapp, no d2.config.js) and explicitly rejects 'not React' as a defect in itself",
+        "Applies concrete fit criteria from the skill (lightweight admin utility, few screens, 1-2 maintainers, no need for @dhis2/ui/i18n/App Hub/offline) to this app's actual usage",
+        "Grounds the recommendation in concrete defects found in the code (at least one of: status-code check rejecting 204, plain-JSON PATCH 415 on 2.42+, silently ignored /sharing patch, uid-as-success) and discusses whether app-runtime would remove that class of bug",
+        "Gives an explicit stay-or-migrate recommendation with concrete costs (which files/how much code must be rewritten) and benefits",
+        "Does NOT scaffold an App Platform project or rewrite source files in this task; states that migration is a separate task",
+        "Says a migration should use the review's UI/e2e test suite as acceptance tests (same flows passing on the same instances before and after)",
+        "Writes the assessment into REVIEW-FINDINGS.md (Architecture assessment section) rather than only answering in chat"
+      ],
+      "requires": "offline",
+      "notes": "Architecture-assessment workflow with a scope trap: the prompt invites starting the migration and judging the vanilla app by App Platform standards."
+    }
+  ]
+}

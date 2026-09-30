@@ -106,10 +106,21 @@ def api(method, path, body=None, params=None):
 def cache_clear():
     return api("POST", "/maintenance", params={"cacheClear": "true"})
 
+_CHECK_NAMES = None
+
 def check(name, timeout=120):
     """Fresh-run one data-integrity check on the target and return its issue count.
     The recompute is slow (often 30-120s), so this prints a LIVE elapsed counter while polling — it's
-    obvious it's working, not hung."""
+    obvious it's working, not hung.
+    Raises on a check name this DHIS2 version does not have (names differ between versions, e.g. 2.38
+    has ~39 checks with other names) — an unknown name must never read as "0 issues"."""
+    global _CHECK_NAMES
+    if _CHECK_NAMES is None:
+        _CHECK_NAMES = {c["name"] for c in _client.get("/dataIntegrity").json()}
+    if name not in _CHECK_NAMES:
+        raise RuntimeError(f"data-integrity check {name!r} does not exist on this instance "
+                           f"({len(_CHECK_NAMES)} checks available — GET /api/dataIntegrity lists them). "
+                           "Use the version-appropriate name in preconditions/verifies.")
     before = (_client.get("/dataIntegrity/details", params={"checks": name}).json().get(name) or {}).get("finishedTime")
     _client.post("/dataIntegrity/details", params={"checks": name})
     t = time.time(); end = t + timeout

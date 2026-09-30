@@ -104,7 +104,7 @@ Then open it in the app at `/<app-path>/index.html#/<uid>`.
 
 ### Traps
 
-Sending `dataDimensionItems` directly returns 201 and silently drops the collection. The response reports success and the object comes back with `dataDimensionItems: []`. Always read the object back before trusting it — request `:owner` fields, not the default field set, because the default view hides the difference.
+On the single-object `POST`/`PUT /api/visualizations`, sending the export-shape fields (`dataDimensionItems`, `periods`, `organisationUnits`, a `relativePeriods` object, `columnDimensions`/`rowDimensions`/`filterDimensions`) returns 201 and silently drops them; the object comes back with `dataDimensionItems: []`. Relative periods go in as `pe` items (`{"id":"LAST_12_MONTHS"}`). `POST /api/metadata` is the reverse: it keeps the export shape (a `relativePeriods` object becomes `rawPeriods`) and ignores `columns`/`rows`/`filters` (verified 2.42.6 and 2.43.1). Always read the object back before trusting it — request `:owner` fields, not the default field set, because the default view hides the difference.
 
 `"sharing": {"public": "rwrw----"}` fails with E3011, since visualizations are not data-shareable. Use `rw------`.
 

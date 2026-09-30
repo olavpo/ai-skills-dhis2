@@ -82,6 +82,7 @@ CLI:
   python manifest.py demo      /tmp/demo.json               (writes a minimal valid example)
 """
 import json, argparse, os, sys, textwrap
+import re as _re
 
 ACTIONS = {"api", "sql", "code"}
 PRECONDS = {"check_nonzero", "object_exists", "object_missing", "custom"}
@@ -133,7 +134,7 @@ def validate(m):
                 for s in f["steps"]):
             warn.append(f"fix {fid}: importable=true but no POST /metadata step")
         for s in f["steps"]:
-            if s["action"] == "code" and "sql(" in s.get("code", ""):
+            if s["action"] == "code" and _re.search(r"\bsql\(", _code_without_comments(s.get("code", ""))):
                 warn.append(f"fix {fid}: sql() inside a code step is NOT exportable to the .sql file — "
                             "prefer a dedicated sql step with UID subqueries where possible")
             if s["action"] == "sql":
@@ -143,6 +144,15 @@ def validate(m):
                                 "SQL expression asserting the pre-fix state (rendered as an aborting "
                                 "DO block) so a drifted database fails loudly instead of half-applying")
     return warn
+
+
+def _slug(name):
+    """Filesystem-safe engagement name for rendered file names (spaces, parentheses, slashes...)."""
+    return _re.sub(r"[^A-Za-z0-9._-]+", "-", name).strip("-") or "engagement"
+
+
+def _code_without_comments(code):
+    return "\n".join(l.split("#", 1)[0] for l in code.splitlines())
 
 
 def _is_destructive_sql(stmt):
@@ -314,8 +324,11 @@ def render_sql_export(m):
 # ----------------------------------------------------------------------------- renderer: playbook
 def _precond_code(p):
     if p["type"] == "check_nonzero":
+        # check() raises on an unknown check name and returns None on timeout: neither may read as
+        # "already 0", or the fix is silently skipped as if applied.
         return (f'_n = check("{p["check"]}")\n'
-                f'if not _n: _skip.append("check {p["check"]} already 0 (applied or never present)")')
+                f'if _n is None: raise RuntimeError("check {p["check"]} timed out — cannot tell whether the fix is needed")\n'
+                f'if _n == 0: _skip.append("check {p["check"]} already 0 (applied or never present)")')
     if p["type"] == "object_exists":
         return (f'_r = api("GET", "{p["path"]}", params={{"fields": "id"}})\n'
                 f'if _r is None or _r.status_code != 200: _skip.append("missing: {p["path"]}")')
@@ -360,7 +373,7 @@ def render_playbook(m, section="integrity"):
     pb = Playbook(f"Remediation playbook — {eng['name']} (DHIS2 {eng['dhis2_version']})", section=section)
     for f in m.get("fixes", []):
         pre = "\n".join(_precond_code(p) for p in f.get("preconditions", []))
-        steps = "\n".join(_step_code(s, fix_id=f["id"], step_no=i, eng_name=eng["name"])
+        steps = "\n".join(_step_code(s, fix_id=f["id"], step_no=i, eng_name=_slug(eng["name"]))
                           for i, s in enumerate(f["steps"], 1))
         body = "_skip = []\n"
         if pre:
@@ -433,7 +446,7 @@ def main():
         print("OK —", len(m.get("fixes", [])), "fixes,", len(m.get("flagged", [])), "flagged")
         return
     os.makedirs(a.outdir, exist_ok=True)
-    name = m["engagement"]["name"]
+    name = _slug(m["engagement"]["name"])
     p = os.path.join(a.outdir, f"change-proposal-{name}.md")
     open(p, "w").write(render_proposal(m)); print("wrote", p)
     pkg, skipped = render_import_package(m)

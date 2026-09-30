@@ -21,6 +21,9 @@ Large imports (tens of thousands of org units and up):
   parent always exists before the child arrives.
 - Batches above `--async-threshold` objects POST with async=true and poll
   the import task, avoiding request timeouts on slow imports.
+- A 5xx does not prove nothing was written: 2.38 was seen committing a
+  payload and then returning 500. After any 5xx the script re-reads the
+  payload's UIDs and reports how many actually persisted.
 - `--resume` skips objects whose UID already exists on the server, making
   a crashed bulk load re-runnable without redoing finished batches.
 - Transient connection errors are retried with exponential backoff.
@@ -67,13 +70,14 @@ ORDER = [
     "programStageSections",
     "programIndicators", "programIndicatorGroups",
     "programRuleVariables", "programRules", "programRuleActions",
+    # userGroups before templates/dashboards/sharing that reference them
+    # (a template naming a missing group fails E5002). Strip membership first.
+    "userGroups",
     "programNotificationTemplates", "trackedEntityInstanceFilters",
     "sqlViews", "reports",
-    "mapViews",  # before maps: pre-saving views avoids the 2.42 embedded-view flush crash
-    "maps",
+    "maps",  # with embedded mapViews; standalone mapViews is EMBEDDED_OWNED
     "visualizations", "eventVisualizations",
     "dashboards",
-    "userGroups",
     "users",
     "aggregateDataExchanges",
     "routes",
@@ -84,7 +88,10 @@ ORDER = [
 # dataElementOperands reference COCs by UID and break if the target regenerates
 # them). To consciously regenerate instead, pass --exclude categoryOptionCombos
 # and run POST /api/maintenance/categoryOptionComboUpdate after the import.
-EMBEDDED_OWNED = set()
+# mapViews: a standalone mapViews import creates the views, after which every
+# maps import embedding them fails on mapview_uid_key (verified 2.38.7, 2.42.6,
+# 2.43.1). Import maps with their embedded views instead.
+EMBEDDED_OWNED = {"mapViews"}
 
 TRANSIENT_ERRORS = (requests.exceptions.ConnectionError,
                     requests.exceptions.Timeout,
@@ -311,6 +318,24 @@ def existing_ids(session, base_url, ptype, timeout):
         page += 1
 
 
+def persisted_count(session, base_url, payload, timeout):
+    """(found, total) of the payload's top-level UIDs now on the server."""
+    found = total = 0
+    for ptype, items in payload.items():
+        uids = [o["id"] for o in items if isinstance(o, dict) and "id" in o]
+        total += len(uids)
+        for part in chunks(uids, 100):
+            try:
+                r = session.get(f"{base_url}/api/{ptype}.json",
+                                params={"fields": "id", "paging": "false",
+                                        "filter": f"id:in:[{','.join(part)}]"},
+                                timeout=timeout)
+                found += len(r.json().get(ptype, []))
+            except (requests.RequestException, ValueError):
+                return None, total
+    return found, total
+
+
 def chunks(seq, size):
     for i in range(0, len(seq), size):
         yield seq[i:i + size]
@@ -429,10 +454,11 @@ def main():
                         "(0 = one payload per type). For huge org unit trees, "
                         "5000 is a good value; org units are then imported "
                         "shallow-first so parents precede children.")
-    p.add_argument("--async-threshold", type=int, default=3000,
+    p.add_argument("--async-threshold", type=int, default=300,
                    help="Payloads above this many objects import with async=true "
-                        "and task polling, avoiding request timeouts (0 = always "
-                        "synchronous)")
+                        "and task polling, avoiding request timeouts and dead "
+                        "sockets (a synchronous 1,500-object payload stalled for "
+                        "an hour on 2.38; 0 = always synchronous)")
     p.add_argument("--poll-delay", type=float, default=3.0,
                    help="Seconds between async task polls")
     p.add_argument("--batch-delay", type=float, default=0.0,
@@ -445,6 +471,7 @@ def main():
     p.add_argument("--dry-run", action="store_true",
                    help="List the import order without sending anything")
     args = p.parse_args()
+    sys.stdout.reconfigure(line_buffering=True)  # progress visible when piped/backgrounded
 
     if not args.url or not args.auth:
         p.error("--url and --auth are required (or set DHIS2_BASE_URL and "
@@ -506,6 +533,19 @@ def main():
     overall = {"created": 0, "updated": 0, "deleted": 0, "ignored": 0, "errors": 0}
     failed_types = []
 
+    def persisted_despite(status, payload, name):
+        """True if a 5xx payload turns out to be fully on the server."""
+        if status < 500:
+            return False
+        found, total = persisted_count(session, base_url, payload, args.timeout)
+        if found is None:
+            return False
+        print(f"[{name:35s}] re-read after HTTP {status}: {found}/{total} "
+              f"objects are on the server"
+              + (" — persisted despite the error" if total and found == total
+                 else ""))
+        return bool(total) and found == total
+
     def send(payload, name):
         n = sum(len(v) for v in payload.values())
         use_async = args.async_threshold and n > args.async_threshold
@@ -519,7 +559,8 @@ def main():
                 session, base_url, payload, params, args.timeout, what=name)
         if body is None:
             print(f"[{name:35s}] HTTP {status}  FAILED: {err_text}")
-            failed_types.append((name, status))
+            if not persisted_despite(status, payload, name):
+                failed_types.append((name, status))
         else:
             (cr, up, de, ig), errs, codes = summarize(body)
             resp_status = (body.get("response", body).get("status")
@@ -532,7 +573,15 @@ def main():
             overall["deleted"] += de
             overall["ignored"] += ig
             overall["errors"] += errs
-            if status >= 500:
+            if status >= 400 and errs == 0:
+                # e.g. 409 with only a top-level message (TransientObjectException,
+                # duplicate key): no errorReports, but the whole payload was lost.
+                msg = body.get("message") or body.get("response", {}).get("message")
+                print(f"[{name:35s}] HTTP {status}  FAILED: {str(msg)[:400]}")
+                overall["errors"] += 1
+            if status >= 500 and not persisted_despite(status, payload, name):
+                failed_types.append((name, status))
+            elif 400 <= status < 500 and errs == 0:
                 failed_types.append((name, status))
         if args.batch_delay:
             time.sleep(args.batch_delay)

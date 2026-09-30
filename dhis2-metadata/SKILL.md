@@ -1,6 +1,6 @@
 ---
 name: dhis2-metadata
-description: "Use whenever the user works with DHIS2 metadata in bulk, on disk or from a live instance — exporting or downloading configuration (especially from a production server), anonymizing, redacting or minimizing metadata for sharing or for AI/LLM context, splitting or transforming metadata.json, comparing or validating configuration, importing or copying metadata between instances, or analysing import/export errors. Triggers on metadata.json, schemas.json, dataElements/indicators/programs/orgUnits/categoryCombos, PII in metadata, sharing/translations stripping, import reports (E5002, E4000, E1127), dummy-data generation for a program or dataset, and program documentation. Use it even without the word 'metadata': 'what does this program look like', 'why did the import fail', 'get me the config from prod', 'make this safe to share'. Authoring indicator expressions themselves is dhis2-indicators."
+description: "Use whenever the user works with DHIS2 metadata in bulk, on disk or from a live instance — exporting or downloading configuration (especially from a production server), anonymizing, redacting or minimizing metadata for sharing or for AI/LLM context, splitting or transforming metadata.json, comparing or validating configuration, importing or copying metadata between instances, or analysing import/export errors. Triggers on metadata.json, schemas.json, dataElements/indicators/programs/orgUnits/categoryCombos, PII in metadata, sharing/translations stripping, import reports (E5002, E4000, E1127), dummy-data generation for a program or dataset (a full comparative PoC is dhis2-prototyping), and program documentation. Use it even without the word 'metadata': 'what does this program look like', 'why did the import fail', 'get me the config from prod', 'make this safe to share'. Authoring indicator expressions themselves is dhis2-indicators."
 ---
 
 ## Overview
@@ -41,7 +41,7 @@ Nothing sensitive is removed silently, so ask which of these apply — most user
 
 All flags compose. In `fetch_metadata.py` each also becomes server-side `!field` exclusions, so removed data never leaves the server; the local pass still runs because field filtering does not reach embedded objects (legends inside legendSets, members inside userGroups).
 
-- **`--anonymize`** — strips PII/credential fields everywhere, reduces user references to `{id}`, gives top-level users placeholder `firstName`/`surname`/`username` so they stay importable. Cannot see PII stored in custom `attributeValues` — check those with the user.
+- **`--anonymize`** — strips PII/credential fields everywhere, reduces user references to `{id}`, gives top-level users placeholder `firstName`/`surname`/`username` so they stay importable, removes `href` (the server URL) and cuts the export's `system` block to its `version`. Cannot see PII stored in custom `attributeValues` or free text (descriptions, comments) — check those with the user.
 - **`--unshare`**, **`--delocalize`** — remove sharing/access fields, remove `translations`.
 - **`--minimize`** — keep only schema `owner && persisted` properties minus bookkeeping, reduce references to `{id}`. Needs the version-matching `schemas.json`. Analysis only: on a `:owner` export it saves ~10–15% (embedded objects carry the noise), and it can strip a rarely-used owned property that a round-trip needs.
 - **`--redact-ou-names`**, **`--drop-coordinates`** — org unit placeholders / geometry removal.
@@ -81,7 +81,7 @@ Recipes and verified traps in `references/workflows.md`: import-error traps (§2
 
 ## Critical safety notes
 
-1. **Never import users without explicit thought.** The standard admin UID `M5zQapPyTZI` is identical across most demo/dev instances; an anonymized payload containing it renames and disables the target's admin. Default to `--exclude users` on cross-instance imports and confirm before importing `users.json`. Excluding `userGroups` cascades into notification templates and dashboards; importing userGroups with membership stripped is safe.
+1. **Never import users without explicit thought.** A user object in the payload overwrites any target user with the same UID (or username) — renaming, re-roling or disabling it — and the target's accounts are not yours to change. Make no assumptions about admin accounts or their UIDs: on production systems the built-in admin is usually disabled, and UIDs differ per system. Default to `--exclude users` on cross-instance imports and confirm before importing `users.json`. Excluding `userGroups` cascades into notification templates and dashboards; importing userGroups with membership stripped is safe.
 2. **Imports modify shared systems.** Confirm target URL and auth first, especially if not localhost or a sandbox. `--dry-run` only previews ordering; validate on a throwaway instance (`dhis2-instances` skill) when it matters.
 3. **`--minimize` requires a matching schema**, or the server rejects the payload with E4000.
 4. **Anonymize is "safe to share", not deniability.** User objects stay (with placeholders), UIDs stay, custom attribute values are untouched.

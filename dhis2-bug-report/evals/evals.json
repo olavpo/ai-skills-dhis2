@@ -1,0 +1,77 @@
+{
+  "skill_name": "dhis2-bug-report",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're on DHIS2 2.42.6. A data migration script posts enrollments to /api/tracker and every one that carries a location fails with E1074 \"FeatureType is missing.\" — but the program has Feature type = Point set in Maintenance, and field staff capture enrollment coordinates in the web Capture app without any problem. If I drop the geometry, the same payload imports. The payload has \"geometry\": {\"type\": \"Point\", \"coordinates\": [-11.79, 8.49]} on the enrollment object. Can you reproduce this on the Sierra Leone demo (you have a disposable 2.42 instance), check whether it's already in Jira, and write me the ticket?",
+      "expected_output": "Restates the claim as testable; searches Jira (project DHIS2, several short queries such as E1074 / enrollment geometry / FeatureType missing, closed issues included with status/resolution/fixVersions) before and again after reproducing; records core version + revision/build from /api/system/info; picks or configures a Point program on the SL instance and reproduces with POST /api/tracker, reading the enrollment back to confirm whether geometry persisted; isolates with one variant that changes exactly one thing (no geometry; or the payload shape the Capture app actually sends, captured from its network requests) and names what distinguishes working from broken — including the possibility that the rejection depends on the payload rather than the program; says the evidence points at core (tracker importer), not an app; writes a markdown ticket in the template (Versions table, duplicate-search line, numbered steps, Actual with the verbatim error, Expected with a concrete outcome); cleans up test objects; chat reply is brief and does not restate the ticket.",
+      "files": [],
+      "requires": "dhis2-instance: Sierra Leone demo 2.42 (2.42.6 core preferred)",
+      "notes": "Core/backend tracker bug end-to-end: Jira-first, API reproduction, one isolating variant, and the trap that the rejection may be payload-dependent rather than program-wide.",
+      "assertions": [
+        "Searches Jira before reproducing, using project DHIS2 and several short, distinct queries (e.g. \"E1074\", \"enrollment geometry\", \"FeatureType missing\") rather than one long phrase, and includes closed/resolved issues (status, resolution or fixVersions requested/reported)",
+        "Records the core version together with the revision and build date taken from /api/system/info (not just '2.42')",
+        "Reproduces through the API (POST /api/tracker) on the instance and reads the enrollment back afterwards to confirm whether the geometry was stored, rather than trusting the import report alone",
+        "Runs at least one isolating variant that changes exactly one thing (e.g. same payload without geometry, a different program/featureType, or the payload shape the Capture app sends captured from its network requests) and states what distinguishes the working from the failing case",
+        "Does not claim that every POINT program or every client is affected unless shown; if another path (Capture, a variant payload) stores the geometry, the ticket says the rejection is payload-dependent and names the triggering difference",
+        "States explicitly that the evidence points at core (tracker importer / Web API), not at a front-end app",
+        "Writes the ticket to a markdown file containing, in this order, a Versions table, a one-line duplicate-search result, 'Steps to Reproduce' as numbered steps (first step logs in as admin/district), 'Actual Result' quoting E1074 verbatim, and 'Expected Result' stating a concrete outcome (import succeeds and the Point geometry is returned on read-back)",
+        "Deletes the test enrollments/tracked entities or other test objects it created (or states they were created on a disposable instance that is discarded) in the same turn, and the ticket contains no severity/priority guess and no narrative of the investigation process"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Pretty sure Data Visualizer is broken on 2.42. I made a pivot table with ANC 1st visit and ANC 2nd visit on columns, the four districts Bo, Bombali, Bonthe and Kailahun on rows, and Last 12 months as the filter. In Options I ticked 'Show column sub-totals' and 'Show row sub-totals' as well as the totals. The totals appear but there isn't a single subtotal anywhere. Same thing on the Sierra Leone demo. Please file a Jira bug for the DV team.",
+      "expected_output": "Recognises this as expected behaviour, not a bug: subtotals only render when an axis carries two or more dimensions; here each axis has one dimension (dx on columns, ou on rows), so a subtotal would equal the total and none is drawn. Does not write a ticket. Explains how to get subtotals (e.g. move period from filter onto rows alongside org unit, or add a second dimension on columns), and if it verifies on an instance it builds the config through the API with fixed periods, shows the one-dimension vs two-dimension contrast, and deletes the ZZTEST object. Reply is short.",
+      "files": [],
+      "requires": "offline (a disposable Sierra Leone demo 2.42 instance may be used to confirm, but the correct outcome is reachable without one)",
+      "notes": "Not-a-bug case: the skill's documented subtotal-layout trap; correct outcome is no ticket.",
+      "assertions": [
+        "Concludes that this is expected behaviour (or a layout/configuration issue), not a defect, and does NOT produce a Jira ticket or ticket file for it",
+        "States that subtotals only render when an axis carries two or more dimensions, and that this layout has a single dimension on each axis (data on columns, org units on rows, period only as a filter)",
+        "Gives a concrete layout change that makes subtotals appear, e.g. moving Period from the filter onto rows together with Organisation unit (or adding a second dimension to columns)",
+        "Does not claim the behaviour is a regression, a known Jira bug, or a Data Visualizer defect in 2.42",
+        "If it verifies on an instance, it creates the test visualization through the API with a ZZTEST-style name and fixed periods (e.g. 202601) rather than LAST_12_MONTHS, and deletes it afterwards; if it does not verify, it does not claim to have reproduced anything",
+        "Keeps the reply short (no ticket-style Versions/Steps/Actual/Expected sections)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Our reporting pipeline creates pivot tables with POST /api/visualizations (just the data items, periods, org units and the columns/rows/filters layout). They open fine in Data Visualizer on 2.43.1, but when users click Download and pick any format nothing happens, and the browser console shows TypeError: undefined is not an object (evaluating 't.toUpperCase'). Tables saved from the DV UI download fine. Is this core or the app? Which DV version is on the instance and is it the latest on the App Hub? Has anyone reported it? If it's real, write the ticket. You can use a disposable Sierra Leone 2.43 instance.",
+      "expected_output": "Checks Jira first with the DV component (\"[App] Data visualizer\") and short symptom terms (toUpperCase, download), including closed issues. Records core version/revision from /api/system/info, the installed DV version from /dhis-web-data-visualizer/manifest.webapp fetched with an authenticated session (302 to login otherwise), and the newest App Hub version via /api/appHub/v2/apps?query=Data%20Visualizer, noting channel and minDhisVersion. Creates a ZZTEST visualization through the API with only dimensions/layout, reads it back with fields=:owner, reproduces the crash (console capture); isolating variant: the same object with only aggregationType: DEFAULT added downloads fine (the server fills displayDensity/fontSize/hideEmptyRowItems/digitGroupSeparator defaults itself; numberType is irrelevant; verified 2.42.6 and 2.43.1). Attributes to the DV app, not core (API accepts and serves the object). Ticket in template; expected result: DV defaults missing display options instead of throwing. Deletes ZZTEST objects and confirms none remain.",
+      "files": [],
+      "requires": "dhis2-instance: Sierra Leone demo 2.43 (2.43.1 core)",
+      "notes": "App-side bug: version triage (manifest behind auth, App Hub query form and channel), API-built saved object with :owner read-back, and one-field-set isolating variant.",
+      "assertions": [
+        "Reads the installed DV version from /dhis-web-data-visualizer/manifest.webapp using an authenticated session or basic auth (or notes the manifest redirects to login when unauthenticated)",
+        "Queries the App Hub through the instance proxy with /api/appHub/v2/apps?query=<name> (not /apps/<id>) and reports the newest version together with its channel, stating whether the installed version is the latest stable",
+        "Searches Jira restricted to the Data Visualizer component (\"[App] Data visualizer\") with short symptom terms such as toUpperCase or download, and reports status/fixVersions of any candidate",
+        "Creates the test visualization through the API with a ZZTEST-style name and reads it back with fields=:owner to confirm the dimensions, items, periods and org units survived",
+        "Isolates the trigger to the missing aggregationType: the same object with only aggregationType set (e.g. DEFAULT) downloads, while adding other display fields such as numberType does not fix it",
+        "Attributes the defect to the Data Visualizer app, not core, because the API accepts and returns the object and the failure is a client-side exception",
+        "Expected Result says DV should default a missing aggregationType (or otherwise download successfully) instead of throwing, rather than asking the API to reject such objects",
+        "Deletes all ZZTEST visualizations in the same turn and re-runs the name:like:ZZTEST listing to confirm it returns nothing"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "A colleague drafted this bug report (attached, evals/files/draft-ticket-systemsettings.md) and wants it in Jira today. Can you turn it into a proper ticket? I don't have time to re-test anything right now, just make it something the core team can act on.",
+      "expected_output": "Rewrites the draft into the ticket template: one-line title naming the broken thing and trigger (GET /api/systemSettings/<nonexistent key> returns HTTP 500 with an HTML stack trace instead of 404); Versions table with 2.42.5.2 and a gap marked for revision/build; a duplicate-search line that does not pretend a search was run (either runs one if Jira is available, or states it has not been done); numbered imperative steps using any nonexistent key; Actual Result with the observed 500 + NotFoundException line and the POST 404 E1005 contrast as the isolating comparison, no sub-headings; Expected Result: 404 JSON with E1005 on GET, matching POST. Drops the process narrative, the priority guess, the unverified 'all settings endpoints / userSettings' generalisation and the speculative Spring/jakarta causes (at most a 2–3 sentence labelled hypothesis). Notes the key does not exist, so not-found is correct and only the status code/body is wrong. Flags what should be re-verified on a public play instance before filing.",
+      "files": [
+        "dhis2-bug-report/evals/files/draft-ticket-systemsettings.md"
+      ],
+      "requires": "offline",
+      "notes": "Writing-only case: template and length discipline, separating findings from speculation, and not fabricating a duplicate search or reproduction that was not done.",
+      "assertions": [
+        "Produces a markdown ticket whose section headings appear in this order: Versions, Steps to Reproduce, Actual Result, Expected Result (programmatically checkable), with no sub-headings inside Actual Result",
+        "Every numbered step is a single imperative action of fewer than 20 words (programmatically checkable)",
+        "Frames the defect as the wrong response for a nonexistent key (HTTP 500 + HTML stack trace on GET vs 404 JSON E1005 on POST) and does not claim the CORS setting itself is missing or that keyCorsWhitelist should exist",
+        "Expected Result states the concrete response — HTTP 404 with a JSON body carrying E1005 for the GET, consistent with the POST — not a vague 'should not give a 500 / should work properly'",
+        "Removes the priority/severity guess and the investigation narrative (the hour spent changing headers, the order endpoints were tried)",
+        "Does not present the unverified generalisation ('all systemSettings endpoints', 'userSettings too') or the Spring/jakarta/Tomcat speculation as findings; any cause hypothesis is at most two or three sentences and explicitly labelled as a hypothesis",
+        "Does not fabricate a Jira duplicate search or a play-instance reproduction: either actually runs the search, or states in the ticket/reply that the duplicate search and a re-test on a public instance are still to be done",
+        "Replaces the private hostname in the steps with a public/placeholder instance or generic '<base>' and uses admin/district-style demo credentials, and the whole ticket is under roughly 350 words excluding the Versions table"
+      ]
+    }
+  ]
+}

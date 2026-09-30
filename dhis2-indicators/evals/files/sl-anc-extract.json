@@ -1,0 +1,38 @@
+{
+  "_comment": "Trimmed extract of Sierra Leone demo ANC metadata for an eval. Data element and COC UIDs are the SL demo ones; indicator types use synthetic UIDs; one field was modified on purpose (see dataElements).",
+  "indicatorTypes": [
+    { "id": "ItNumber001", "name": "Number (Factor 1)", "factor": 1, "number": true },
+    { "id": "ItPercent01", "name": "Percent (Factor 100)", "factor": 100, "number": false },
+    { "id": "ItPerThou01", "name": "Per thousand (Factor 1000)", "factor": 1000, "number": false }
+  ],
+  "categoryCombos": [
+    {
+      "id": "CcLocation1",
+      "name": "Location Fixed/Outreach",
+      "categoryOptionCombos": [
+        { "id": "PT59n8BQbqM", "name": "Fixed" },
+        { "id": "pq2XI5kz2BY", "name": "Outreach" }
+      ]
+    },
+    {
+      "id": "bjDvmb4bfuf",
+      "name": "default",
+      "categoryOptionCombos": [ { "id": "HllvX50cXC0", "name": "default" } ]
+    }
+  ],
+  "dataElements": [
+    { "id": "fbfJHSPpUQD", "name": "ANC 1st visit", "valueType": "NUMBER", "domainType": "AGGREGATE", "aggregationType": "SUM", "zeroIsSignificant": false, "categoryCombo": { "id": "CcLocation1" } },
+    { "id": "cYeuwXTCPkU", "name": "ANC 2nd visit", "valueType": "NUMBER", "domainType": "AGGREGATE", "aggregationType": "SUM", "zeroIsSignificant": false, "categoryCombo": { "id": "CcLocation1" } },
+    { "id": "Jtf34kNZhzP", "name": "ANC 3rd visit", "valueType": "NUMBER", "domainType": "AGGREGATE", "aggregationType": "AVERAGE", "zeroIsSignificant": false, "categoryCombo": { "id": "CcLocation1" } },
+    { "id": "hfdmMSPBgLG", "name": "ANC 4th or more visits", "valueType": "NUMBER", "domainType": "AGGREGATE", "aggregationType": "SUM", "zeroIsSignificant": false, "categoryCombo": { "id": "CcLocation1" } }
+  ],
+  "draftIndicators": [
+    {
+      "name": "ANC 1-3 dropout rate (draft)",
+      "numerator": "(#{fbfJHSPpUQD} - #{Jtf34kNZhzP}) / #{fbfJHSPpUQD} * 100",
+      "denominator": "1",
+      "indicatorType": { "id": "ItPercent01" },
+      "annualized": false
+    }
+  ]
+}

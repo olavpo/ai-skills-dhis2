@@ -7,6 +7,7 @@
 - Aggregation type
 - Expression building blocks
 - d2 functions (the useful ones)
+- Multi-select (MULTI_TEXT) values
 - Filter vs expression
 - Analytics period boundaries (the part people get wrong)
 - Examples
@@ -23,6 +24,7 @@ A program indicator aggregates a value computed from the events or enrollments o
 - `aggregationType` — how unit values combine: COUNT, SUM, AVERAGE, COUNT (distinct values), MIN, MAX, etc.
 - `expression` — computes one value per unit.
 - `filter` — boolean deciding which units are included.
+- The `expression` must evaluate to a **number**. A boolean such as `d2:hasValue(V{event_date})` parses but is invalid as an expression; put conditions in the filter, or turn them into a number with `d2:condition("…", 1, 0)`. For a plain event count the expression is `1` or `V{event_count}`.
 - `analyticsPeriodBoundaries` — which date(s) place a unit in a period.
 - `decimals`, `displayName`, `shortName`.
 
@@ -37,9 +39,9 @@ This decides the unit of analysis:
 
 The classic bug: counting something per enrollment using EVENT type, which multiplies by the number of events. When the question is about people/cases, use ENROLLMENT; when it's about visits/records, use EVENT. Test a repeatable stage with two events to expose the difference.
 
-In ENROLLMENT type you can still reference event data elements (`#{stage.de}`); analytics resolves them to a value within the enrollment according to the boundaries and, where relevant, the latest/earliest event of that stage. **Verify this empirically before relying on it**: on a 2.43.0.1 demo instance, ENROLLMENT-type filters referencing event DEs (`d2:hasValue(#{stage.de})`, cross-stage `d2:daysBetween`) matched zero enrollments even though event analytics demonstrably held the values — with and without default boundaries. Prove the reference resolves (throwaway-PI probe, `references/testing.md`) before building on it.
+In ENROLLMENT type you can still reference event data elements (`#{stage.de}`); analytics uses the value from the **latest event of that stage in the enrollment that has a non-null value**, among events inside the PI's event-date boundaries (`.stageOffset(n)` picks an earlier one). **2.43 changed the SQL engine**: the system setting `experimentalAnalyticsSqlEngineEnabled` defaults to true on 2.43 (false on 2.42). With it on, all boundaries apply to the event rows (enrollment- and incident-date boundaries too), and a missing value reads as `0` (numeric/boolean) or `''` (text) instead of null, so `d2:hasValue(#{stage.de})` and null checks can behave differently from 2.42. On one 2.43.0.1 instance, ENROLLMENT filters with `d2:hasValue(#{stage.de})` and a cross-stage `d2:daysBetween` matched zero enrollments, while other ENROLLMENT PIs reading event values work on 2.43. Prove the reference resolves (throwaway-PI probe, `references/testing.md`) before building on it; to tell engine differences apart, compare with the setting turned off on a throwaway instance.
 
-**EVENT-type PIs cannot read cross-stage data elements.** Each event-analytics row carries only its own stage's DE columns, so `#{otherStage.de}` inside an EVENT-type expression or filter evaluates to null for events of a different stage — silently (the expression validates fine; the SL demo ships a PI broken this way). Fix pattern: anchor the PI on the stage that owns the DE (`V{program_stage_id} == '<owningStageUid>'`) and use that stage's `V{event_date}`; or switch to ENROLLMENT type (subject to the caveat above).
+**EVENT-type PIs cannot read cross-stage data elements.** Each event-analytics row carries only its own stage's DE columns, so `#{otherStage.de}` inside an EVENT-type expression or filter evaluates to null for events of a different stage — silently (the expression validates fine; the SL demo ships a PI broken this way). Fix pattern: anchor the PI on the stage that owns the DE (`V{program_stage_id} == '<owningStageUid>'`) and use that stage's `V{event_date}`; or switch to ENROLLMENT type (subject to the caveat above). With ENROLLMENT type, remember the lookup rule above: `EVENT_DATE` boundaries also restrict *which events the value is read from*, so a value recorded on another stage in an earlier period (birth weight at birth, read in the month of a later postnatal visit) drops out. Choose boundaries that keep the owning stage's event in scope (e.g. enrollment-date boundaries, or a `PS_EVENTDATE:<stageUid>` boundary on the counted stage) and prove the result with a cross-period case on a throwaway instance.
 
 ## Aggregation type
 
@@ -72,11 +74,26 @@ Operands available in the expression (and filter):
 - `d2:hasValue(#{stage.de})` — true if the value is present (distinguish blank from zero).
 - `d2:count(#{stage.de})` — number of events with a value for that element.
 - `d2:countIfValue(#{stage.de}, value)` / `d2:countIfCondition(#{stage.de}, "expr")` — conditional counts across events.
+- The `d2:count*` functions count events of the stage in the enrollment **within the PI's `EVENT_DATE` boundaries only** (2.42.6 `ProgramCountFunction`: `getStart/EndEventBoundary` match `boundaryTarget == EVENT_DATE`). With only enrollment-date or `PS_EVENTDATE:<stage>` boundaries they count across the whole enrollment, whatever the reporting period.
 - `d2:daysBetween(start, end)`, `d2:weeksBetween`, `d2:monthsBetween`, `d2:yearsBetween` — date differences (e.g. `d2:daysBetween(V{enrollment_date}, #{stage.visitDate})`).
 - `d2:zing(x)` (negative→0), `d2:oizp(x)` (0 if zero/neg else 1), `d2:zpvc(...)` (count of zero-or-positive values).
-- `d2:floor`, `d2:round`, `d2:modulus`, `d2:left`, `d2:right`, `d2:concatenate`, `d2:validatePattern`.
 
-Confirm signatures against `dhis2-docs` for your version — the set grows release to release.
+The full set accepted in program indicator expressions and filters on 2.40–2.43 (dhis2-core source): `d2:condition`, `d2:count`, `d2:countIfCondition`, `d2:countIfValue`, `d2:daysBetween`, `d2:hasValue`, `d2:maxValue`, `d2:minValue`, `d2:minutesBetween`, `d2:monthsBetween`, `d2:oizp`, `d2:relationshipCount`, `d2:weeksBetween`, `d2:yearsBetween`, `d2:zing`, `d2:zpvc`; the unprefixed `firstNonNull`, `greatest`, `least`, `if`, `is`, `isNull`, `isNotNull`, `log`, `log10`, `removeZeros` (plus `contains`/`containsItems` from 2.41); and `.stageOffset()`. `d2:floor`, `d2:round`, `d2:modulus`, `d2:left`, `d2:right`, `d2:concatenate` and `d2:validatePattern` are **program-rule functions**: the parser knows them, but a PI using them fails with `Item d2:… not supported for this type of expression`.
+
+Confirm signatures against `dhis2-docs` for your version — the set grows release to release. **Validate before concluding a function is missing**: `POST /api/programIndicators/filter/description` (or `/expression/description`) with the candidate, and try the unprefixed form too (next section).
+
+## Multi-select (MULTI_TEXT) values
+
+2.41+ has two functions for multi-select values, and **in program indicators they have no `d2:` prefix**:
+
+- `containsItems(#{stage.de}, 'R01')`: true if the comma-separated value holds the item `R01` as a whole item. Use this for counting per option of a multi-select field.
+- `contains(#{stage.de}, 'R01')`: a substring match. Only safe when no code is part of another (`R1` matches `R10`).
+
+Program *rules* use the prefixed forms (`d2:contains`, `d2:validatePattern`), while indicators, program indicators, predictors and validation rules use the unprefixed forms. Validating `d2:containsItems(...)` as a PI filter returns "Expression is not valid" / "Invalid string token 'd'", which reads as "PIs cannot do this". A session built 204 rule-assigned yes/no flag data elements to work around a function that was available all along. Verified on 2.42.6. When arguing against such flags, don't claim rule-assigned values are missing for API data: `/api/tracker` imports run the server rule engine, and an ASSIGN action fills an omitted data value (warning E1308) or rejects a different one (E1307, unless `ruleEngineAssignOverwrite`) — verified in 2.42.6 `AssignDataValueExecutor`. The real costs are duplicated metadata, existing events needing a backfill, and flags drifting if rules change.
+
+Related facts from the same work (2.42.6):
+- `V{current_date}` is allowed in PI filters and is evaluated at query time ("overdue as of today"). Test against the real date, not a fixed one.
+- After changing a PI, analytics keeps serving the old definition until `POST /api/maintenance/cacheClear`.
 
 ## Filter vs expression
 
@@ -144,6 +161,8 @@ The modern replacement for "one PI per age/sex combination": a single PI produce
 2. On the **PI**, set `categoryMappingIds` (referencing the program's mappings) and a disaggregation `categoryCombo` built from those categories.
 3. Run `POST /api/maintenance?categoryOptionComboUpdate=true` so the combo's COCs exist.
 4. Verify: the disaggregated cells must sum to the undisaggregated PI total (and, when migrating, match the legacy one-PI-per-cell values).
+
+Confirmed on 2.42.6 as well: one mapped PI replaced about 60 per-option PIs. Two write-side traps: `categoryMappingIds` is not validated (a bogus UID is stored with 200 and no error reports), and `optionMappings[].optionId` is checked for existence but not for membership in that category. Re-read the program after writing mappings.
 
 **Reuse existing categories and category options** — category options are shared objects, so a new category for disaggregation can be assembled from options that already exist in other categories; don't mint duplicates. Field-level details are version-sensitive — check the program-indicator disaggregation section of the docs (`dhis2-docs` skill) for your version.
 

@@ -1,23 +1,86 @@
 {
- "skill_name": "dhis2-integrity",
- "evals": [
-  {
-   "id": 1,
-   "prompt": "Our DHIS2 2.43 demo instance (reachable at http://dhis2-integrity-sl:8080, admin/district) is failing a bunch of data integrity checks. Go through the critical and severe ones, fix what you safely can, and tell me which ones need a decision from me before you touch them.",
-   "expected_output": "Connects, runs the FULL inventory (summary + slow checks), triages by severity/fix-type, asks before destructive/ambiguous fixes, fixes deterministic-safe severe issues, re-verifies, and reports fixed vs needs-decision vs accepted with reasons. Logs writes.",
-   "files": []
-  },
-  {
-   "id": 2,
-   "prompt": "Here's a metadata dump from our production DHIS2 (a metadata.json export). I do NOT want to touch prod. Clean it up on a throwaway copy \u2014 dedupe the duplicate category combos and indicators, and fix any broken indicator/program-indicator expressions \u2014 then give me back a fixed dump I can review before we apply it.",
-   "expected_output": "Recognizes dump/sandbox mode: spins up (or asks to) an empty sandbox of matching version, imports the dump (twice, checks summary, flags default-UID gotchas), keeps the original as control, runs the cleanup using merge endpoints for dedup, verifies, re-exports a fixed metadata.json, and offers a dump diff. Does not touch production.",
-   "files": []
-  },
-  {
-   "id": 3,
-   "prompt": "After a bad metadata import our category option combos are a mess \u2014 there are duplicates, and one category combo seems to have the wrong categories so the data entry form is showing blank cells. How do I clean this up without losing the data values that are already entered?",
-   "expected_output": "Distinguishes dedup (use categoryOptionCombos/categoryCombos merge endpoints, knowing the within-combo-only scope of COC merge) from a wrong-category structural fix (blocked by E1120 \u2014 SQL category swap, no data moved). Emphasizes snapshot-first, the data-preservation/conservation check, cache clear after SQL, and verifying form COC resolvability + analytics afterwards.",
-   "files": []
-  }
- ]
+  "skill_name": "dhis2-integrity",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our DHIS2 2.43 test instance is a copy of the Sierra Leone demo, at http://dhis2-agent-sl-integrity:8080 (admin/district). It fails a lot of data integrity checks. Work through the CRITICAL and SEVERE ones, fix what you safely can, and tell me which ones need a decision from me before you touch them. Afterwards, tell me what you fixed, what you left alone and why.",
+      "expected_output": "Reads /api/system/info. Runs the FULL inventory, including the slow/programmatic checks that the summary skips (integrity.py inventory, or details?checks=... gated on finishedTime changing). Re-runs until two inventories agree, and treats a timeout, an empty summary or DATA_INTEGRITY jobs stuck in SCHEDULED as 'no inventory', never as zero. Takes a snapshot before the first write. Triages into deterministic / judgment / accepted / blocked, and asks every judgment call (plus the autonomy level) in one batched round before fixing: 'fix what you safely can' limits scope and does not grant autonomy. Inspects program_stages_no_programs before deleting anything; on SL 2.43 the stage has DEs and a HIDEPROGRAMSTAGE rule, so it is restored, not deleted. Uses merge endpoints (probed) for duplicates, logs every write, re-runs the broad summary after each batch, and reports fixed / needs-decision / accepted with reasons.",
+      "files": [],
+      "requires": "dhis2-instance: Sierra Leone demo 2.43, created via d2-broker as agent-sl-integrity (reachable at http://dhis2-agent-sl-integrity:8080); substitute the actual broker instance name in the prompt",
+      "notes": "Only live-instance case: tests the inventory mechanics (slow checks, async/cache, fail-loud on timeouts/stuck jobs), snapshot-first, and the rule that scope is not autonomy.",
+      "assertions": [
+        "Runs the slow/programmatic checks explicitly (scripts/integrity.py inventory, or POST /api/dataIntegrity/details?checks=... for the isSlow/isProgrammatic checks), and does not rely on the summary run alone. It states or shows that the summary skips them",
+        "Waits for fresh results: gates on finishedTime changing (or uses integrity.py), and does not read the GET right after the POST as the new result",
+        "Never reports a check as 0/clear from a timed-out, empty ({}) or partial run. Checks that did not complete are reported as unknown, and if DATA_INTEGRITY jobs sit in SCHEDULED/NOT_STARTED it names that (a Tomcat restart is needed) rather than declaring the instance clean",
+        "Takes a snapshot (pg_dump, or a full metadata export via metadata_dump.py export plus dataValueSets) BEFORE the first write, and says it is the control/rollback",
+        "Asks all judgment calls in one batched decision round before applying any non-deterministic fix, including the autonomy level (decide-each vs best-effort). It does not treat 'fix what you safely can' as permission to decide merges or deletions alone. Only deterministic fixes (whitespace, quoting a UID, stripping AVG(), aggregationType=NONE on text DEs, rule priority) are applied without asking",
+        "If program_stages_no_programs is nonzero: inspects the stage's programStageDataElements and any HIDEPROGRAMSTAGE rule action that references it before deleting, and proposes restoring the stage to that rule's program (for example 'Nearby household investigation' to the Malaria program) instead of deleting it",
+        "Does not fabricate coordinates for orgunits_no_coordinates (accepted/documented). It does not remove geometry for not_contained_by_parent/invalid_geometry without asking",
+        "Re-runs the broad summary (not only the targeted check) after each fix batch, and the final report separates fixed / needs-decision / accepted-with-reason, with every write logged (d2_client operations log or equivalent)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Attached is a metadata export from our production DHIS2 (evals/files/metadata-dump-2.42.json, a /api/metadata.json export). I do NOT want anyone touching prod. Clean it up on a throwaway instance: dedupe the duplicate category combos, category option combos and indicators, and fix the broken indicator, validation rule and program indicator expressions. Then give me back a fixed metadata.json I can review before we apply it.",
+      "expected_output": "Dump -> sandbox mode. Takes the version from the dump (system.version 2.42.1 and 2.42 property markers such as programIndicators.categoryCombo and programs.categoryMappings), creates an EMPTY 2.42 instance via d2-broker, imports twice, reconciles counts against the dump arrays and keeps the original file as the untouched control. Because the target is 2.42, probes and finds that categoryCombos/merge and categories/merge are missing (405). It uses categoryOptionCombos/merge for the duplicate Male COC (cocSexM0002 -> cocSexM0001) and indicators/merge for inMalConf02 -> inMalConf01. The combo consolidation (ccSexDel001 'Sex DELETE' into ccSex000001) is a reference-repointing SQL merge, not a delete by name, and it repoints deOPD000001, the inOPDMale01 numerator and the dfOPD000001 custom-form htmlCode. BEmONC/CEmONC stay separate. Fixes #{dsOPD000001.REPORTING_RATE} -> R{...}, strips AVG() in vrConfTst01, replaces d2:hasValue(V{event_date}) with 1, and quotes the UID in the piMalPf0001 filter, validating each expression first. Flags the inANCcov001 reference to the missing deAncMiss01 as pre-existing. Raises that the instance is empty (asks about synthetic data, or states the fixes were not exercised against data). Re-exports fixed.metadata.json and diffs it against the original.",
+      "files": [
+        "evals/files/metadata-dump-2.42.json"
+      ],
+      "requires": "dhis2-instance: EMPTY DHIS2 2.42 instance created via d2-broker (no seed); the dump file is the input",
+      "notes": "Dump->sandbox workflow on 2.42, where the category/combo merge endpoints do not exist. Catches the naive 'categoryCombos/merge' or 'delete the DELETE-named combo' answer.",
+      "assertions": [
+        "Identifies the dump as 2.42 (from system.version and/or 2.42-only properties) and imports into an empty sandbox of that same version, not 2.43/2.41 or a seeded instance. Production and the original dump file are left untouched and the original is kept as the control",
+        "States that categoryCombos/merge and categories/merge do not exist on 2.42 (probe returns 404/405), so the duplicate-combo consolidation is done by reference-repointing SQL (or deferred until an upgrade to 2.43). It does not claim categoryCombos/merge worked on this instance",
+        "Does NOT delete ccSexDel001 ('Sex DELETE') because of its name. It repoints its references to the survivor combo/COCs first: deOPD000001.categoryCombo, the inOPDMale01 numerator #{deOPD000001.cocSDelM001}, and the dfOPD000001 custom-form htmlCode input ids",
+        "Merges cocSexM0002 into cocSexM0001 with categoryOptionCombos/merge (same combo, same option), and merges inMalConf02 into inMalConf01 with indicators/merge. It keeps inBEmONC001 and inCEmONC001 as distinct indicators despite their identical formulas",
+        "Repairs all four broken expressions: inRepOPD001 numerator becomes R{dsOPD000001.REPORTING_RATE}; vrConfTst01 leftSide loses AVG(); piMalEvt001 expression becomes 1; piMalPf0001 filter quotes 'psMal000001'. Each new expression is checked with an expression-description/validation endpoint before it is written",
+        "Flags inANCcov001's reference to deAncMiss01 (absent from the dump) as a pre-existing dangling reference for the owner, and does not invent a data element to satisfy it",
+        "Notes that the sandbox has no data values, so the E1120/E4030 guards and the output diff are not exercised. It either offers to populate synthetic data (gen_synthetic_data.py, before the snapshot) or states the limitation in the deliverable",
+        "Produces a fixed metadata JSON file that parses as valid JSON: it no longer contains cocSexM0002 or inMalConf02, inRepOPD001's numerator starts with 'R{', and it still contains inBEmONC001 and inCEmONC001. A diff against the original is provided (metadata_dump.py diff or equivalent)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "After a bad metadata import our category option combos are a mess. There are duplicate COCs, and one category combo seems to have the wrong category attached, so the data entry form shows blank cells. The combo already has data values entered against it. How do I clean this up without losing the data values that are already entered?",
+      "expected_output": "Advisory answer that separates two problems. (1) Duplicates: categoryOptionCombos/merge, which only merges COCs in the SAME combo with the same options (E1540 otherwise), so it is not a cross-combo tool. Any duplicate combos go to categoryCombos/merge, which exists only on 2.43+ (below that, SQL repointing), so the answer depends on the version. (2) The wrong category is a structural fix: the API edit is blocked by E1120, and when there is no duplicate combo to merge into, the fix is a SQL swap in categorycombos_categories. It does not move data when the values already sit under COCs of the intended categories; values entered under wrong-category COCs need an owner decision and a COC mapping. After any SQL: cacheClear and categoryOptionComboUpdate. Snapshot first, scan COC references (indicator expressions, custom-form htmlCode, dataelementoperand, minmax) before deleting any COC, text-repoint form HTML after merges (the merge itself rewrites indicator/expression references), then verify conservation, form COC resolvability and analytics.",
+      "files": [],
+      "requires": "offline",
+      "notes": "Advisory Q&A with no instance and no version given. Tests the merge-scope rule, the E1120/SQL-swap boundary and the COC regeneration trap, without running the full engagement workflow.",
+      "assertions": [
+        "States that categoryOptionCombos/merge only merges COCs within the same category combo with identical options (E1540 otherwise), so it cannot consolidate COCs across combos",
+        "Makes the combo/category-level answer depend on the DHIS2 version, or asks for it: categoryCombos/merge and categories/merge exist only on 2.43+, and on 2.42 and earlier that consolidation needs SQL repointing (or an upgrade)",
+        "Says that changing the combo's categories through the API is blocked by E1120 while data exists, and that, when there is no duplicate combo to merge into, the fix is a direct SQL update of categorycombos_categories (swapping the wrong category) that moves no data values",
+        "Distinguishes two situations for the values already entered: values that sit under COCs of the intended categories (the wrong category only hides them; a metadata-only fix, no data moved) versus values entered under COCs of the wrong category (these need an owner decision and an explicit old-COC to new-COC mapping, or must be kept/archived, before those COCs are removed)",
+        "Requires POST /api/maintenance cacheClear AND a categoryOptionComboUpdate after any SQL change to the combo/COC structure. It also warns that categoryOptionComboUpdate regenerates deleted COCs if the combo's categories still imply them, so the combo is fixed before orphaned COCs are deleted",
+        "Before deleting any COC, requires scanning its references: indicator numerator/denominator text, dataentryform htmlCode, dataelementoperand and minmaxdataelement (and data values/audit)",
+        "Warns that the COC merge does not repoint custom-form htmlCode (deUID-cocUID-val input ids), so form HTML must be text-repointed separately",
+        "Does not claim that categoryOptionCombos/merge leaves indicator numerators/denominators or other expression text unchanged: on 2.42.6/2.43.1 the merge rewrites indicator and expression references to the source COCs (as well as data element operands, min-max and predictors); only custom-form htmlCode needs separate repointing",
+        "Before the first change, requires a full backup (pg_dump or equivalent) or a rehearsal on a restored copy, so the change can be rolled back. Either wording passes; naming the backup explicitly as 'the rollback' is not required",
+        "Requires a per-cell conservation check afterwards: for each data element/period/org unit (and attribute option combo) the sum of values across COCs is unchanged, not just a global datavalue row count",
+        "Requires checking afterwards that every data entry form field (section form cells and custom-form htmlCode input ids) resolves to a valid COC of the data element's current category combo"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I can't give you access to any DHIS2 instance, not even a test one, and I can't spin one up. All I have is this metadata export from our 2.42 server: evals/files/metadata-dump-2.42.json. Go through it and tell me what's broken or duplicated and what you'd change. Also write the changes you propose to proposed-fixes.csv (columns: uid, object_type, issue, proposed_fix, status) so our core team can apply them.",
+      "expected_output": "Advisory, static triage of the dump. Finds the duplicate Male COC (cocSexM0002) and the duplicate combo 'Sex DELETE' (ccSexDel001, same categories as ccSex000001 and referenced by deOPD000001, inOPDMale01 and the dfOPD000001 form). Finds the categories with identical options (catSexMF001 / catSex00001) and the whitespace duplicate indicator inMalConf02, and treats BEmONC/CEmONC as semantically distinct (not merged). Finds the duplicate indicator type itPerCent02 (same factor). Finds the broken expressions (inRepOPD001 #{..REPORTING_RATE}, AVG() in vrConfTst01, d2:hasValue(V{event_date}) in piMalEvt001 (a boolean where a numeric PI expression is required; replace with 1 or V{event_count}), unquoted UID in piMalPf0001) and the dangling deAncMiss01 in inANCcov001. Notes that 2.42 lacks categoryCombos/categories merge. Because no instance exists, the fixes are proposal text marked not exercised/untested: no import package, playbook or SQL file presented as ready to run. It recommends proving them on a disposable sandbox.",
+      "files": [
+        "evals/files/metadata-dump-2.42.json"
+      ],
+      "requires": "offline",
+      "notes": "Advisory mode from a dump with no instance at all. Tests static detection of the planted issues and the rule that fixes never run against DHIS2 ship as proposals marked 'not exercised'.",
+      "assertions": [
+        "proposed-fixes.csv exists, parses as CSV with the header uid,object_type,issue,proposed_fix,status, contains rows for all four broken-expression UIDs (inRepOPD001, vrConfTst01, piMalEvt001, piMalPf0001), and contains rows for at least 7 of the full list: cocSexM0002, ccSexDel001, catSexMF001, inMalConf02, itPerCent02, inRepOPD001, vrConfTst01, piMalEvt001, piMalPf0001, inANCcov001",
+        "No row in proposed-fixes.csv proposes merging or deleting inBEmONC001 or inCEmONC001. The answer says that sharing a formula does not make them duplicates (keep/document, or flag for review)",
+        "Proposes merging ccSexDel001 into ccSex000001 by repointing its references (deOPD000001, the inOPDMale01 numerator COC cocSDelM001, the dfOPD000001 htmlCode) to the survivor's COCs, rather than deleting it because its name contains DELETE",
+        "Repairs inRepOPD001's numerator to R{dsOPD000001.REPORTING_RATE} (not #{...REPORTING_RATE}), and strips AVG() from vrConfTst01's left side (validation rules do not support aggregation functions)",
+        "Replaces the piMalEvt001 EVENT/COUNT expression with a numeric per-event expression (1 or V{event_count} both pass), giving the correct reason: d2:hasValue(V{event_date}) returns a boolean where a PI expression must be numeric. Calling it 'invalid syntax' or 'd2:hasValue does not accept V{}' as the reason fails; treating it as fine/intentional fails",
+        "Quotes the program stage UID in the piMalPf0001 filter: V{program_stage_id} == 'psMal000001'",
+        "Flags deAncMiss01 (referenced by inANCcov001 but not in the export) as a pre-existing dangling reference for the owner, without fabricating a replacement data element",
+        "States that on 2.42 categoryCombos/merge and categories/merge are not available, so the combo/category consolidation needs SQL (or an upgrade to 2.43), while categoryOptionCombos/merge and indicators/merge exist on 2.42",
+        "Marks every proposed fix as untested/not exercised against a running DHIS2 (for example in the status column), and recommends proving the fixes on a disposable sandbox before the core team applies them",
+        "No fix is labelled safe, verified or ready to apply as written (in the CSV status column or the answer), and no import package, playbook or SQL file is presented as ready to run: the stated status of every fix reflects that it was not tested"
+      ]
+    }
+  ]
 }

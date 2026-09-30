@@ -115,7 +115,9 @@ Verified working for scalar fields, whole-collection `add` (`program.categoryMap
 Three caveats (verified 2.40–2.43):
 
 - **JSON Patch re-validates the whole object**, so it can **409 on pre-existing integrity issues unrelated to the change** (`E6012` "attribute not assigned to type", `E6000` "program has more than one program instance", …). Old production metadata — exactly what bulk admin tools target — trips this constantly, so a tool under review will legitimately fail on some objects. Dedicated endpoints skip it.
-- **Never patch `/sharing`.** `replace /sharing` returns 200 but **silently ignores** `public`/`external` (the patch value needs `publicAccess`/`externalAccess`, not the aliases a GET shows) — the object looks re-shared but stays publicly accessible. The correct tool is `PUT /api/sharing?type=<singular>&id=<uid>` (recipe in the `dhis2-docs` skill), which changes only sharing, preserves `owner`, and skips whole-object validation. Flag any app that patches sharing.
+- **Never patch `/sharing`.** `replace /sharing` returns 200 but **silently ignores** `public`/`external` (the patch value needs `publicAccess`/`externalAccess`, not the aliases a GET shows) — the object looks re-shared but stays publicly accessible. The correct tool is `PUT /api/sharing?type=<singular>&id=<uid>` (recipe in the `dhis2-docs` skill), which changes only sharing, preserves `owner`, and skips whole-object validation. Flag any app that patches sharing. The no-op applies only to JSON Patch: a full `PUT` of the object (e.g. `PUT /api/sqlViews/{id}`) with a `sharing` block *does* apply public access (verified on 2.40.12 and 2.43.1).
+- **Permission-denied paths need a limited user.** On some seeds the `admin` user holds `ALL` (unlike the Sierra Leone demo), and the broker's `local_admin` always does. `ALL` bypasses sharing, so a flow that restricts sharing to provoke an error never sees one. Create a throwaway user without `ALL` for these tests. A flow that tightens sharing must restore it in a `finally`: one run skipped its own restore after the expected error never appeared, and left the object unreadable for everyone else.
+- **Provenance settles "was this ours or the seed's?"** `GET /api/<type>/<id>?fields=created,lastUpdated,createdBy[username],lastUpdatedBy[username]` shows when an object appeared and who created it. Check it before forming a theory about unexpected objects on a test instance.
 - **Plain-JSON partial PATCH is version-split**: `Content-Type: application/json` with body `{"name":"…"}` returns **204** on ≤2.41 but **415** on ≥2.42, where JSON Patch is required. A robust tool tries plain JSON first and falls back on 415; test both sides of the 2.42 boundary.
 
 ## Validating program rule conditions cheaply
@@ -142,9 +144,11 @@ Don't assume a "minimal baseline tracker import succeeds cleanly" on demo progra
   not append — easy to wipe the demo defaults. Always read-modify-write
   (`GET` → add your origin → `unique` → `POST` the full list back). The
   endpoint accepts **POST only** — `PUT` returns `405 Method Not Allowed`.
-- **The CORS allowlist is a `configuration` resource, not a system setting.**
-  On 2.42 the same resource also answers at
-  `/api/configuration/corsAllowlist` (the name current docs use; bare JSON
+- **The CORS allowlist is a `configuration` resource, not a system setting —
+  even though users edit it in the System Settings app** (Access section), so
+  people call it a system setting. In the API it lives only under
+  `/api/configuration`. On 2.42 the same resource also answers at
+  `/api/configuration/corsAllowlist` (the name current docs use, 2.41+; on 2.40 only `/corsWhitelist` exists; bare JSON
   array body, returns 204). There is no CORS key under `/api/systemSettings` —
   `POST /api/systemSettings/keyCorsWhitelist` fails with 409 then 404. Every
   fresh instance starts with an empty allowlist, so a cross-origin dev server
