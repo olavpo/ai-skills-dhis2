@@ -53,11 +53,13 @@ This calls `GET /api/metadata.json?...` for all metadata types. Notes:
 
 ### Import gotchas (these bite everyone)
 
-- **Default objects can collide — only when the source database predates 2.22.** Databases created on
-  2.22 or later get fixed default UIDs: category option `xYerKDKCefk`, category `GLevLNI9wkl`, category
-  combo `bjDvmb4bfuf`, category option combo `HllvX50cXC0` (all Sierra Leone demo versions use them).
-  A database created before 2.22 and upgraded since keeps its original random default UIDs; no migration
-  normalises them. Check the dump's four `default` objects against those constants. If they differ,
+- **Default objects can collide — always check, many production systems predate 2.22.** Databases
+  created on 2.22 or later get fixed default UIDs: category option `xYerKDKCefk`, category
+  `GLevLNI9wkl`, category combo `bjDvmb4bfuf`, category option combo `HllvX50cXC0` (all Sierra Leone
+  demo versions and fresh instances use them). A database first created before 2.22 keeps its original
+  random default UIDs through every upgrade; no migration normalises them, and many long-running
+  national systems are in this group. So never assume the constants: read the four `default` objects of
+  both source and target and compare. If they differ,
   importing into a fresh instance creates duplicate "default" objects and can trip
   `categories_one_default_*` checks: import into an instance seeded from the **same base** as the
   source, or map the source default UIDs to the target's before import. Flag this early.
