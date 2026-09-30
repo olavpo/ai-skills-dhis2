@@ -134,7 +134,7 @@ Track these as tasks; re-verify after every batch.
 - **Confirm/derive the DHIS2 version FIRST.** If creating the sandbox from a dump, **fingerprint the
   version from the dump before choosing the instance version** — guessing wrong makes the import reject or
   silently drop properties. Diff the dump's per-object property names against bundled `schemas-v4x.json`:
-  `attributeValues` present everywhere ⇒ ≥2.42; `programIndicators.categoryCombo`/`categoryMappings` ⇒
+  the export's top-level `system.version` if present; otherwise `programIndicators.categoryCombo`/`categoryMappings` ⇒
   2.42; their absence + the top-level user structure ⇒ 2.41. On the live instance just read
   `/api/system/info`. Version drives everything downstream: the integrity framework is 2.38+, and the
   **merge endpoints are version-dependent** — `categories`/`categoryCombos` merge are **2.43+** (absent on
@@ -363,7 +363,7 @@ deliverable, and optionally round-trip-import it into one more clean instance to
 ## Reference files
 
 - `references/playbook.md` — **the core reference.** Triage taxonomy, per-check fixes, the API
-  business-guards (`E1120`/`E4030`/`E4056`/`E8031`) and how to pass them, the 2.41+ merge/dedup
+  business-guards (`E1120`/`E4030`/`E4056`/`E8031`) and how to pass them, the per-version merge/dedup
   endpoints and their scoping rules, when/how to use direct SQL (table names, locating the DB),
   naming-convention rules, and the self-inflicted-wound watch-list.
 - `references/dump-and-sandbox.md` — version-fingerprint the dump, restore onto an empty sandbox

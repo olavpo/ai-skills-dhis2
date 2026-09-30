@@ -5,7 +5,7 @@ Table of contents:
 2. Triage taxonomy
 3. Per-check playbook (the fixes that generalise)
 4. API business-guards you can't argue with — and how to pass them
-5. The 2.41+ merge/dedup endpoints (prefer these for duplicates)
+5. The merge/dedup endpoints (2.38+, more types per version; prefer these for duplicates)
 6. Direct SQL — when, and how to do it safely
 7. Naming conventions — safe vs. needs sign-off
 8. Self-inflicted-wound watch-list
@@ -305,19 +305,28 @@ Privilege/escalation realities:
 - **When genuinely blocked, document precisely** (root cause + exact remediation) and move on; don't
   burn the engagement on one check. Revisit if elevated access is granted.
 
-## 5. The 2.41+ merge/dedup endpoints — prefer these; SQL is last resort
+## 5. The merge/dedup endpoints (2.38+, expanding per version) — prefer these; SQL is last resort
 
-**The merge framework keeps EXPANDING across versions (2.41 → 2.43 added more types). Never decide "no
-merge endpoint exists" from memory — PROBE the live instance.** Quick probe: `POST /api/<type>/merge`
+**The merge framework keeps EXPANDING across versions.** `POST /api/<type>/merge` exists for (checked in
+dhis2-core source at 2.40.12, 2.41.10, 2.42.6, 2.43.1):
+
+| Type | 2.40 | 2.41 | 2.42 | 2.43 |
+|---|---|---|---|---|
+| `organisationUnits` (since 2.38) | ✔ | ✔ | ✔ | ✔ |
+| `indicators`, `indicatorTypes` | – | ✔ | ✔ | ✔ |
+| `dataElements`, `categoryOptions`, `categoryOptionCombos` | – | – | ✔ | ✔ |
+| `categories`, `categoryCombos` | – | – | – | ✔ |
+
+There is no `dataSets` or `programIndicators` merge. Tracker duplicates use
+`POST /api/potentialDuplicates/{uid}/merge` (all versions). Still **PROBE the live instance** before
+relying on it. Quick probe: `POST /api/<type>/merge`
 with an empty body `{}` — **`404`/`405` = no endpoint; `409`/`400` = endpoint exists** (it's just
-rejecting the empty payload). On 2.43 the confirmed POST-merge types are: `categories`, `categoryOptions`,
-`categoryOptionCombos`, `categoryCombos`, `dataElements`, `indicators`, `indicatorTypes`,
-`organisationUnits` (and `dataSets`/`programIndicators` expose a merge route too — verify semantics).
+rejecting the empty payload). On 2.43 the confirmed POST-merge types are the eight in the table.
 
 > **⚠️ Merge availability is VERSION-DEPENDENT — verified, not memorized.** On **DHIS2 2.42.5.1** a probe
 > returns **405 "method not supported"** for `categories/merge` AND `categoryCombos/merge` — those two do
-> NOT exist before 2.43. Present on 2.42: `categoryOptionCombos`, `dataElements`, `indicators`,
-> `organisationUnits`. **Consequence:** on ≤2.42, consolidating duplicate categories/combos *that have
+> NOT exist before 2.43. Present on 2.42: `categoryOptions`, `categoryOptionCombos`, `dataElements`,
+> `indicators`, `indicatorTypes`, `organisationUnits`. **Consequence:** on ≤2.42, consolidating duplicate categories/combos *that have
 > data* has no endpoint, so the `E1120` guard leaves **SQL as legitimate first-line** for those two types
 > (or upgrade the target to 2.43+ first). This is the opposite of the 2.43 rule below — so PROBE the actual
 > target version every engagement; the §6b "always use the endpoint, never SQL" lesson is 2.43-specific.
