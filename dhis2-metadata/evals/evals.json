@@ -5,7 +5,9 @@
       "id": 1,
       "prompt": "I've attached evals/files/metadata-sl-anc.json, a small slice I exported from our dev server (it's a copy of the Sierra Leone demo, check the system block for the version). I want to paste it into an AI chat to get help reworking the ANC indicators, and then send the same file to an external consultant. Nothing in it should identify a person, the consultant has no business with our sharing setup or the French translations, and facility GPS points shouldn't go out either. Keep it small, but don't break the indicator formulas. Write the cleaned copy to outputs/metadata-shareable.json and tell me what you did and anything I still need to check.",
       "expected_output": "Runs scripts/transform_metadata.py (or reproduces it) with --anonymize --minimize --unshare --delocalize --drop-coordinates and --schemas references/schemas-v41.json (matching system.version 2.41.3, not a default v42). Then handles what --anonymize cannot see: custom attribute values holding a name and phone number (the org unit 'Facility in-charge' and the data element 'Data element steward' on fbfJHSPpUQD), and free text naming people (org unit comment, indicator, legend set and data set descriptions). Removes system.id and instance hrefs, and warns that free text and custom attribute values need manual review on future exports. Output is valid JSON with no planted names/usernames/emails/phones, no sharing or translations, no org unit geometry, while UIDs and the indicator numerator/denominator survive. Warns that users (including admin M5zQapPyTZI) stay as placeholders and must not be imported into another instance, or drops users entirely.",
-      "files": ["evals/files/metadata-sl-anc.json"],
+      "files": [
+        "evals/files/metadata-sl-anc.json"
+      ],
       "requires": "offline",
       "notes": "Anonymise/minimise with a file check; traps: version-matched schema, PII in custom attributeValues and free text that --anonymize does not catch.",
       "assertions": [
@@ -15,15 +17,16 @@
         "Programmatic: the output contains no key named sharing, userAccesses, userGroupAccesses, publicAccess or translations at any depth, and the Ngelehun CHC org unit (DiszpKrYNg8) has no geometry/coordinates",
         "Programmatic: dataElement fbfJHSPpUQD and indicator Uvn6LCg7dVU are still present, and the indicator's numerator is still exactly '#{fbfJHSPpUQD}' and its denominator '#{h0xKKjijTdI}*0.04'",
         "Uses the 2.41 schema (references/schemas-v41.json or the instance's own schemas) for --minimize, derived from system.version 2.41.3, rather than a default/latest schema",
-        "Warns the user that free-text fields (descriptions, comments) and custom attribute values are not reliably caught by automatic anonymisation and need manual review on future exports, and says how this file's cases were handled (the 'Facility in-charge' org unit value, the 'Data element steward' value on fbfJHSPpUQD, and the named people in the org unit comment, indicator, legend set and data set descriptions)",
-        "Addresses the users in the file: either removes them, or states that they remain as placeholder users (admin UID M5zQapPyTZI included) and must not be imported into another instance because that would rename/disable its admin"
+        "Warns the user that free-text fields (descriptions, comments) and custom attribute values are not reliably caught by automatic anonymisation and need manual review on future exports, and says how this file's cases were handled (the 'Facility in-charge' org unit value, the 'Data element steward' value on fbfJHSPpUQD, and the named people in the org unit comment, indicator, legend set and data set descriptions)"
       ]
     },
     {
       "id": 2,
       "prompt": "Copying our child-health and ANC config from the old 2.40 server to the new 2.42 staging box went badly. I ran transform_metadata.py --minimize --unshare --delocalize --schemas references/schemas-v40.json --split-dir ./split on the 2.40 export (to keep the payload small), then import_metadata.py --src ./split --passes 2 against staging. I collected every non-OK response into evals/files/import-responses-2.42.json. Staging has no data yet and I can edit its config. Which of these are real problems, what caused each one, and what exactly should I do before re-running? Dataelements shows no error reports at all, so I assume those went in fine?",
       "expected_output": "Groups the errors by root cause, judged on the final pass: (1) E4000 shortName on TrackedEntityType nEenWmSyUEp is caused by --minimize with the 2.40 schema (shortName is not owner+persisted there but is required on 2.42); --minimize must not be used for instance transfer, so re-transform with --unshare --delocalize only. (2) The pass-1 programStages E5002 were deferred forward references that pass 2 resolved, so they are not real. (3) E1127 on the 60-option category is a target-side cap: set metadata.categories.max_options in staging's dhis.conf and restart. The categoryCombo E5002 follows from it, and so does (4) the dataElements 409 with status ERROR and zero error reports, which is a whole-batch Hibernate flush crash (the message names DataElement.categoryCombo), not success: the whole batch was lost. (5) The visualization E5002 on indicator Uvn6LCg7dVU persists in pass 2, so the indicator (and its indicatorType) is really missing from the slice. Recommends a pre-import dangling-reference scan.",
-      "files": ["evals/files/import-responses-2.42.json"],
+      "files": [
+        "evals/files/import-responses-2.42.json"
+      ],
       "requires": "offline",
       "notes": "Import-error analysis across passes; traps: a 409 with zero error reports, E1127 fixed in dhis.conf, and --minimize with a mismatched schema as the cause of E4000.",
       "assertions": [
@@ -60,7 +63,9 @@
       "id": 4,
       "prompt": "Our dummy-data generator (evals/files/gen_anc_values.py) filled ANC 1st/2nd/3rd visit for all Bo facilities on our 2.41 test box without complaint. Pointed at a 2.43 Sierra Leone demo test instance, every POST now fails with 'Data set detection failed' and nothing is imported. Same admin user, same data elements. Why, and can you fix the script so it works on 2.43 (and still on 2.41)? Only synthetic values, it's a test box.",
       "expected_output": "Explains that 2.43's POST /api/dataValueSets requires a data set: with no dataSet in the payload it tries to detect one and fails when the data elements belong to no data set (E8003) or several (E8002); the fix is an explicit top-level dataSet. The data set's period type and org unit assignment are then checked separately (E8021/E8022). 2.40-2.42 accepted values without a data set silently. Rewrites the script to look up the data set(s) containing each data element, with their periodType and organisationUnits, set dataSet on the payload, generate periods matching the data set's period type, and only target org units the data set is assigned to. Sends a valid categoryOptionCombo from each DE's category combo (an omitted COC is stored under default on 2.43.1). Sends a small sample first (dryRun or small N), parses and prints the import status/conflicts, and groups the payload per data set. Does not blame auth or permissions.",
-      "files": ["evals/files/gen_anc_values.py"],
+      "files": [
+        "evals/files/gen_anc_values.py"
+      ],
       "requires": "offline",
       "notes": "Dummy-data generation; trap: the 2.43-only dataValueSets data-set requirement, which the model cannot know from general knowledge.",
       "assertions": [
@@ -71,7 +76,7 @@
         "The rewritten script restricts org units to those the chosen data set is assigned to (intersection with the Bo facilities) and generates periods in the data set's periodType",
         "The rewritten script sends an explicit categoryOptionCombo for every value, taken from the data element's own category combo (the data set element's override if set), e.g. the Fixed/Outreach COCs for the ANC visit elements, not the default COC and not omitted. (On 2.43.1 an omitted COC is not rejected: it is stored under the default COC HllvX50cXC0, which is not in these elements' combo, so the values do not appear in the form cells or in disaggregated analytics)",
         "Programmatic: the rewritten script compiles (python -m py_compile succeeds)",
-        "The rewritten script does a dry run (dryRun=true or a small first batch) before the full load, and parses the JSON import summary to print its status, imported/updated/ignored counts and any conflicts; printing only raw response text (r.text) does not pass"
+        "The rewritten script supports a server-side dry run (dryRun=true, e.g. behind a --dry-run flag, opt-in is fine) and the answer tells the user to run it first on 2.43; and the script parses the JSON import summary to print status, imported/updated/ignored counts and conflicts. Printing only raw response text (r.text) does not pass"
       ]
     }
   ]
