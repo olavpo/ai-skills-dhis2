@@ -74,6 +74,7 @@ Operands available in the expression (and filter):
 - `d2:hasValue(#{stage.de})` — true if the value is present (distinguish blank from zero).
 - `d2:count(#{stage.de})` — number of events with a value for that element.
 - `d2:countIfValue(#{stage.de}, value)` / `d2:countIfCondition(#{stage.de}, "expr")` — conditional counts across events.
+- The `d2:count*` functions count events of the stage in the enrollment **within the PI's `EVENT_DATE` boundaries only** (2.42.6 `ProgramCountFunction`: `getStart/EndEventBoundary` match `boundaryTarget == EVENT_DATE`). With only enrollment-date or `PS_EVENTDATE:<stage>` boundaries they count across the whole enrollment, whatever the reporting period.
 - `d2:daysBetween(start, end)`, `d2:weeksBetween`, `d2:monthsBetween`, `d2:yearsBetween` — date differences (e.g. `d2:daysBetween(V{enrollment_date}, #{stage.visitDate})`).
 - `d2:zing(x)` (negative→0), `d2:oizp(x)` (0 if zero/neg else 1), `d2:zpvc(...)` (count of zero-or-positive values).
 
@@ -88,7 +89,7 @@ Confirm signatures against `dhis2-docs` for your version — the set grows relea
 - `containsItems(#{stage.de}, 'R01')`: true if the comma-separated value holds the item `R01` as a whole item. Use this for counting per option of a multi-select field.
 - `contains(#{stage.de}, 'R01')`: a substring match. Only safe when no code is part of another (`R1` matches `R10`).
 
-Program *rules* use the prefixed forms (`d2:contains`, `d2:validatePattern`), while indicators, program indicators, predictors and validation rules use the unprefixed forms. Validating `d2:containsItems(...)` as a PI filter returns "Expression is not valid" / "Invalid string token 'd'", which reads as "PIs cannot do this". A session built 204 rule-assigned yes/no flag data elements to work around a function that was available all along. Verified on 2.42.6.
+Program *rules* use the prefixed forms (`d2:contains`, `d2:validatePattern`), while indicators, program indicators, predictors and validation rules use the unprefixed forms. Validating `d2:containsItems(...)` as a PI filter returns "Expression is not valid" / "Invalid string token 'd'", which reads as "PIs cannot do this". A session built 204 rule-assigned yes/no flag data elements to work around a function that was available all along. Verified on 2.42.6. When arguing against such flags, don't claim rule-assigned values are missing for API data: `/api/tracker` imports run the server rule engine, and an ASSIGN action fills an omitted data value (warning E1308) or rejects a different one (E1307, unless `ruleEngineAssignOverwrite`) — verified in 2.42.6 `AssignDataValueExecutor`. The real costs are duplicated metadata, existing events needing a backfill, and flags drifting if rules change.
 
 Related facts from the same work (2.42.6):
 - `V{current_date}` is allowed in PI filters and is evaluated at query time ("overdue as of today"). Test against the real date, not a fixed one.

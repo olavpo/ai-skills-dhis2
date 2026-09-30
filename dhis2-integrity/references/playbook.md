@@ -177,8 +177,11 @@ applied. Start from each check's own `recommendation`.
   - a COUNT/EVENT program indicator that wants "1 per matching event" should just be `1`
     (`d2:hasValue(V{event_date})` parses — `d2:hasValue` accepts `V{}` variables — but it returns a boolean, and a
     PI *expression* must be numeric; booleans belong in the filter. Verified in 2.42.6 `D2HasValue`/`ProgramExpressionItem`).
-  - **Validate every new expression first** with `GET /api/expressions/description?expression=...`
-    (it's GET; note `%` breaks psycopg2 params — see §6) before writing it.
+  - **Validate every new expression first**, with the endpoint for its type: indicators
+    `GET /api/expressions/description?expression=...` (or `POST /api/indicators/expression/description`);
+    validation rules `POST /api/validationRules/expression/description`; predictors
+    `POST /api/predictors/expression/description`; program indicators `POST /api/programIndicators/expression/description`
+    and `.../filter/description` (raw text body; 2.42.6 controllers). Note `%` breaks psycopg2 params — see §6.
 - **`program_rules_no_action` / `program_rules_message_no_template` / `program_stages_no_programs`:**
   **broken ≠ unwanted — repair or restore-and-flag, do NOT reflexively delete.** A rule whose name/condition
   shows clear intent ("Hide pregnant if male", "Send birth notification to CRVS") is *broken* (lost its
