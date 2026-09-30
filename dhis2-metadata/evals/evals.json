@@ -17,7 +17,8 @@
         "Programmatic: the output contains no key named sharing, userAccesses, userGroupAccesses, publicAccess or translations at any depth, and the Ngelehun CHC org unit (DiszpKrYNg8) has no geometry/coordinates",
         "Programmatic: dataElement fbfJHSPpUQD and indicator Uvn6LCg7dVU are still present, and the indicator's numerator is still exactly '#{fbfJHSPpUQD}' and its denominator '#{h0xKKjijTdI}*0.04'",
         "Uses the 2.41 schema (references/schemas-v41.json or the instance's own schemas) for --minimize, derived from system.version 2.41.3, rather than a default/latest schema",
-        "Warns the user that free-text fields (descriptions, comments) and custom attribute values are not reliably caught by automatic anonymisation and need manual review on future exports, and says how this file's cases were handled (the 'Facility in-charge' org unit value, the 'Data element steward' value on fbfJHSPpUQD, and the named people in the org unit comment, indicator, legend set and data set descriptions)"
+        "Warns the user that free-text fields (descriptions, comments) and custom attribute values are not reliably caught by automatic anonymisation and need manual review on future exports, and says how this file's cases were handled (the 'Facility in-charge' org unit value, the 'Data element steward' value on fbfJHSPpUQD, and the named people in the org unit comment, indicator, legend set and data set descriptions)",
+        "Removes the users (and userGroups) sections entirely rather than anonymising them in place, and gives the reason: user objects are not needed for the indicator work and well-known shared UIDs (e.g. the SL admin M5zQapPyTZI) mean an anonymised user object could overwrite or rename an admin if the file were ever imported"
       ]
     },
     {
@@ -61,13 +62,13 @@
     },
     {
       "id": 4,
-      "prompt": "Our dummy-data generator (evals/files/gen_anc_values.py) filled ANC 1st/2nd/3rd visit for all Bo facilities on our 2.41 test box without complaint. Pointed at a 2.43 Sierra Leone demo test instance, every POST now fails with 'Data set detection failed' and nothing is imported. Same admin user, same data elements. Why, and can you fix the script so it works on 2.43 (and still on 2.41)? Only synthetic values, it's a test box.",
+      "prompt": "Our dummy-data generator (evals/files/gen_anc_values.py) filled ANC 1st/2nd/3rd visit for all Bo facilities on our 2.41 test box without complaint. Pointed at our 2.43 test instance (a Sierra Leone demo copy where a colleague also added ANC 1st visit to a new monthly 'ANC outreach supplement' data set), every POST now fails with 'Data set detection failed' and nothing is imported. Same admin user, same data elements. Why, and can you fix the script so it works on 2.43 (and still on 2.41)? Only synthetic values, it's a test box.",
       "expected_output": "Explains that 2.43's POST /api/dataValueSets requires a data set: with no dataSet in the payload it tries to detect one and fails when the data elements belong to no data set (E8003) or several (E8002); the fix is an explicit top-level dataSet. The data set's period type and org unit assignment are then checked separately (E8021/E8022). 2.40-2.42 accepted values without a data set silently. Rewrites the script to look up the data set(s) containing each data element, with their periodType and organisationUnits, set dataSet on the payload, generate periods matching the data set's period type, and only target org units the data set is assigned to. Sends a valid categoryOptionCombo from each DE's category combo (an omitted COC is stored under default on 2.43.1). Sends a small sample first (dryRun or small N), parses and prints the import status/conflicts, and groups the payload per data set. Does not blame auth or permissions.",
       "files": [
         "evals/files/gen_anc_values.py"
       ],
       "requires": "offline",
-      "notes": "Dummy-data generation; trap: the 2.43-only dataValueSets data-set requirement, which the model cannot know from general knowledge.",
+      "notes": "Dummy-data generation; trap: the 2.43-only dataValueSets data-set requirement, which the model cannot know from general knowledge. Premise verified on SL 2.43.1 (2026-09-30): on the stock seed all three ANC DEs are only in Reproductive Health and the script's payload imports; adding fbfJHSPpUQD to a second monthly data set makes the same payload fail with 409 E8002.",
       "assertions": [
         "Explains that 'Data set detection failed' on 2.43 means the payload names no data set and the data elements map to no data set (E8003) or to more than one (E8002), and that the fix is to send an explicit top-level dataSet in the payload. Period-type matching and org-unit assignment are presented as separate, later checks (E8021/E8022), not as the cause of the detection failure",
         "States that 2.40-2.42 accepted data values with no data set (which is why the script worked on 2.41), i.e. this is a version change, not a bug in their payload shape",
@@ -76,7 +77,8 @@
         "The rewritten script restricts org units to those the chosen data set is assigned to (intersection with the Bo facilities) and generates periods in the data set's periodType",
         "The rewritten script sends an explicit categoryOptionCombo for every value, taken from the data element's own category combo (the data set element's override if set), e.g. the Fixed/Outreach COCs for the ANC visit elements, not the default COC and not omitted. (On 2.43.1 an omitted COC is not rejected: it is stored under the default COC HllvX50cXC0, which is not in these elements' combo, so the values do not appear in the form cells or in disaggregated analytics)",
         "Programmatic: the rewritten script compiles (python -m py_compile succeeds)",
-        "The rewritten script supports a server-side dry run (dryRun=true, e.g. behind a --dry-run flag, opt-in is fine) and the answer tells the user to run it first on 2.43; and the script parses the JSON import summary to print status, imported/updated/ignored counts and conflicts. Printing only raw response text (r.text) does not pass"
+        "The rewritten script supports a server-side dry run (dryRun=true, e.g. behind a --dry-run flag, opt-in is fine) and the answer tells the user to run it first on 2.43; and the script parses the JSON import summary to print status, imported/updated/ignored counts and conflicts. Printing only raw response text (r.text) does not pass",
+        "Handles period timeliness on 2.43: the rewritten script generates only complete past periods (or periods within the data set's open future periods), or the answer states that for users without F_EDIT_EXPIRED a single expired or not-yet-open period rejects the whole data-set group with E8030 (superusers skip this check). Generating Oct-Dec 2026 on 2026-09-30 without any mention of this fails"
       ]
     }
   ]

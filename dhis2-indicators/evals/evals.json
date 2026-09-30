@@ -61,7 +61,7 @@
         "Explains the unchanged chart after yesterday's change as cached analytics responses, not as evidence the change didn't matter, and gives a concrete way to bypass the cache: POST /api/maintenance/cacheClear (or Data Administration > Maintenance > clear cache) or a neutral cache-busting query parameter (e.g. &_cb=<timestamp>). Does not require any specific cache duration (the DHIS2 default keyCacheStrategy is CACHE_1_MINUTE; SL demo databases set CACHE_TWO_WEEKS). A parameter that changes the result (e.g. skipRounding) is not a valid cache-buster",
         "States that the Percent indicator type (factor 100) is not the cause and leaves it unchanged",
         "Proposes a verification step specific to PIs: throwaway probe PIs, a line-level /api/analytics/events/query check, or boundary-date test events on both sides of a month edge",
-        "Programmatic: any fixed metadata file in outputs/ parses as JSON, and every program indicator in it that uses event data has non-empty analyticsPeriodBoundaries and a count-type aggregation (not AVERAGE), so importing it cannot recreate the 'same value every month' or '1.0' bugs"
+        "Programmatic: outputs/ contains a fixed metadata JSON file that parses, covers all three program indicators (the cross-stage PI may be replaced by new PIs, and the file must include the replacement), and every program indicator in it that uses event data has non-empty analyticsPeriodBoundaries and a count-type aggregation (not AVERAGE). An answer with no fixed metadata file fails"
       ],
       "requires": "offline",
       "notes": "Debugging case with several independent silent PI bugs (AVERAGE on count, missing boundaries, cross-stage EVENT ref, cache) plus a false lead (indicator type) that must not be blamed."

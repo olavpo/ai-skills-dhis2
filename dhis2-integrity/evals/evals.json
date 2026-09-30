@@ -55,7 +55,7 @@
         "Before deleting any COC, requires scanning its references: indicator numerator/denominator text, dataentryform htmlCode, dataelementoperand and minmaxdataelement (and data values/audit)",
         "Warns that the COC merge does not repoint custom-form htmlCode (deUID-cocUID-val input ids), so form HTML must be text-repointed separately",
         "Does not claim that categoryOptionCombos/merge leaves indicator numerators/denominators or other expression text unchanged: on 2.42.6/2.43.1 the merge rewrites indicator and expression references to the source COCs (as well as data element operands, min-max and predictors); only custom-form htmlCode needs separate repointing",
-        "Requires a snapshot (pg_dump or equivalent full backup) before the first change and names it as the rollback",
+        "Before the first change, requires a full backup (pg_dump or equivalent) or a rehearsal on a restored copy, so the change can be rolled back. Either wording passes; naming the backup explicitly as 'the rollback' is not required",
         "Requires a per-cell conservation check afterwards: for each data element/period/org unit (and attribute option combo) the sum of values across COCs is unchanged, not just a global datavalue row count",
         "Requires checking afterwards that every data entry form field (section form cells and custom-form htmlCode input ids) resolves to a valid COC of the data element's current category combo"
       ]
