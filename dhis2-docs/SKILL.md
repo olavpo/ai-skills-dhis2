@@ -84,6 +84,8 @@ If credentials are missing, ask the user, write them to `.env` in CWD (preservin
 
 **Keep responses out of context.** Default to `pageSize=50` and a narrow `fields=` selection (e.g. `fields=id,name`) on collection GETs. When a response may be large (full metadata, analytics, schemas), write it to a file and inspect it selectively (`jq`, Read with offsets) instead of printing it in full.
 
+**Verified quirks live in `references/api-quirks.md`.** Read it before concluding an endpoint is broken, or before writing a script that filters, patches collections or exports metadata for sharing. It covers rotating play.dhis2 demo URLs, unsupported filter operators, unsafe index-based JSON Patch paths, unclearable COC codes, SQL-view word bans, and `:owner` exports leaking editors' names.
+
 **Writes.** Before any POST/PUT/PATCH/DELETE to an instance that is not localhost or explicitly disposable, show the request (method, URL, body) and get the user's confirmation. Sandboxes and throwaway test instances don't need per-write confirmation. If a disposable instance is needed and the `dhis2-instances` skill is available, it can provision one.
 
 ---
