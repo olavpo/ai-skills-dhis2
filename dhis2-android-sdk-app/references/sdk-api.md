@@ -100,8 +100,10 @@ events.uid(ev).blockingDelete(); enrollments.uid(enr).blockingDelete(); teis.uid
 d2.relationshipModule().relationships().uid(relUid).blockingDelete()
 ```
 
-`blockingSet` validates the value against the value type locally (an integer field refuses "abc").
-Mandatory attributes are only checked by the server on upload.
+`blockingSet` does **not** validate the value against its value type (SDK 1.14.2 stores "abc" in an
+integer field; the server rejects it on upload). Validate in the app first, e.g.
+`valueType.validator.validate(value)` (returns a `Result`; the failure is a per-type sealed class such as `IntegerFailure`).
+Mandatory attributes and data elements are likewise only checked by the server on upload.
 
 ## 4. Reading
 

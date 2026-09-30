@@ -1,0 +1,36 @@
+{
+  "skill_name": "dhis2-android-sdk-app",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're building a small offline-first Android app (Kotlin, Jetpack Compose) on the DHIS2 Android SDK instead of Capture, for a household listing: register a household (tracked entity type Household, 3 attributes, one of them auto-generated from a text pattern), enroll it in the Household program, create the first event of the 'Visit' stage with two data values, and upload when there's a connection. Write the data layer (repository class) for this, with proper error handling, and tell me which SDK version and dependencies to pin in Gradle. Server is 2.42.",
+      "expected_output": "Kotlin repository using the SDK's create projections for TEI, enrollment and event, value setting through the SDK's value repositories, reserved-value handling for the generated attribute (downloaded in advance, not per org unit), upload via the SDK's upload with import-conflict inspection, blocking calls off the main thread; pinned SDK version and matching dependencies; notes that the SDK uploads with atomicMode OBJECT.",
+      "files": [],
+      "assertions": [
+        "Uses the SDK create projections for tracked entity, enrollment and event (TrackedEntityInstanceCreateProjection, EnrollmentCreateProjection, EventCreateProjection) with blockingAdd or add",
+        "Sets attribute and data values through the SDK's value repositories (e.g. trackedEntityAttributeValues().value(...).blockingSet / trackedEntityDataValues().value(...).blockingSet)",
+        "Handles the auto-generated attribute via reserved values downloaded in advance (blockingDownloadReservedValues / reservedValueManager) and handles running out offline",
+        "Uploads via the SDK upload (trackedEntityInstances().upload()/blockingUpload) and inspects import conflicts (trackerImportConflicts) afterwards",
+        "Runs blocking SDK calls off the main thread (Dispatchers.IO, RxJava schedulers or equivalent)",
+        "Pins a specific SDK version (1.14.x) in Gradle and lists matching dependencies",
+        "Mentions a concrete SDK sync/upload behaviour that affects error handling (e.g. atomicMode OBJECT/partial acceptance, conflicts stored locally, state flags)",
+        "Kotlin code is syntactically plausible and consistent with the SDK API (no invented module or method names found by the grader)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our custom DHIS2 Android SDK app has a registration form and a visit form built in Compose. The program already has program rules on the server (hide fields, show warnings, assign an 'age group' value, make a field mandatory). How do we make our forms respect those rules exactly as Capture does? Write the integration code and explain what to watch out for.",
+      "expected_output": "Uses the DHIS2 rule engine (the library Capture uses) with an adapter from SDK metadata/values to rule-engine inputs, evaluates on every value change, applies hide/show/warning/error/mandatory/assign actions, persists assigned values, clears or handles hidden values carefully (hidden + assigned case), tests rules against the server/Capture; version alignment of rule engine with the SDK.",
+      "files": [],
+      "assertions": [
+        "Uses the DHIS2 rule engine library (org.hisp.dhis.rules / rule-engine) that Capture uses, rather than writing a custom expression evaluator",
+        "Builds rule-engine inputs from SDK metadata and current values via an adapter (rules, variables, attribute/data values, enrollment/event context)",
+        "Re-evaluates rules on every value change and applies hide/show, warning/error, mandatory and assign actions to the Compose form",
+        "Persists assigned values (and states whether they are saved like user-entered values)",
+        "Addresses hidden fields that hold values or are assigned (clear or show read-only) and the risk of server-side rejection",
+        "Addresses version alignment between the rule engine and the SDK/Capture/server",
+        "Recommends testing rule behaviour against Capture or the server with concrete cases"
+      ]
+    }
+  ]
+}
