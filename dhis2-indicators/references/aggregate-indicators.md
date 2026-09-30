@@ -33,7 +33,7 @@ Operands inside numerator/denominator:
 - `D{programUID.dataElementUID}`, `A{programUID.attributeUID}`, `I{programIndicatorUID}` — pull program data or a program indicator into an aggregate indicator.
 - Operators: `+ - * /`, parentheses, numeric literals.
 - Functions for null/zero safety: `if(condition, x, y)`, `isNull(...)`, `isNotNull(...)`, `firstNonNull(...)`, `greatest(...)`, `least(...)`.
-- `subExpression(...)` may reference **several** data elements or operands (dhis2-core 2.41 builds one SQL column per item). It is not limited to one data element.
+- `subExpression(...)` may reference **several** data elements or operands (dhis2-core 2.41 builds one SQL column per item). It is not limited to one data element. It is evaluated per org unit per *requested* period (the inner query groups by `ou` and the query's period-type column, e.g. `quarterly`, in 2.40–2.43), so a quarterly query evaluates the subexpression once per facility-quarter (data summed within the quarter), not once per facility-month.
 
 Example null-safe denominator so a missing value yields no result rather than an error:
 

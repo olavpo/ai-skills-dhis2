@@ -175,7 +175,8 @@ applied. Start from each check's own `recommendation`.
   - reporting rate is `R{dataSetUID.REPORTING_RATE}`, **not** `#{...REPORTING_RATE}`;
   - unquoted UIDs in program-indicator filters need quotes (`== 'uid'`);
   - a COUNT/EVENT program indicator that wants "1 per matching event" should just be `1`
-    (`d2:hasValue(V{event_date})` is invalid — `V{}` program vars aren't valid for `d2:hasValue`).
+    (`d2:hasValue(V{event_date})` parses — `d2:hasValue` accepts `V{}` variables — but it returns a boolean, and a
+    PI *expression* must be numeric; booleans belong in the filter. Verified in 2.42.6 `D2HasValue`/`ProgramExpressionItem`).
   - **Validate every new expression first** with `GET /api/expressions/description?expression=...`
     (it's GET; note `%` breaks psycopg2 params — see §6) before writing it.
 - **`program_rules_no_action` / `program_rules_message_no_template` / `program_stages_no_programs`:**
