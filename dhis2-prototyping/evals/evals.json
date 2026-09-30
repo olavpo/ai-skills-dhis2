@@ -1,0 +1,39 @@
+{
+  "skill_name": "dhis2-prototyping",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're about to pilot an antenatal care follow-up programme on DHIS2 2.42 and can't agree between two designs: (A) one ANC program with a repeatable 'ANC visit' stage per pregnancy, or (B) mother as a tracked entity with each pregnancy as a separate linked 'Pregnancy' tracked entity carrying the visits. Management wants evidence, not opinions: which indicators each design can produce (ANC1-4 coverage, visits by trimester, % high-risk referred), and how long a nurse spends entering a typical visit on Capture Android and web. Plan the proof of concept for me and write the metadata generator for both options so we can start building next week. Don't touch any server yet — just give me the plan and the code.",
+      "expected_output": "plan.md with an ordered PoC process (plan → environment → generator → synthetic data with ground truth → indicator verification → manual Android pass → scripted flows → dry-runs → recorded passes → effort from logs → report), plus a Python generator for both options using deterministic UIDs and code prefixes, both options side by side on one instance; validation of expressions via API; interface-time effort model.",
+      "files": [],
+      "assertions": [
+        "The plan lays out an ordered PoC process that includes synthetic data with known ground truth AND verifying every indicator against it",
+        "Both design options are built side by side on one instance, distinguished by code prefixes or distinct codes",
+        "The generator derives UIDs deterministically from stable keys (so re-imports update in place), visible in the code",
+        "All Python files in outputs/ compile (python3 -m py_compile passes)",
+        "The plan validates rule/indicator expressions against the server API (e.g. the /description endpoints) before trusting them",
+        "Entry effort is estimated from counted actions of scripted flows with a keystroke-level model, and the plan says automation run time is not effort",
+        "The plan includes a manual pass through the Android UI or dry-runs of all flows before final recordings",
+        "The generator defines program indicators (or equivalent) for ANC1-4 coverage for both options, or states precisely why an option cannot produce one",
+        "No DHIS2 server was contacted or modified during the run (per transcript)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I need a recorded, captioned video of a health worker registering a household in DHIS2 Capture Android 3.4.2 (emulator, driven from a script) — fields: household ID (auto-generated), head of household name, phone, number of members (integer), water source (option set of 11 options), coordinates (use my location). Then the same flow on web Capture for comparison, and a count of taps/clicks and typed characters for each. Write the automation (Maestro flow for Android, Playwright for web), the recording/captioning approach, and a checklist of what to set up on the server and emulator before it will work. I'll run it myself.",
+      "expected_output": "Maestro YAML using scrollUntilVisible before taps, anchored selectors, handling the 11-option bottom sheet, FAB tap by pixel point, caption labels; Playwright script entering the Capture iframe via a localhost origin with stable field locators and failed-write capture; recording one screenrecord per phase (3-minute limit) with captions from the command log; setup checklist incl. allowScreenCapture, permissions, mock GPS, time zone check, metadata re-download after changes; counts from what ran; verify data on the server after sync.",
+      "files": [],
+      "assertions": [
+        "A Maestro flow file is provided and uses scrollUntilVisible (or an equivalent ensure-visible step) before tapping fields",
+        "The 11-option water-source field is handled as a scrollable list/bottom sheet (scroll to the option before tapping)",
+        "The Playwright script locates the Capture iframe and loads Capture via a localhost (secure-context) origin or https",
+        "The web script treats failed POST/PUT responses as flow failures, and/or the plan verifies the entered data on the server after sync",
+        "The recording approach handles screenrecord's 3-minute limit (one recording per phase/caption, or chunking with alignment)",
+        "The setup checklist includes allowing screen capture in the Android settings (otherwise recordings are black)",
+        "The setup checklist includes location permission and a mock/test GPS location for 'use my location' on the emulator",
+        "Tap/click and typed-character counts are derived from what actually ran (command/action logs), not only hand estimates",
+        "A clock/time-zone check between emulator and server is included"
+      ]
+    }
+  ]
+}
