@@ -595,7 +595,8 @@ Dedicated endpoints skip that revalidation — e.g. sharing changes should go th
   - **Text-repoint `dataentryform.htmlcode`** from source to target. `categoryOptionCombos/merge`
     (2.42.6, 2.43.1) rewrites indicator numerators/denominators and other expressions, predictors,
     data element operands, min/max values and SMS codes, and moves data values, approvals, events and
-    registrations, but it does not touch custom-form HTML: after one 2.43.1 merge, 860
+    registrations. It **deletes** the sources' data value audits and data approval audits (they are not
+    moved; export them first if the history matters), and it does not touch custom-form HTML: after one 2.43.1 merge, 860
     `deUID-cocUID-val` cells still named deleted COCs. (Only the SQL path needs the indicator text
     repointed by hand.)
   - `categories/merge` strips foreign options from COCs that already had the wrong cardinality, which
