@@ -298,4 +298,4 @@ Don't pad the list. A 5-finding report with concrete fixes is more useful than a
 - `references/version-testing.md` — read before the multi-version pass: what drifts between DHIS2 versions and how to diff it.
 - `references/server-quirks.md` — read before seeding test data or asserting on mutations: server behaviours (verify-after-write, refused operations, DB-level seeding, status codes) that make a naive test wrong.
 - `scripts/probe.py` — one-shot smoke probe; run against any new app before writing real tests.
-- `assets/templates/` — skeletons for the three report documents.
+- `assets/templates/` — skeletons for the four report documents.

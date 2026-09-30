@@ -13,6 +13,7 @@ Usage:
 webpack.config.js / d2.config.js — don't assume).
 """
 import argparse
+import sys
 import urllib.request
 
 from playwright.sync_api import sync_playwright
@@ -58,7 +59,7 @@ def main():
     dev_host = urlparse(args.dev).hostname or "localhost"
 
     with sync_playwright() as p:
-        b = p.chromium.launch(headless=True)
+        b = p.chromium.launch(headless=True, args=["--disable-dev-shm-usage"])
         ctx = b.new_context()
         cn, cv = login_cookie(args.base, args.user, args.password)
         ctx.add_cookies([{
@@ -80,9 +81,11 @@ def main():
         # A login screen means the session is NOT authenticated even though
         # nothing errored — fail loudly instead of printing a green-looking probe.
         login_markers = ("Please sign in", "j_username")
+        auth_failed = False
         if any(page.get_by_text(m).count() for m in login_markers[:1]) \
                 or page.locator("input[name=j_username]").count() \
                 or "login" in page.url.lower():
+            auth_failed = True
             print("AUTH FAILED — page is a login screen, not the app. "
                   "Dev server: fill the shell's sign-in form (see playwright-patterns.md); "
                   "instance-served: check cookie domain is same-site with the app origin.")
@@ -94,6 +97,8 @@ def main():
         print("HTTP >=400:", http_err[:5])
         print("Screenshot:", args.screenshot)
         b.close()
+    if auth_failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
