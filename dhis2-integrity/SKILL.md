@@ -138,7 +138,9 @@ Track these as tasks; re-verify after every batch.
   2.42; their absence + the top-level user structure ⇒ 2.41. On the live instance just read
   `/api/system/info`. Version drives everything downstream: the integrity framework is 2.38+, and the
   **merge endpoints are version-dependent** — `categories`/`categoryCombos` merge are **2.43+** (absent on
-  2.42/2.41 → SQL for combo/category consolidation). See `references/playbook.md` §5.
+  2.42/2.41 → SQL for combo/category consolidation); `categoryOptionCombos/merge` is 2.42+, rewrites
+  indicator/predictor expressions, **deletes** the sources' data value and approval audits, and never
+  touches custom-form HTML. See `references/playbook.md` §5.
 - **Dump mode:** import the dump onto a fresh sandbox (matching version). `scripts/metadata_dump.py import`
   for small instances; for LARGE dumps (100k+ OUs, 100k+ users, giant OU-group memberships) use
   `dhis2-metadata/scripts/import_metadata.py --resume` and expect to fall back to **SQL for the bulk join
