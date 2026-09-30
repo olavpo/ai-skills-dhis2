@@ -573,7 +573,15 @@ def main():
             overall["deleted"] += de
             overall["ignored"] += ig
             overall["errors"] += errs
+            if status >= 400 and errs == 0:
+                # e.g. 409 with only a top-level message (TransientObjectException,
+                # duplicate key): no errorReports, but the whole payload was lost.
+                msg = body.get("message") or body.get("response", {}).get("message")
+                print(f"[{name:35s}] HTTP {status}  FAILED: {str(msg)[:400]}")
+                overall["errors"] += 1
             if status >= 500 and not persisted_despite(status, payload, name):
+                failed_types.append((name, status))
+            elif 400 <= status < 500 and errs == 0:
                 failed_types.append((name, status))
         if args.batch_delay:
             time.sleep(args.batch_delay)
