@@ -5,19 +5,46 @@
       "id": 1,
       "prompt": "We're setting up TB contact tracing in DHIS2 2.41 for a district programme. Each index case has household contacts; every contact is screened once, and those under 5 or with HIV should start TB preventive therapy (TPT) and be followed monthly for 6 months. The programme wants: contacts per index case, % of contacts screened, % eligible contacts started on TPT by age group and sex, TPT completion, and all of that by whether the index case is bacteriologically confirmed. Should contacts be events on the index case or their own tracked entities? What would you build?",
       "expected_output": "Candidate models (contacts as repeatable stage, every contact as linked TE, hybrid: contacts as events + TE only for those starting TPT); checks reachability of 'by index case confirmation' (lost across relationships unless copied onto the contact); notes 'contacts per index case' is reachable with d2:relationshipCount if contacts are linked TEs, or a stage event count if they are events; on 2.41 age/sex breakdowns need one program indicator per cell (categoryMappings disaggregation is 2.42+); recommends one model with the cost accepted and what would change it; comparison table.",
-      "files": []
+      "files": [],
+      "assertions": [
+        "Compares at least two concrete candidate models (e.g. contacts as events/repeatable stage vs contacts as their own linked tracked entities) with trade-offs for each",
+        "Recommends one model explicitly and says what cost is accepted or what would change the choice",
+        "States that the index case's bacteriological confirmation is not reachable from the contact's indicators across the relationship, and proposes copying it onto the contact (or an equivalent concrete workaround)",
+        "Says that on 2.41 the age-group x sex breakdown needs one program indicator per cell (or line lists), because single-indicator disaggregation (categoryMappings) arrives in 2.42",
+        "Gives a concrete mechanism for 'contacts per index case' (d2:relationshipCount on the index program, or an event count if contacts are events)",
+        "Defines TPT completion with an explicit cohort/denominator (e.g. contacts who started TPT in a period)",
+        "Marks unverified behaviour as such or recommends testing the design on a disposable/test instance"
+      ]
     },
     {
       "id": 2,
       "prompt": "Can you review our design? Mothers are registered in an ANC program (TET Person), and at delivery the baby is registered as a new Person in our Child Health / EPI program, linked with a 'mother of' relationship. The ministry now wants immunisation coverage broken down by mother's education level and by whether the mother attended 4+ ANC visits. We're on 2.42. Can we get that from analytics, and if not, what should we change without breaking what's there?",
       "expected_output": "Identifies that PIs in the EPI program cannot reach the mother's attributes or ANC events across the relationship; proposes copying mother's education and an ANC4+ flag onto the child as attributes at registration (or a backend job), with snapshot semantics and a backfill for existing children; suggests verifying on a disposable instance.",
-      "files": []
+      "files": [],
+      "assertions": [
+        "States clearly that the requested breakdown is not reachable in 2.42 analytics with the current design, because child-program indicators cannot read the mother's attributes/ANC events across the relationship",
+        "Proposes copying mother's education and an ANC4+ flag onto the child's record (attributes or data values) as the fix",
+        "Includes a backfill for children already registered",
+        "Notes the copied values are snapshots (value at a defined time, may go stale) or defines exactly when they are taken",
+        "Keeps the change additive: no change of tracked entity type, no moving existing data between programs, existing relationship kept",
+        "Notes that program rules cannot read another tracked entity's data, so filling the values needs a script, job or custom app (or manual entry)",
+        "Handles children without a linked mother (e.g. an 'unknown' category rather than 'No')"
+      ]
     },
     {
       "id": 3,
       "prompt": "The education ministry in our state wants a door-to-door census of children aged 5-18 with disabilities in 3 districts, then follow-up to get them into school or special services. They're planning to roll out a DHIS2 learner registry (EMIS) next year but it's not there yet. Connectivity outside town is poor, enumerators have cheap Android phones, and the local team only knows web development. How should we model this in tracker, and should we use Capture or build something?",
       "expected_output": "A model that does not depend on the registry but uses the future registry's tracked entity type (agree type and attributes with the registry team first); roster + tracked entity for those needing follow-up, or a justified alternative; privacy of disability data; offline needs point to Capture Android now or an SDK app, a PWA only with offline caveats; the model stays the same across tools; working lists and ownership for follow-up actors.",
-      "files": []
+      "files": [],
+      "assertions": [
+        "Uses, or explicitly plans to use, the future learner registry's tracked entity type/attributes (agreed with the registry team) so records carry over",
+        "Gives each child needing follow-up their own tracked entity record",
+        "Recommends Capture Android for offline data entry now, and justifies any custom app; mentions that a PWA's offline support is limited or that an SDK app needs Android/Kotlin skills",
+        "Addresses privacy of disability data concretely (e.g. protected access level, restricted sharing, minimal sensitive fields)",
+        "Addresses follow-up by other actors: ownership/transfer, org unit assignment or working lists",
+        "States that the data model should stay the same whichever entry tool is used",
+        "Considers how the household is represented (roster, attributes on child, or household entity) with a trade-off"
+      ]
     }
   ]
 }
