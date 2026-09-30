@@ -592,9 +592,12 @@ Dedicated endpoints skip that revalidation — e.g. sharing changes should go th
 - **Every merge, not just the SQL path, needs two follow-ups:**
   - **Find the duplicate COCs from SQL-derived option sets.** After merges the API listing served
     pre-merge option sets from cache: it found 0 groups where SQL found 198.
-  - **Text-repoint `dataentryform.htmlcode`** from source to target. `categoryOptionCombos/merge` (2.43.1)
-    moves data values and operands but not form HTML: 860 `deUID-cocUID-val` cells still named deleted
-    COCs.
+  - **Text-repoint `dataentryform.htmlcode`** from source to target. `categoryOptionCombos/merge`
+    (2.42.6, 2.43.1) rewrites indicator numerators/denominators and other expressions, predictors,
+    data element operands, min/max values and SMS codes, and moves data values, approvals, events and
+    registrations, but it does not touch custom-form HTML: after one 2.43.1 merge, 860
+    `deUID-cocUID-val` cells still named deleted COCs. (Only the SQL path needs the indicator text
+    repointed by hand.)
   - `categories/merge` strips foreign options from COCs that already had the wrong cardinality, which
     creates duplicates even when no combo merge ran.
   - `categoryCombos/merge` returns `409 Duplicate CategoryOptionCombo` when the **target** already holds
