@@ -19,6 +19,18 @@
       "createdBy": {"id": "kR8vNw2QpLs", "code": null, "name": "Isatu Kargbo-Example", "displayName": "Isatu Kargbo-Example", "username": "ikargbo.example"},
       "sharing": {"owner": "kR8vNw2QpLs", "external": false, "users": {}, "userGroups": {}, "public": "rw------"},
       "translations": []
+    },
+    {
+      "id": "Hc5WqL8nRz3",
+      "name": "Data element steward",
+      "code": "DE_STEWARD",
+      "valueType": "TEXT",
+      "unique": false,
+      "mandatory": false,
+      "dataElementAttribute": true,
+      "created": "2024-03-02T10:15:40.000",
+      "lastUpdated": "2025-01-20T09:00:00.000",
+      "translations": []
     }
   ],
   "organisationUnits": [
@@ -80,7 +92,9 @@
         {"locale": "fr", "property": "NAME", "value": "CPN 1re visite"},
         {"locale": "fr", "property": "SHORT_NAME", "value": "CPN 1re visite"}
       ],
-      "attributeValues": []
+      "attributeValues": [
+        {"attribute": {"id": "Hc5WqL8nRz3"}, "value": "F. Koroma-Example (Fatmata), tel 076-000-444"}
+      ]
     }
   ],
   "indicatorTypes": [
@@ -97,10 +111,37 @@
       "denominator": "#{h0xKKjijTdI}*0.04",
       "denominatorDescription": "Estimated number of pregnancies",
       "annualized": true,
+      "legendSets": [{"id": "LgAncCov01a"}],
       "description": "Reviewed with Isatu Kargbo-Example (ikargbo.example) in 2025",
       "createdBy": {"id": "kR8vNw2QpLs", "code": null, "name": "Isatu Kargbo-Example", "displayName": "Isatu Kargbo-Example", "username": "ikargbo.example"},
       "sharing": {"owner": "kR8vNw2QpLs", "external": false, "public": "rw------", "users": {}, "userGroups": {"Vp4hQe9TnWc": {"id": "Vp4hQe9TnWc", "access": "rw------"}}},
       "translations": [{"locale": "fr", "property": "NAME", "value": "Couverture CPN 1"}]
+    }
+  ],
+  "legendSets": [
+    {
+      "id": "LgAncCov01a",
+      "name": "ANC Coverage",
+      "description": "Cut-offs agreed with Dr Abu Conteh-Example at the 2025 district review",
+      "legends": [
+        {"id": "LgAncLow01a", "name": "Low", "startValue": 0, "endValue": 50, "color": "#d7191c"},
+        {"id": "LgAncMid01a", "name": "Medium", "startValue": 50, "endValue": 80, "color": "#fdae61"},
+        {"id": "LgAncHig01a", "name": "High", "startValue": 80, "endValue": 1000, "color": "#1a9641"}
+      ]
+    }
+  ],
+  "dataSets": [
+    {
+      "id": "QX4ZTUbOt3a",
+      "name": "Reproductive Health",
+      "shortName": "Reproductive Health",
+      "periodType": "Monthly",
+      "categoryCombo": {"id": "bjDvmb4bfuf"},
+      "description": "Monthly RH summary. Form questions go to Aminata Bangura-Example in the district office.",
+      "dataSetElements": [
+        {"dataElement": {"id": "fbfJHSPpUQD"}, "dataSet": {"id": "QX4ZTUbOt3a"}}
+      ],
+      "organisationUnits": [{"id": "DiszpKrYNg8"}]
     }
   ],
   "userGroups": [
