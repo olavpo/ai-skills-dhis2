@@ -144,8 +144,10 @@ Don't assume a "minimal baseline tracker import succeeds cleanly" on demo progra
   not append — easy to wipe the demo defaults. Always read-modify-write
   (`GET` → add your origin → `unique` → `POST` the full list back). The
   endpoint accepts **POST only** — `PUT` returns `405 Method Not Allowed`.
-- **The CORS allowlist is a `configuration` resource, not a system setting.**
-  On 2.42 the same resource also answers at
+- **The CORS allowlist is a `configuration` resource, not a system setting —
+  even though users edit it in the System Settings app** (Access section), so
+  people call it a system setting. In the API it lives only under
+  `/api/configuration`. On 2.42 the same resource also answers at
   `/api/configuration/corsAllowlist` (the name current docs use, 2.41+; on 2.40 only `/corsWhitelist` exists; bare JSON
   array body, returns 204). There is no CORS key under `/api/systemSettings` —
   `POST /api/systemSettings/keyCorsWhitelist` fails with 409 then 404. Every
