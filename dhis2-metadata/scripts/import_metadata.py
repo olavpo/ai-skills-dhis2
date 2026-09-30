@@ -70,13 +70,14 @@ ORDER = [
     "programStageSections",
     "programIndicators", "programIndicatorGroups",
     "programRuleVariables", "programRules", "programRuleActions",
+    # userGroups before templates/dashboards/sharing that reference them
+    # (a template naming a missing group fails E5002). Strip membership first.
+    "userGroups",
     "programNotificationTemplates", "trackedEntityInstanceFilters",
     "sqlViews", "reports",
-    "mapViews",  # before maps: pre-saving views avoids the 2.42 embedded-view flush crash
-    "maps",
+    "maps",  # with embedded mapViews; standalone mapViews is EMBEDDED_OWNED
     "visualizations", "eventVisualizations",
     "dashboards",
-    "userGroups",
     "users",
     "aggregateDataExchanges",
     "routes",
@@ -87,7 +88,10 @@ ORDER = [
 # dataElementOperands reference COCs by UID and break if the target regenerates
 # them). To consciously regenerate instead, pass --exclude categoryOptionCombos
 # and run POST /api/maintenance/categoryOptionComboUpdate after the import.
-EMBEDDED_OWNED = set()
+# mapViews: a standalone mapViews import creates the views, after which every
+# maps import embedding them fails on mapview_uid_key (verified 2.38.7, 2.42.6,
+# 2.43.1). Import maps with their embedded views instead.
+EMBEDDED_OWNED = {"mapViews"}
 
 TRANSIENT_ERRORS = (requests.exceptions.ConnectionError,
                     requests.exceptions.Timeout,
