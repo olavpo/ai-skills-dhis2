@@ -33,6 +33,7 @@ Operands inside numerator/denominator:
 - `D{programUID.dataElementUID}`, `A{programUID.attributeUID}`, `I{programIndicatorUID}` — pull program data or a program indicator into an aggregate indicator.
 - Operators: `+ - * /`, parentheses, numeric literals.
 - Functions for null/zero safety: `if(condition, x, y)`, `isNull(...)`, `isNotNull(...)`, `firstNonNull(...)`, `greatest(...)`, `least(...)`.
+- `subExpression(...)` may reference **several** data elements or operands (dhis2-core 2.41 builds one SQL column per item). It is not limited to one data element.
 
 Example null-safe denominator so a missing value yields no result rather than an error:
 
