@@ -61,7 +61,7 @@ import.
 | Enrollment geometry via tracker import | Rejected with E1074 even with featureType POINT | Import without it; set `enrollment.geometry` by SQL |
 | Server rules on import | `/api/tracker` runs program rules; mandatory/error actions reject imports | Useful check; make synthetic data satisfy every rule, compute assigned values yourself |
 | `V{current_date}` in PIs | Allowed; evaluated at query time | Good for "overdue as of today"; verification must use the real date |
-| Visualizations via API | Relative periods given as dimension items (`{"id":"THIS_YEAR"}`) are silently dropped: "end date not specified" | Use the explicit fields: `relativePeriods`, `dataDimensionItems`, `categoryDimensions`, `organisationUnitLevels`, `userOrganisationUnit` |
+| Visualizations via `/api/metadata` | `columns`/`rows`/`filters` are ignored on this path, so relative periods given there as items (`{"id":"THIS_YEAR"}`) are lost: "end date not specified" | Use the explicit fields: `relativePeriods`, `dataDimensionItems`, `categoryDimensions`, `organisationUnitLevels`, `userOrganisationUnit`. The single-object `POST /api/visualizations` is the reverse: it takes `columns`/`rows`/`filters` items and drops the export-shape fields with a 201 (verified 2.42.6, 2.43.1) |
 | Dashboard text items | Markdown-lite: `*bold*`, not `**bold**` | |
 | Working lists | Tracked-entity filters with an event status: web ignores the status and lists every active TE | Use **program stage working lists** (`programStageWorkingLists`) — web and Android both honour them |
 | Tracker API `eventStatus` | Must come with `eventOccurredAfter/Before` | Add a date range when querying |
