@@ -445,11 +445,10 @@ because they enumerate the live schema instead of hardcoding it:
   `UPDATE … SET col=<keep> WHERE col=<remove>`, special-casing only the natural-key tables
   (`datavalue`, `completedatasetregistration`, `minmaxdataelement`) where repointing can collide.
 
-For pre-2.43 category/combo/COC merges, a vetted SQL toolkit may be available in the user's
-`dhis2-utils` repo (`sql/merge-categories/merge_functions.sql`: dup diagnostics + `co/cat/cc/coc_dup_merge`
-with LAST_UPDATED conflict resolution, precondition checks, savepoint atomicity — verified 2.40–2.43,
-including the COC data migration the `E1120` guard protects). If available, prefer it over hand-writing
-the consolidation SQL below.
+For pre-2.43 category/combo/COC merges, ask whether the user already has a vetted SQL merge toolkit
+(duplicate diagnostics, merge functions with LAST_UPDATED conflict resolution, precondition checks,
+savepoint atomicity, and the COC data migration the `E1120` guard protects). If one exists, prefer it
+over hand-writing the consolidation SQL below.
 
 Proven surgical patterns:
 - **Swap a combo's category** (fixes disjoint COCs without moving any data — the data already sits under

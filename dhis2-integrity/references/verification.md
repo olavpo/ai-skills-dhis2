@@ -81,7 +81,7 @@ Verify each logged change produced exactly its intended effect and nothing else:
 Cheap and immediate, but weaker against *unknown* side effects than a true A/B — hence "snapshot first".
 
 ### A global `datavalue` count is NOT a conservation test on a live-ish instance
-Background processes mutate data independently of your cleanup: on the HMIS 2.42 case ~16k datavalues were
+Background processes mutate data independently of your cleanup: in one 2.42 remediation ~16k datavalues were
 created by a `system-process` (predictor/scheduled job) between the control snapshot and the final check,
 and an analytics-table generation ran (bloating the fixed `pg_dump` 167MB→823MB — analytics tables, not
 data). So a raw `SELECT count(*) FROM datavalue` before/after can rise or fall for reasons unrelated to
