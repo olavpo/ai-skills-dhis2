@@ -1,0 +1,587 @@
+<!-- Meeting page of the review (any metadata type: labels and item fields come from review.json, built by the type
+     adapter). build_review.py replaces __TITLE__ and __DATA__ (review.json).
+     Shared mode: Claude artifact capabilities db (collection "decisions", one doc per topic key) and user.
+     Offline mode (no window.claude): decisions are kept in this browser and exported as a JSON file. -->
+<title>__TITLE__ · review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: meeting-room console — topic rail on the left, one topic filling the stage, decision bar pinned under the title. */
+:root {
+  --bg: #f3f5f4; --panel: #ffffff; --ink: #14201d; --muted: #5b6a66; --line: #d6dedb; --soft: #e8eeec;
+  --accent: #0d6e66; --accent-ink: #ffffff; --accent-soft: #d5ece9;
+  --fails: #b3261e; --zero: #b25e00; --wrong: #7a3fa0; --review: #2f5d9a; --ok: #2c7a3f;
+  --fails-soft: #f7dedb; --zero-soft: #f8e7d2; --wrong-soft: #eee2f5; --review-soft: #dfe8f5; --ok-soft: #dcefe1;
+  --code-bg: #f6f8f7; --tok-ref: #0d6e66; --tok-fn: #7a3fa0; --tok-str: #8a4b00; --tok-op: #b3261e; --tok-var: #2f5d9a;
+  --font-ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --fs-0: clamp(14px, 0.95vw, 17px); --fs-1: clamp(16px, 1.1vw, 20px); --fs-2: clamp(19px, 1.45vw, 26px);
+  --fs-3: clamp(24px, 2.1vw, 40px); --fs-4: clamp(32px, 3vw, 56px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1614; --panel: #17201e; --ink: #e6eeeb; --muted: #9aaba6; --line: #2c3a37; --soft: #1f2a28;
+  --accent: #4fc2b5; --accent-ink: #0b1311; --accent-soft: #163b37;
+  --fails: #ff8a80; --zero: #ffb35c; --wrong: #d0a2f2; --review: #8db7f2; --ok: #7bd492;
+  --fails-soft: #3a1c1a; --zero-soft: #3a2a14; --wrong-soft: #2f2139; --review-soft: #1c2a3d; --ok-soft: #183222;
+  --code-bg: #121a18; --tok-ref: #6fd6c9; --tok-fn: #d0a2f2; --tok-str: #f2c07a; --tok-op: #ff8a80; --tok-var: #8db7f2;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1614; --panel: #17201e; --ink: #e6eeeb; --muted: #9aaba6; --line: #2c3a37; --soft: #1f2a28;
+  --accent: #4fc2b5; --accent-ink: #0b1311; --accent-soft: #163b37;
+  --fails: #ff8a80; --zero: #ffb35c; --wrong: #d0a2f2; --review: #8db7f2; --ok: #7bd492;
+  --fails-soft: #3a1c1a; --zero-soft: #3a2a14; --wrong-soft: #2f2139; --review-soft: #1c2a3d; --ok-soft: #183222;
+  --code-bg: #121a18; --tok-ref: #6fd6c9; --tok-fn: #d0a2f2; --tok-str: #f2c07a; --tok-op: #ff8a80; --tok-var: #8db7f2;
+  color-scheme: dark; }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: var(--fs-1); line-height: 1.45; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.app { display: grid; grid-template-columns: minmax(260px, 22vw) minmax(0, 1fr); height: 100%; }
+@media (max-width: 860px) { .app { grid-template-columns: 1fr; height: auto; } .rail { max-height: 45vh; } }
+
+/* rail */
+.rail { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.brand { padding: 20px 20px 12px; display: grid; gap: 4px; }
+.brand h1 { margin: 0; font-size: var(--fs-2); letter-spacing: -0.01em; }
+.brand p { margin: 0; color: var(--muted); font-size: var(--fs-0); }
+.progress { margin: 4px 20px 12px; display: grid; gap: 6px; font-size: var(--fs-0); color: var(--muted); }
+.bar { height: 8px; background: var(--soft); border-radius: 99px; overflow: hidden; display: flex; }
+.bar span { display: block; height: 100%; }
+.search { margin: 0 20px 12px; }
+.search input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: var(--fs-0); }
+.toc { overflow-y: auto; padding: 0 10px 20px; min-height: 0; }
+.toc h2 { font-size: var(--fs-0); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 18px 10px 6px; display: flex; justify-content: space-between; }
+.toc button { width: 100%; text-align: left; border: 0; background: none; padding: 9px 10px; border-radius: 8px; display: grid; grid-template-columns: 6px minmax(0,1fr) auto; gap: 10px; align-items: center; font-size: var(--fs-0); }
+.toc button:hover { background: var(--soft); }
+.toc button[aria-current="true"] { background: var(--accent-soft); }
+.toc .stripe { width: 6px; height: 100%; min-height: 22px; border-radius: 3px; }
+.toc .t { min-width: 0; }
+.toc .n { font-variant-numeric: tabular-nums; color: var(--muted); }
+.toc .v { grid-column: 2 / 4; font-size: 0.85em; color: var(--muted); }
+.home-btn { margin: 0 20px 8px; }
+
+/* stage */
+.stage { overflow-y: auto; min-width: 0; padding-inline: clamp(16px, 3vw, 56px); padding-block: 28px 64px; }
+.topbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 18px; color: var(--muted); font-size: var(--fs-0); }
+.topbar .keys kbd { font-family: var(--font-code); font-size: 0.85em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; background: var(--panel); }
+.ghost { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-0); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 12px; border-radius: 99px; }
+.sev-FAILS { color: var(--fails); background: var(--fails-soft); }
+.sev-ALWAYS_ZERO { color: var(--zero); background: var(--zero-soft); }
+.sev-WRONG_VALUE { color: var(--wrong); background: var(--wrong-soft); }
+.sev-REVIEW { color: var(--review); background: var(--review-soft); }
+.sev-OK { color: var(--ok); background: var(--ok-soft); }
+.head { display: grid; gap: 14px; margin-bottom: 22px; }
+.head h2 { font-size: var(--fs-4); line-height: 1.1; margin: 0; letter-spacing: -0.02em; text-wrap: balance; max-width: 30ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; font-size: var(--fs-1); color: var(--muted); }
+.meta strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.conf { display: inline-flex; gap: 8px; align-items: center; }
+.dots { display: inline-flex; gap: 4px; }
+.dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); display: block; }
+.dots i.on { background: var(--accent); }
+.forms { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.forms span { font-family: var(--font-code); font-size: var(--fs-0); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; }
+
+.decide { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 26px; }
+.decide .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.decide button.v { border: 2px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px 16px; font-weight: 700; display: inline-flex; gap: 8px; align-items: center; }
+.decide button.v kbd { font-family: var(--font-code); font-weight: 400; font-size: 0.8em; color: var(--muted); }
+.decide button.v[aria-pressed="true"][data-v="agree"] { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+.decide button.v[aria-pressed="true"][data-v="disagree"] { border-color: var(--fails); background: var(--fails-soft); color: var(--fails); }
+.decide button.v[aria-pressed="true"][data-v="domain"] { border-color: var(--review); background: var(--review-soft); color: var(--review); }
+.decide button.v[aria-pressed="true"][data-v="park"] { border-color: var(--muted); background: var(--soft); }
+.decide button.v[aria-pressed="true"][data-v="each"] { border-color: var(--zero); background: var(--zero-soft); color: var(--zero); }
+.decide .hint { flex-basis: 100%; font-size: var(--fs-0); color: var(--zero); }
+.iv { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--fs-0); }
+.iv button { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 4px 10px; }
+.iv button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.item .ivtag { font-size: var(--fs-0); font-weight: 700; color: var(--accent); white-space: nowrap; }
+.local { margin: 0 20px 12px; display: grid; gap: 8px; font-size: var(--fs-0); }
+.local input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.local .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.decide textarea { flex: 1 1 320px; min-height: 48px; resize: vertical; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); font-size: var(--fs-0); }
+.decide .who { flex-basis: 100%; font-size: var(--fs-0); color: var(--muted); }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-bottom: 30px; }
+.cols section { min-width: 0; }
+.cols h3 { margin: 0 0 6px; font-size: var(--fs-0); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.cols p { margin: 0; font-size: var(--fs-2); line-height: 1.4; }
+.cols .fix p { font-size: var(--fs-1); }
+code, .code { font-family: var(--font-code); font-size: 0.86em; }
+.cols code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; overflow-wrap: anywhere; }
+
+.list-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: baseline; margin: 6px 0 10px; }
+.list-head h3 { margin: 0; font-size: var(--fs-2); }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: var(--fs-0); color: var(--muted); }
+.items { display: grid; gap: 8px; }
+.item { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.item > button { width: 100%; text-align: left; border: 0; background: none; padding: 12px 16px; display: grid; grid-template-columns: minmax(7ch, auto) minmax(0, 1fr) auto; gap: 14px; align-items: baseline; }
+.item .code-l { font-family: var(--font-code); font-weight: 600; font-size: var(--fs-0); white-space: nowrap; }
+.item .nm { min-width: 0; }
+.item .tag { font-size: var(--fs-0); color: var(--muted); white-space: nowrap; }
+.item.excluded { opacity: 0.55; }
+.item.excluded .nm { text-decoration: line-through; }
+.item .body { padding: 0 16px 16px; display: grid; gap: 12px; }
+.expr { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-family: var(--font-code); font-size: var(--fs-0); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.expr .ref { color: var(--tok-ref); font-weight: 600; }
+.expr .fn { color: var(--tok-fn); }
+.expr .str { color: var(--tok-str); }
+.expr .op { color: var(--tok-op); font-weight: 600; }
+.expr .var { color: var(--tok-var); }
+.lbl { font-size: var(--fs-0); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.finding { font-size: var(--fs-0); border-left: 3px solid var(--line); padding-left: 10px; }
+.testline { font-size: var(--fs-0); color: var(--muted); }
+.row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bands { width: 100%; border-collapse: collapse; font-size: var(--fs-0); }
+.bands td, .bands th { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.bands th { color: var(--muted); font-weight: 400; }
+.bands td.f { font-family: var(--font-code); overflow-wrap: anywhere; }
+.bands tr.bad td { background: var(--fails-soft); }
+.tablewrap { overflow-x: auto; }
+.more { justify-self: start; }
+
+/* overview */
+.ov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin: 22px 0 30px; }
+.ov-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 4px; }
+.ov-card b { font-size: var(--fs-4); font-variant-numeric: tabular-nums; line-height: 1; }
+.ov-card span { color: var(--muted); font-size: var(--fs-0); }
+.ov-card.s-FAILS b { color: var(--fails); } .ov-card.s-ALWAYS_ZERO b { color: var(--zero); }
+.ov-card.s-WRONG_VALUE b { color: var(--wrong); } .ov-card.s-REVIEW b { color: var(--review); } .ov-card.s-OK b { color: var(--ok); }
+.prose { max-width: 70ch; font-size: var(--fs-1); }
+.prose h3 { font-size: var(--fs-2); margin: 26px 0 8px; }
+.prose li { margin-bottom: 6px; }
+.decisions-table { width: 100%; border-collapse: collapse; font-size: var(--fs-0); }
+.decisions-table td, .decisions-table th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.vchip { font-weight: 700; }
+.vchip.agree { color: var(--ok); } .vchip.disagree { color: var(--fails); } .vchip.domain { color: var(--review); } .vchip.park { color: var(--muted); } .vchip.each { color: var(--zero); }
+.status-note { font-size: var(--fs-0); color: var(--muted); }
+.results { display: grid; gap: 6px; margin-top: 12px; }
+@media (prefers-reduced-motion: no-preference) { .toc button, .item > button, .decide button.v { transition: background-color .15s, border-color .15s; } }
+</style>
+
+<div class="app">
+  <aside class="rail" aria-label="Topics">
+    <div class="brand">
+      <h1 id="brandTitle">Review</h1>
+      <p id="brandSub"></p>
+    </div>
+    <div class="progress" id="progress"></div>
+    <button class="ghost home-btn" id="homeBtn" type="button">Overview &amp; decisions</button>
+    <div class="local" id="local" hidden>
+      <label>Your name (recorded with each decision)<input id="who-name" type="text" autocomplete="name"></label>
+      <div class="row"><button class="ghost" id="exportBtn" type="button">Export decisions</button>
+        <button class="ghost" id="importBtn" type="button">Load decisions file</button><input id="importFile" type="file" accept="application/json,.json" hidden></div>
+    </div>
+    <div class="search"><input id="q" type="search" placeholder="Find by code or name (press /)" autocomplete="off" aria-label="Find an item by code or name"></div>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+  <main class="stage" id="stage" tabindex="-1"></main>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const CFG = DATA.cfg || {};
+const T = DATA.topics;
+const NAMES = DATA.names;
+const LB = CFG.labels || { item: 'item', items: 'items', short: 'item', shorts: 'items', aux: 'related object', auxs: 'related objects', aux_short: 'object', aux_shorts: 'objects', auxRow: 'Part', auxField: 'Definition' };
+const IK = CFG.itemKind || 'item', AK = CFG.auxKind;
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+const SEV = { FAILS: 'Fails', ALWAYS_ZERO: 'Always zero', WRONG_VALUE: 'Wrong value', REVIEW: 'Needs review', OK: 'OK' };
+const SEV_ORDER = ['FAILS', 'ALWAYS_ZERO', 'WRONG_VALUE', 'REVIEW'];
+// "each" = the room agrees there is a problem but every item needs its own decision: never a group approval.
+const VERDICTS = [['agree', 'Agree, fix it', '1'], ['each', 'Check each item', '2'], ['domain', 'Needs domain input', '3'], ['park', 'Park', '4'], ['disagree', 'Not a problem', '5']];
+const VLABEL = Object.fromEntries(VERDICTS.map(v => [v[0], v[1]]));
+const ITEM_VERDICTS = [['fix', 'Fix'], ['ok', 'OK as is'], ['rename', 'Rename'], ['domain', 'Ask domain']];
+const CONF = { high: [3, 'High confidence'], medium: [2, 'Medium confidence'], low: [1, 'Low confidence'] };
+const STORE_KEY = (CFG.prefix || 'review') + '-review-decisions:' + (CFG.scopeId || '') + ':' + (CFG.dataVersion || '');
+
+let decisions = {};      // key -> doc data
+let db = null, userApi = null, myId = null, canWrite = true, dbState = 'connecting';
+let current = null;      // topic key or null (overview)
+let readable = true;
+try { readable = localStorage.getItem('review-readable') !== '0'; } catch (e) {}
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const n0 = n => (n ?? 0).toLocaleString();
+
+$('#brandTitle').textContent = (CFG.title || cap(LB.items)) + ' · ' + LB.short + ' review';
+document.title = (CFG.title || cap(LB.items)) + ' · ' + LB.short + ' review';
+$('#brandSub').textContent = [`${n0(CFG.itemCount ?? DATA.total)} ${LB.items}`, AK ? `${n0(CFG.auxCount ?? DATA.aux)} ${LB.auxs}` : '',
+  CFG.dhis2Version ? `tested on DHIS2 ${CFG.dhis2Version}` : ''].filter(Boolean).join(' · ');
+
+function highlight(src) {
+  if (!src) return '<span class="status-note">(none)</span>';
+  const re = /(#\{(\w+)\.(\w+)\})|(A\{(\w+)\})|(V\{\w+\})|(d2:\w+|containsItems|contains)(?=\()|('[^']*'|"[^"]*")|(&&|\|\||==|!=|<=|>=|<|>)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))) {
+    out += esc(src.slice(last, m.index));
+    if (m[1]) {
+      const label = readable ? `${NAMES[m[2]] || m[2]} › ${NAMES[m[3]] || m[3]}` : m[1];
+      out += `<span class="ref" title="${esc(m[1])}">${esc(readable ? '[' + label + ']' : label)}</span>`;
+    } else if (m[4]) {
+      const label = readable ? `[${NAMES[m[5]] || m[5]}]` : m[4];
+      out += `<span class="ref" title="${esc(m[4])}">${esc(label)}</span>`;
+    } else if (m[6]) out += `<span class="var">${esc(m[6])}</span>`;
+    else if (m[7]) out += `<span class="fn">${esc(m[7])}</span>`;
+    else if (m[8]) out += `<span class="str">${esc(m[8])}</span>`;
+    else out += `<span class="op">${esc(m[9])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+
+function inlineCode(text) {
+  // render fragments that look like expressions as code
+  return esc(text).replace(/((?:#\{[\w.]+\}|V\{\w+\}|A\{\w+\}|d2:\w+\([^)]*\)|containsItems\([^)]*\)|contains\([^)]*\))[^.,;]*?)(?=[.,;]?\s|$)/g, '<code>$1</code>');
+}
+
+function counts() {
+  const done = T.filter(t => decisions[t.key]?.verdict).length;
+  return { done, total: T.length };
+}
+
+function renderProgress() {
+  const { done, total } = counts();
+  const by = { agree: 0, each: 0, disagree: 0, domain: 0, park: 0 };
+  T.forEach(t => { const v = decisions[t.key]?.verdict; if (v in by) by[v]++; });
+  const seg = (n, color) => n ? `<span style="width:${(n / total) * 100}%;background:var(${color})"></span>` : '';
+  const sync = { connecting: 'Connecting to shared decisions…', live: 'Decisions are shared live with everyone viewing',
+    browser: 'Offline copy: decisions are saved in this browser only. Use “Export decisions” to hand them over.',
+    readonly: 'View only: you can read decisions but not record them' }[dbState];
+  $('#progress').innerHTML = `<div><strong style="color:var(--ink)">${done} of ${total}</strong> topics decided</div>
+    <div class="bar" role="img" aria-label="${done} of ${total} decided">${seg(by.agree, '--ok')}${seg(by.each, '--zero')}${seg(by.domain, '--review')}${seg(by.disagree, '--fails')}${seg(by.park, '--muted')}</div>
+    <div>${esc(sync)}</div>`;
+  $('#local').hidden = dbState !== 'browser';
+}
+
+function renderToc() {
+  let html = '';
+  for (const s of SEV_ORDER) {
+    const ts = T.filter(t => t.severity === s);
+    if (!ts.length) continue;
+    html += `<h2><span>${SEV[s]}</span><span>${n0(DATA.counts[s])} ${esc(LB.shorts)}</span></h2>`;
+    for (const t of ts) {
+      const d = decisions[t.key];
+      html += `<button type="button" data-key="${esc(t.key)}" aria-current="${current === t.key}">
+        <span class="stripe" style="background:var(--${{ FAILS: 'fails', ALWAYS_ZERO: 'zero', WRONG_VALUE: 'wrong', REVIEW: 'review' }[s]})"></span>
+        <span class="t">${esc(t.title)}</span><span class="n">${t.count}</span>
+        ${d?.verdict ? `<span class="v"><span class="vchip ${d.verdict}">${esc(VLABEL[d.verdict] || d.verdict)}</span></span>` : ''}
+      </button>`;
+    }
+  }
+  $('#toc').innerHTML = html;
+}
+
+function confHtml(c) {
+  const [n, label] = CONF[c] || [0, 'Confidence not rated'];
+  return `<span class="conf"><span class="dots" aria-hidden="true">${[1, 2, 3].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>${label}</span>`;
+}
+
+function typesOf(t) {
+  if (t.kind !== IK) return '';
+  const c = {};
+  t.items.forEach(i => { const f = i.type || '—'; c[f] = (c[f] || 0) + 1; });
+  return `<span class="forms">${Object.entries(c).sort().map(([f, n]) => `<span>${esc(f)} · ${n}</span>`).join('')}</span>`;
+}
+
+function itemVerdicts(i, d) {
+  if (d.verdict !== 'each' || !canWrite) return '';
+  const cur = (d.items || {})[i.id];
+  return `<div class="iv"><span class="lbl" style="margin:0">This item</span>${ITEM_VERDICTS.map(([v, l]) => `<button type="button" data-iv="${v}" data-item="${esc(i.id)}" aria-pressed="${cur === v}">${l}</button>`).join('')}</div>`;
+}
+
+function fieldHtml(f) {
+  return `<div><div class="lbl">${esc(f.label)}</div>${f.code ? `<div class="expr">${highlight(f.text)}</div>` : `<div>${f.text ? esc(f.text) : '<span class="status-note">(none)</span>'}</div>`}</div>`;
+}
+
+function piItem(i, t, d, excluded) {
+  const tst = i.test ? (i.test.matches != null && i.test.matches !== i.test.analytics
+      ? `Test data: ${i.test.matches} records match the definition, analytics returned ${i.test.analytics}.`
+      : `Test data: analytics returned ${i.test.analytics}.`) : (CFG.engineCheck ? 'No test value (not runnable in analytics, or not queried).' : '');
+  const iv = d.verdict === 'each' ? (d.items || {})[i.id] : null;
+  return `<div class="item ${excluded ? 'excluded' : ''}" data-id="${esc(i.id)}">
+    <button type="button" aria-expanded="false"><span class="code-l">${esc(i.code || '—')}</span><span class="nm">${esc(i.label || i.name)}</span><span class="tag">${iv ? `<span class="ivtag">${esc(Object.fromEntries(ITEM_VERDICTS)[iv])}</span> · ` : ''}${esc(i.type || '')}${i.type ? ' · ' : ''}${esc(i.agg || 'no aggregation')}</span></button>
+    <div class="body" hidden>
+      ${i.details.map(x => `<div class="finding">${esc(x)}</div>`).join('')}
+      ${(i.fields || []).map(fieldHtml).join('')}
+      <div class="testline">${esc(tst)} UID ${esc(i.id)}</div>
+      ${itemVerdicts(i, d)}
+      ${canWrite && d.verdict !== 'each' ? `<div class="row-actions"><button type="button" class="ghost" data-exclude="${esc(i.id)}">${excluded ? 'Include in this finding again' : 'Mark as exception (not affected)'}</button></div>` : ''}
+    </div>
+  </div>`;
+}
+
+function mapItem(m, d) {
+  const flagged = new Set();
+  const rows = m.fields || [];
+  m.issues.forEach(x => rows.forEach(o => { if (x.includes(`'${o.label}'`)) flagged.add(o.label); }));
+  const iv = d.verdict === 'each' ? (d.items || {})[m.id] : null;
+  return `<div class="item" data-id="${esc(m.id)}">
+    <button type="button" aria-expanded="false"><span class="code-l">${m.userCount} ${esc(LB.shorts)}</span><span class="nm">${esc(m.name)}</span><span class="tag">${iv ? `<span class="ivtag">${esc(Object.fromEntries(ITEM_VERDICTS)[iv])}</span> · ` : ''}${esc(m.type || '')}</span></button>
+    <div class="body" hidden>
+      ${m.issues.map(x => `<div class="finding">${esc(x)}</div>`).join('')}
+      ${rows.length ? `<div class="tablewrap"><table class="bands"><thead><tr><th>${esc(LB.auxRow || 'Part')}</th><th>${esc(LB.auxField || 'Definition')}</th></tr></thead><tbody>
+        ${rows.map(o => `<tr class="${flagged.has(o.label) ? 'bad' : ''}"><td>${esc(o.label)}</td><td class="f">${o.code && readable ? highlight(o.text) : esc(o.text)}</td></tr>`).join('')}
+      </tbody></table></div>` : ''}
+      <div class="testline">Used by: ${esc(m.users.slice(0, 60).join(', '))}${m.users.length > 60 ? ` and ${m.users.length - 60} more` : ''}</div>
+      ${itemVerdicts(m, d)}
+    </div>
+  </div>`;
+}
+
+const PAGE = 40;
+let shown = PAGE;
+
+function renderTopic(key) {
+  const t = T.find(x => x.key === key);
+  const d = decisions[key] || {};
+  const excluded = new Set(d.excluded || []);
+  const idx = T.indexOf(t);
+  const items = t.items.slice(0, shown);
+  const nItems = Object.keys(d.items || {}).filter(k => t.items.some(i => i.id === k)).length;
+  $('#stage').innerHTML = `
+    <div class="topbar">
+      <span>Topic ${idx + 1} of ${T.length}</span>
+      <span class="keys"><kbd>←</kbd> <kbd>→</kbd> topics · <kbd>1</kbd>–<kbd>5</kbd> decide · <kbd>N</kbd> note · <kbd>/</kbd> find · <kbd>Esc</kbd> overview</span>
+    </div>
+    <div class="head">
+      <div><span class="pill sev-${t.severity}">${SEV[t.severity]}</span></div>
+      <h2>${esc(t.title)}</h2>
+      <div class="meta"><span><strong>${t.count}</strong> ${t.count === 1 ? esc(LB.item) : esc(LB.items)}${t.kind === AK ? ` via ${t.items.length} ${t.items.length === 1 ? esc(LB.aux_short) : esc(LB.aux_shorts)}` : ''}${excluded.size ? ` · ${excluded.size} marked as exceptions` : ''}${d.verdict === 'each' ? ` · ${nItems} of ${t.items.length} items decided` : ''}</span>${confHtml(t.confidence)}${typesOf(t)}</div>
+    </div>
+    <div class="decide" aria-label="Decision">
+      <div class="opts">${VERDICTS.map(([v, label, k]) => `<button type="button" class="v" data-v="${v}" aria-pressed="${d.verdict === v}" ${canWrite ? '' : 'disabled'}>${label} <kbd>${k}</kbd></button>`).join('')}</div>
+      <textarea id="note" placeholder="Notes, owner, follow-up…" ${canWrite ? '' : 'disabled'}>${esc(d.note || '')}</textarea>
+      ${t.checkEach && !d.verdict ? '<div class="hint">This topic groups different cases: consider “Check each item” rather than one decision for all.</div>' : ''}
+      ${d.verdict === 'each' ? '<div class="hint">Not a group approval: open each item and record Fix, OK as is, Rename or Ask domain.</div>' : ''}
+      <div class="who" id="who"></div>
+    </div>
+    <div class="cols">
+      <section><h3>What’s wrong</h3><p>${inlineCode(t.what)}</p></section>
+      <section><h3>How sure we are</h3><p>${inlineCode(t.confidenceWhy)}</p></section>
+      <section class="fix"><h3>Proposed fix</h3><p>${inlineCode(t.fix)}</p><h3 style="margin-top:14px">Evidence</h3><p>${inlineCode(t.evidence)}</p></section>
+    </div>
+    <div class="list-head"><h3>${t.kind === AK ? esc(cap(LB.aux_shorts)) : 'Affected ' + esc(LB.items)}</h3>
+      <label class="toggle"><input type="checkbox" id="readable" ${readable ? 'checked' : ''}> Show field names instead of UIDs</label></div>
+    <div class="items" id="items">${items.map(i => t.kind === AK ? mapItem(i, d) : piItem(i, t, d, excluded.has(i.id))).join('')}</div>
+    ${t.items.length > shown ? `<button type="button" class="ghost more" id="more" style="margin-top:12px">Show ${Math.min(PAGE, t.items.length - shown)} more of ${t.items.length - shown}</button>` : ''}
+  `;
+  renderWho(d);
+}
+
+async function renderWho(d) {
+  const el = $('#who');
+  if (!el) return;
+  if (!d.verdict && !d.note) { el.textContent = canWrite ? 'No decision yet.' : ''; return; }
+  let name = d.byName || 'Someone';
+  if (d.by && userApi) {
+    try { const ps = await userApi.profiles([d.by]); name = (ps[d.by] && ps[d.by].name) || (d.by === myId ? 'You' : name); } catch (e) {}
+  }
+  const when = d.at ? new Date(d.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  el.textContent = `Last updated by ${name}${when ? ' · ' + when : ''}`;
+}
+
+function renderOverview() {
+  const c = DATA.counts;
+  const rows = T.filter(t => decisions[t.key]?.verdict || decisions[t.key]?.note);
+  const how = [
+    `Every expression${AK ? ' and every ' + esc(LB.aux) : ''} checked against the metadata` + (CFG.dhis2Version ? `, and validated by a DHIS2 ${esc(CFG.dhis2Version)} server.` : '.'),
+    CFG.engineCheck ? `Every ${esc(LB.item)} queried through analytics on a clean test instance, as a total and broken down, and compared with an independent recalculation from the test data.` : '',
+    CFG.persons ? `${n0(CFG.persons)} synthetic ${esc(LB.truthUnit || 'records')} loaded, including records built to match each ${esc(LB.item)}.` : '',
+  ].filter(Boolean);
+  $('#stage').innerHTML = `
+    <div class="topbar"><span>Overview</span><span class="keys"><kbd>→</kbd> start with the first topic · <kbd>/</kbd> find ${/^[aeiou]/i.test(LB.short) ? 'an' : 'a'} ${esc(LB.short)}</span></div>
+    <div class="head"><h2>${esc(CFG.title || cap(LB.item))} validation</h2>
+      <div class="meta">Each topic groups ${esc(LB.items)} with the same problem. Decide per topic; mark individual ${esc(LB.items)} as exceptions where the finding doesn’t apply, or choose “Check each item” when each needs its own decision.${CFG.exported ? ` Metadata exported ${esc(CFG.exported)}.` : ''}</div></div>
+    <div class="ov-grid">
+      ${['FAILS', 'ALWAYS_ZERO', 'WRONG_VALUE', 'REVIEW', 'OK'].map(s => `<div class="ov-card s-${s}"><b>${n0(c[s])}</b><span>${SEV[s]}</span></div>`).join('')}
+    </div>
+    <div class="prose">
+      <h3>What the statuses mean</h3>
+      <ul>
+        <li><strong>Fails</strong>: analytics returns an error, so the ${esc(LB.item)} shows nothing in dashboards or reports.</li>
+        <li><strong>Always zero</strong>: the ${esc(LB.item)} runs but can never count anything.</li>
+        <li><strong>Wrong value</strong>: it runs but counts the wrong records, or its breakdown loses or misplaces records.</li>
+        <li><strong>Needs review</strong>: probably a problem, depending on real data or on what was intended.</li>
+        <li><strong>OK</strong>: no issue found. That isn’t a guarantee the definition matches the intended meaning.</li>
+      </ul>
+      <h3>How the findings were checked</h3>
+      <ul>${how.map(x => `<li>${x}</li>`).join('')}</ul>
+      <h3>Confidence</h3>
+      <ul>
+        <li>${confHtml('high')}: verified by the server, by analytics, or by plain logic.</li>
+        <li>${confHtml('medium')}: the mechanism is verified, but whether it is wrong depends on intent or real data.</li>
+        <li>${confHtml('low')}: a judgement call for the programme team.</li>
+      </ul>
+      <h3>Decisions so far</h3>
+      ${rows.length ? `<div class="tablewrap"><table class="decisions-table"><thead><tr><th>Topic</th><th>Decision</th><th>Notes</th></tr></thead><tbody>
+        ${rows.map(t => { const d = decisions[t.key]; const ni = Object.keys(d.items || {}).length; return `<tr><td><a href="#${esc(t.key)}" data-go="${esc(t.key)}">${esc(t.title)}</a></td><td>${d.verdict ? `<span class="vchip ${d.verdict}">${esc(VLABEL[d.verdict] || d.verdict)}</span>` : '—'}${(d.excluded || []).length ? `<br><span class="status-note">${d.excluded.length} exceptions</span>` : ''}${d.verdict === 'each' ? `<br><span class="status-note">${ni} of ${t.items.length} items decided</span>` : ''}</td><td>${esc(d.note || '')}</td></tr>`; }).join('')}
+      </tbody></table></div>` : '<p class="status-note">No decisions recorded yet. Open the first topic with → to start.</p>'}
+    </div>`;
+}
+
+function renderSearch(q) {
+  const s = q.trim().toLowerCase();
+  if (!s) { render(); return; }
+  const hits = DATA.index.filter(x => x.code.toLowerCase().includes(s) || x.name.toLowerCase().includes(s) || x.id.toLowerCase() === s).slice(0, 60);
+  $('#stage').innerHTML = `<div class="topbar"><span>Search results for “${esc(q)}”</span><span class="keys"><kbd>Esc</kbd> back</span></div>
+    <div class="results">${hits.length ? hits.map(h => `<div class="item"><button type="button" data-hit="${esc(h.id)}"><span class="code-l">${esc(h.code || '—')}</span><span class="nm">${esc(h.label || h.name)}</span><span class="tag"><span class="pill sev-${h.status}">${SEV[h.status] || h.status}</span></span></button>
+      <div class="body">${h.topics.length ? h.topics.map(k => { const t = T.find(x => x.key === k); return `<button type="button" class="ghost" data-go="${esc(k)}">${esc(t.title)}</button>`; }).join(' ') : `<span class="status-note">${h.status === 'OK' ? 'No issues found.' : `Affected through ${/^[aeiou]/i.test(LB.aux || '') ? 'an' : 'a'} ${esc(LB.aux)} (see the ${esc(LB.aux)} topics).`}</span>`}</div></div>`).join('') : `<p class="status-note">No ${esc(LB.item)} matches.</p>`}</div>`;
+}
+
+function render() {
+  renderProgress();
+  renderToc();
+  if (current) renderTopic(current); else renderOverview();
+}
+
+function go(key) {
+  current = key; shown = PAGE;
+  $('#q').value = '';
+  try { if (key) history.replaceState(null, '', '#' + key); else history.replaceState(null, '', location.pathname); } catch (e) {}
+  render();
+  $('#stage').scrollTop = 0;
+  const b = key && [...document.querySelectorAll('#toc button[data-key]')].find(x => x.dataset.key === key); if (b) b.scrollIntoView({ block: 'nearest' });
+}
+
+// ---- writes: shared store (artifact db) or this browser ----
+let localName = '';
+try { localName = localStorage.getItem('review-name') || ''; } catch (e) {}
+$('#who-name').value = localName;
+function stamp(prev, patch) {
+  return { ...prev, ...patch, by: myId || prev.by || null, byName: myId ? (prev.byName || null) : (localName || prev.byName || null), at: new Date().toISOString() };
+}
+function persistLocal() { try { localStorage.setItem(STORE_KEY, JSON.stringify(decisions)); } catch (e) {} }
+let writeChain = Promise.resolve();
+function push(key) {
+  if (dbState === 'browser') { persistLocal(); return; }
+  if (!db || !canWrite) return;
+  const body = decisions[key];
+  writeChain = writeChain.then(() => db.collection('decisions').doc(key).set(body)).catch(e => {
+    if (e && e.code === 'invalid_argument') { canWrite = false; dbState = 'readonly'; render(); }
+    else if (e && e.code === 'unavailable') { setTimeout(() => push(key), 800 + Math.random() * 800); }
+  });
+}
+function saveDecision(key, patch) {
+  decisions[key] = stamp(decisions[key] || {}, patch);
+  render();
+  push(key);
+}
+function saveDecisionQuiet(key, patch) {
+  // save without re-rendering the stage (keeps the caret in the note field)
+  decisions[key] = stamp(decisions[key] || {}, patch);
+  renderProgress(); renderWho(decisions[key]);
+  push(key);
+}
+
+function download(name, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function exportDecisions() {
+  const body = { format: 'pireview-meeting-decisions', dataVersion: CFG.dataVersion || null, type: CFG.type || null, scope: CFG.scopeId || null,
+    reviewer: localName || null, exportedAt: new Date().toISOString(), decisions };
+  download(`${CFG.prefix || 'review'}-review-decisions-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(body, null, 1));
+}
+function importDecisions(file) {
+  file.text().then(txt => {
+    const j = JSON.parse(txt);
+    const inc = j.decisions || j;
+    if (j.dataVersion && CFG.dataVersion && j.dataVersion !== CFG.dataVersion) alert('This decisions file was made for another version of the page; topics may differ.');
+    for (const [k, d] of Object.entries(inc)) {   // newest wins per topic
+      if (!d || typeof d !== 'object') continue;
+      if (!decisions[k] || (d.at || '') > (decisions[k].at || '')) decisions[k] = d;
+    }
+    persistLocal(); render();
+  }).catch(() => alert('Could not read that file as decisions JSON.'));
+}
+
+let noteTimer = null;
+document.addEventListener('input', e => {
+  if (e.target.id === 'note') {
+    clearTimeout(noteTimer);
+    const key = current, val = e.target.value;
+    noteTimer = setTimeout(() => { if ((decisions[key]?.note || '') !== val) saveDecisionQuiet(key, { note: val }); }, 700);
+  }
+  if (e.target.id === 'q') renderSearch(e.target.value);
+  if (e.target.id === 'who-name') { localName = e.target.value.trim(); try { localStorage.setItem('review-name', localName); } catch (err) {} }
+});
+
+document.addEventListener('click', e => {
+  const k = e.target.closest('[data-key]'); if (k) { go(k.dataset.key); return; }
+  const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); go(g.dataset.go); return; }
+  const v = e.target.closest('button.v'); if (v && current && canWrite) { const cur = decisions[current]?.verdict; saveDecision(current, { verdict: cur === v.dataset.v ? null : v.dataset.v }); return; }
+  const iv = e.target.closest('[data-iv]');
+  if (iv && current && canWrite) { const items = { ...(decisions[current]?.items || {}) }; const id = iv.dataset.item; items[id] === iv.dataset.iv ? delete items[id] : items[id] = iv.dataset.iv; saveDecision(current, { items }); reopen(id); return; }
+  const x = e.target.closest('[data-exclude]');
+  if (x && current) { const set = new Set(decisions[current]?.excluded || []); set.has(x.dataset.exclude) ? set.delete(x.dataset.exclude) : set.add(x.dataset.exclude); saveDecision(current, { excluded: [...set] }); reopen(x.dataset.exclude); return; }
+  if (e.target.id === 'more') { shown += PAGE; renderTopic(current); return; }
+  if (e.target.id === 'homeBtn') { go(null); return; }
+  if (e.target.id === 'exportBtn') { exportDecisions(); return; }
+  if (e.target.id === 'importBtn') { $('#importFile').click(); return; }
+  const h = e.target.closest('[data-hit]'); if (h) return;
+  const ib = e.target.closest('.item > button');
+  if (ib) { const body = ib.nextElementSibling; const open = body.hidden; body.hidden = !open; ib.setAttribute('aria-expanded', String(open)); }
+});
+function reopen(id) { const el = [...document.querySelectorAll('.item[data-id]')].find(x => x.dataset.id === id); if (el) { el.querySelector('.body').hidden = false; el.querySelector('button').setAttribute('aria-expanded', 'true'); } }
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'readable') {
+    readable = e.target.checked;
+    try { localStorage.setItem('review-readable', readable ? '1' : '0'); } catch (err) {}
+    const openIds = [...document.querySelectorAll('.item .body:not([hidden])')].map(b => b.parentElement.dataset.id);
+    renderTopic(current); openIds.forEach(reopen);
+  }
+  if (e.target.id === 'importFile' && e.target.files[0]) { importDecisions(e.target.files[0]); e.target.value = ''; }
+});
+
+document.addEventListener('keydown', e => {
+  const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+  if (e.key === 'Escape') { if (typing) e.target.blur(); $('#q').value = ''; go(null); return; }
+  if (typing) return;
+  const i = current ? T.findIndex(t => t.key === current) : -1;
+  if (e.key === 'ArrowRight' || e.key === 'j') { e.preventDefault(); if (T.length) go(T[Math.min(T.length - 1, i + 1)].key); }
+  else if (e.key === 'ArrowLeft' || e.key === 'k') { e.preventDefault(); if (i <= 0) go(null); else go(T[i - 1].key); }
+  else if (e.key === '/') { e.preventDefault(); $('#q').focus(); }
+  else if ((e.key === 'n' || e.key === 'N') && current) { e.preventDefault(); const n = $('#note'); if (n) n.focus(); }
+  else if (/^[1-5]$/.test(e.key) && current && canWrite) { const v = VERDICTS[+e.key - 1][0]; saveDecision(current, { verdict: decisions[current]?.verdict === v ? null : v }); }
+});
+
+// ---- boot ----
+function useBrowserStore() {
+  dbState = 'browser'; canWrite = true; db = null;
+  try { decisions = JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch (e) { decisions = {}; }
+  render();
+}
+const fromHash = decodeURIComponent(location.hash.slice(1));
+current = T.some(t => t.key === fromHash) ? fromHash : null;
+render();
+
+(async () => {
+  try {
+    if (!window.claude || !window.claude.use) { useBrowserStore(); return; }
+    userApi = await window.claude.use('user');
+    if (userApi) {
+      try { myId = await userApi.id(); } catch (e) {}
+      try { const c = await userApi.can('data.write'); if (c === false) canWrite = false; } catch (e) {}
+    }
+    db = await window.claude.use('db');
+    if (!db) { useBrowserStore(); return; }
+    dbState = canWrite ? 'live' : 'readonly';
+    db.collection('decisions').onSnapshot(snap => {
+      const next = {};
+      snap.docs.forEach(doc => { next[doc.id] = doc.data(); });
+      const editingNote = document.activeElement && document.activeElement.id === 'note';
+      decisions = next;
+      if (editingNote) { renderProgress(); renderToc(); } else render();
+    }, () => useBrowserStore());
+    render();
+  } catch (e) { useBrowserStore(); }
+})();
+</script>

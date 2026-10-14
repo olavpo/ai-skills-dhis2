@@ -76,7 +76,7 @@ The full procedure — fresh-instance setup, importing metadata (via the `dhis2-
 
 - **`dhis2-metadata`** — fetch/split/import the dataset or program dependency export into the test instance, in dependency order. The testing reference assumes you use it.
 - **`dhis2-docs`** — look up endpoint behaviour, d2 function signatures, and version-specific details rather than guessing.
-- **`dhis2-pi-review`** — when the job is a whole program's indicators rather than one: validating hundreds of PIs, deciding fixes with a programme team, testing them end to end and getting each change approved. It builds on this skill's references.
+- **`dhis2-indicator-review`** — when the job is a whole set of indicators rather than one (a program's PIs, or aggregate indicators): validating hundreds at once, deciding fixes with a programme team, testing them end to end and getting each change approved. It builds on this skill's references.
 - **`dhis2-instances`** (if available) — provision, reset, and discard the disposable test instance; also gives direct PostgreSQL access for root-causing analytics. If it isn't available in the environment, ask the user for a throwaway instance instead.
 
 ## Pitfalls (quick list)
@@ -87,9 +87,9 @@ The full procedure — fresh-instance setup, importing metadata (via the `dhis2-
 - Program indicator: EVENT vs ENROLLMENT double-counting; selection logic in the expression instead of the filter; null treated as zero; period boundary using the wrong date.
 - Program indicator, verified on 2.43.2: ENROLLMENT filters compare a blank number as 0 (guard with `d2:hasValue`); ENROLLMENT PIs read events *after* the period unless an `EVENT_DATE` boundary caps them; `offsetPeriods` without `offsetPeriodType` is ignored; the metadata import doesn't validate PI filters at all. With program disaggregation (`categoryMappingIds`), EVENT PIs drop records in band gaps or overlaps from the total too. See `references/program-indicators.md`.
 - Concluding a function doesn't exist because the `d2:` form failed validation. Multi-select `containsItems()`/`contains()` are **unprefixed** in indicators and PIs (2.41+); `d2:` is the program-rule form. See `references/program-indicators.md`.
-- A division by zero *inside* an expression aborts the whole analytics request (409 E7132), unlike a zero denominator, which just gives no value.
+- A division by zero *inside* an expression aborts the whole analytics request (409 E7132) on earlier versions and returns `NaN` for that cell on 2.43.2, unlike a zero denominator field, which just gives no value.
 - DE configured wrong at the source — `aggregationType` not SUM, or a `#{de.coc}` pointing at a COC outside the DE's current combo — breaks results while the expression looks fine. Lint the metadata (step 4).
 - Program rule variable names are functional identifiers — program rules reference them by *name* (`#{varName}`, `A{varName}`, `d2:hasValue('varName')`), so renaming or translating a variable while tidying metadata silently breaks every rule using it. The failure shows up as rules that stop firing, not as an error.
-- Zeros vanish — the importer drops a `0` for DEs with `zeroIsSignificant=false`, and analytics omits stored zeros unless `keyIncludeZeroValuesInAnalytics` is on. Set both when a reported zero must count.
+- Zeros vanish — a `0` for a DE with `zeroIsSignificant=false` is dropped (by the importer on earlier versions; stored but ignored by analytics on 2.43.2), and analytics omits even significant zeros unless `keyIncludeZeroValuesInAnalytics` is on. Set both when a reported zero must count.
 - Testing on a populated instance — always use a fresh, disposable one.
 - Reading analytics before the analytics job finished, or after changing data without re-running it.
