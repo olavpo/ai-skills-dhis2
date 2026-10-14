@@ -64,7 +64,7 @@ Applied across the selected units:
 
 Match the aggregation type to the question. A SUM over a per-unit "1" equals a COUNT; a SUM over a measured value (e.g. amount dispensed) totals it.
 
-**AVERAGE on a count-style expression is a silent breaker.** A PI whose expression is `V{event_count}`, `V{enrollment_count}`, or a constant `1` but whose `aggregationType` is AVERAGE validates fine and returns ~1 (or no rows) instead of the count — the SL demo ships a whole family broken this way. A **missing** aggregation type behaves the same with `V{event_count}` or `1` (value 1 whatever the count). Lint for it when reviewing: count-style expression ⇒ aggregationType must be COUNT or SUM.
+**AVERAGE on a count-style expression is a silent breaker.** A PI whose expression is `V{event_count}`, `V{enrollment_count}`, or a constant `1` but whose `aggregationType` is AVERAGE validates fine and returns ~1 (or no rows) instead of the count — the SL demo ships a whole family broken this way. A **missing** aggregation type behaves the same with `V{event_count}` or `1` (value 1 whatever the count). Verified on 2.43.2 with the SL demo malaria program: `V{event_count}` + AVERAGE returned 1 with 84 matching events, while `V{enrollment_count}` + AVERAGE in an EVENT PI failed with SQL 42883. Lint for it when reviewing: count-style expression ⇒ aggregationType must be COUNT or SUM.
 
 Other combinations fail loudly in analytics instead (verified 2.43.2): `V{tei_count}` with MAX (SQL 42804) or with no aggregation type (SQL 42883). In an EVENT PI, `V{tei_count}` counts distinct persons with at least one matching event in the period.
 
