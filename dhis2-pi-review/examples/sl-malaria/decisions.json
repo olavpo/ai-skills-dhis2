@@ -1,0 +1,11 @@
+{
+ "agg-on-count": {"verdict": "agree", "note": "Set to COUNT.", "by": "reviewer-1", "at": "2026-10-14T15:00:00Z"},
+ "otherfail": {"verdict": "each", "note": "Unquoted stage UID: quote it. hasValue expression: decide with the program officer.", "by": "reviewer-1", "at": "2026-10-14T15:02:00Z"},
+ "mapliterals": {"verdict": "agree", "note": "", "by": "reviewer-1", "at": "2026-10-14T15:03:00Z"},
+ "valuetype": {"verdict": "park", "note": "", "by": "reviewer-1", "at": "2026-10-14T15:04:00Z"},
+ "bandgaps": {"verdict": "agree", "note": "Bands follow the option names.", "by": "reviewer-1", "at": "2026-10-14T15:05:00Z"},
+ "cellsnotadd": {"verdict": "agree", "note": "Fixed by the mapping fixes.", "by": "reviewer-1", "at": "2026-10-14T15:06:00Z"},
+ "dropped-values": {"verdict": "domain", "note": "Unknown age: add an Unknown option?", "by": "reviewer-1", "at": "2026-10-14T15:07:00Z"},
+ "dropped": {"verdict": "agree", "note": "", "by": "reviewer-1", "at": "2026-10-14T15:08:00Z"},
+ "unsat": {"verdict": "each", "note": "", "by": "reviewer-1", "at": "2026-10-14T15:09:00Z"}
+}

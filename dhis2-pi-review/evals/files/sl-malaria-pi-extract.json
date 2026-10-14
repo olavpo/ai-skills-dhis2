@@ -1,0 +1,2148 @@
+{
+ "system": {
+  "version": "2.43.2"
+ },
+ "programs": [
+  {
+   "name": "Malaria case diagnosis, treatment and investigation",
+   "shortName": "Case",
+   "description": "All cases in an elimination setting should be registered in this program. Includes relevant case identifiers/details including the ID, Name, Index, Age, Gender, Location,etc..",
+   "version": 193,
+   "enrollmentDateLabel": "Enrollment date",
+   "incidentDateLabel": "Incident Date",
+   "programType": "WITH_REGISTRATION",
+   "displayIncidentDate": false,
+   "ignoreOverdueEvents": false,
+   "userRoles": [],
+   "onlyEnrollOnce": true,
+   "notificationTemplates": [
+    {
+     "id": "VDuWOkipJZK"
+    }
+   ],
+   "selectEnrollmentDatesInFuture": false,
+   "selectIncidentDatesInFuture": false,
+   "trackedEntityType": {
+    "id": "Zy2SEgA61ys"
+   },
+   "style": {
+    "color": "#cddc39",
+    "icon": "microscope_positive"
+   },
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "enrollmentCategoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "skipOffline": false,
+   "displayFrontPageList": true,
+   "useFirstStageDuringRegistration": false,
+   "expiryDays": 0,
+   "completeEventsExpiryDays": 0,
+   "openDaysAfterCoEndDate": 0,
+   "minAttributesRequiredToSearch": 1,
+   "maxTeiCountToReturn": 0,
+   "accessLevel": "OPEN",
+   "enableChangeLog": true,
+   "id": "qDkgAbB5Jlk",
+   "programStages": [
+    {
+     "id": "hYyB7FUS5eR"
+    },
+    {
+     "id": "wYTF0YCHMWr"
+    },
+    {
+     "id": "eHvTba5ijAh"
+    },
+    {
+     "id": "C0aLZo75dgJ"
+    }
+   ],
+   "programSections": [
+    {
+     "id": "BQIuxFWLowN"
+    },
+    {
+     "id": "DvpNXTaZOZb"
+    }
+   ],
+   "programTrackedEntityAttributes": [
+    {
+     "name": "Malaria case diagnosis, treatment and investigation System Case ID",
+     "created": "2018-05-29T21:08:38.497",
+     "lastUpdated": "2021-09-23T07:02:59.181",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": true,
+     "sortOrder": 1,
+     "mandatory": true,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": true,
+     "valueType": "TEXT",
+     "displayShortName": "Case System Case ID",
+     "displayName": "Malaria case diagnosis, treatment and investigation System Case ID",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "AQGrLt9n71i",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "flGbXLXCrEo"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation Local Case ID",
+     "created": "2018-05-29T21:08:38.500",
+     "lastUpdated": "2021-09-23T07:02:59.181",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": true,
+     "sortOrder": 2,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": true,
+     "valueType": "TEXT",
+     "displayShortName": "Case Local Case ID",
+     "displayName": "Malaria case diagnosis, treatment and investigation Local Case ID",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "ZKOKFUAqA0I",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "h5FuguPFF2j"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation Last Name",
+     "created": "2018-05-29T21:08:38.506",
+     "lastUpdated": "2021-09-23T07:02:59.181",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": true,
+     "sortOrder": 3,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": true,
+     "valueType": "TEXT",
+     "displayShortName": "Case Last Name",
+     "displayName": "Malaria case diagnosis, treatment and investigation Last Name",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "PaXjxQLhg0y",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "aW66s2QSosT"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation First Name",
+     "created": "2018-05-29T21:08:38.503",
+     "lastUpdated": "2021-09-23T07:02:59.182",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": false,
+     "sortOrder": 4,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": true,
+     "valueType": "TEXT",
+     "displayShortName": "Case First Name",
+     "displayName": "Malaria case diagnosis, treatment and investigation First Name",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "poro7h6FXbu",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "TfdH5KvFmMy"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation Date of birth (mal)",
+     "created": "2018-05-29T21:08:38.508",
+     "lastUpdated": "2021-09-23T07:02:59.182",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": false,
+     "sortOrder": 5,
+     "mandatory": true,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": false,
+     "valueType": "DATE",
+     "displayShortName": "Case Date of birth (mal)",
+     "displayName": "Malaria case diagnosis, treatment and investigation Date of birth (mal)",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "PDf7OGi1Hgw",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "BiTsLcJQ95V"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation Date of birth (mal) is estimated",
+     "created": "2018-05-29T21:08:38.510",
+     "lastUpdated": "2021-09-23T07:02:59.182",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": false,
+     "sortOrder": 6,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": false,
+     "valueType": "TRUE_ONLY",
+     "displayShortName": "Case Estimated DoB",
+     "displayName": "Malaria case diagnosis, treatment and investigation Date of birth (mal) is estimated",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "gRpOC8DvkgW",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "Z1rLc1rVHK8"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation Age (years)",
+     "created": "2018-06-20T07:42:27.905",
+     "lastUpdated": "2021-09-23T07:02:59.182",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": false,
+     "sortOrder": 7,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": false,
+     "valueType": "INTEGER_ZERO_OR_POSITIVE",
+     "displayShortName": "Case Age (years)",
+     "displayName": "Malaria case diagnosis, treatment and investigation Age (years)",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "jgkPxq0uY7j",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "B6TnnFMgmCk"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation Sex",
+     "created": "2018-06-20T07:41:22.171",
+     "lastUpdated": "2021-09-23T07:02:59.182",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": false,
+     "sortOrder": 8,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": true,
+     "valueType": "TEXT",
+     "displayShortName": "Case Sex",
+     "displayName": "Malaria case diagnosis, treatment and investigation Sex",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "zDlR3AvozPp",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "CklPZdOd6H1"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation Resident in catchment area",
+     "created": "2018-05-29T21:08:38.518",
+     "lastUpdated": "2021-09-23T07:02:59.182",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": false,
+     "sortOrder": 9,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": true,
+     "valueType": "TRUE_ONLY",
+     "displayShortName": "Case Resident in catchment area",
+     "displayName": "Malaria case diagnosis, treatment and investigation Resident in catchment area",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "SBzINVUS9ug",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "bJeK4FaRKDS"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation Nationality",
+     "created": "2018-05-29T21:08:38.522",
+     "lastUpdated": "2021-09-23T07:02:59.182",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": false,
+     "sortOrder": 10,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": false,
+     "valueType": "TEXT",
+     "displayShortName": "Case Nationality",
+     "displayName": "Malaria case diagnosis, treatment and investigation Nationality",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "vVb1pu1dTN7",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "spkM2E9dn2J"
+     }
+    },
+    {
+     "name": "Malaria case diagnosis, treatment and investigation GPS attribute",
+     "created": "2019-03-06T08:12:44.199",
+     "lastUpdated": "2021-09-23T07:02:59.182",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "program": {
+      "id": "qDkgAbB5Jlk"
+     },
+     "displayInList": false,
+     "sortOrder": 11,
+     "mandatory": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "searchable": false,
+     "valueType": "COORDINATE",
+     "displayShortName": "Case GPS attribute",
+     "displayName": "Malaria case diagnosis, treatment and investigation GPS attribute",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "g6BCm12uUEQ",
+     "attributeValues": [],
+     "trackedEntityAttribute": {
+      "id": "vTKipVM0GsX"
+     }
+    }
+   ],
+   "categoryMappings": [
+    {
+     "id": "nl9LJcjBaLZ",
+     "categoryId": "sEPCr990Rto",
+     "mappingName": "Age group from Age (years)",
+     "optionMappings": [
+      {
+       "optionId": "C11WC1lXDMl",
+       "filter": "A{B6TnnFMgmCk} <= 3"
+      },
+      {
+       "optionId": "CsfYQc87OMj",
+       "filter": "A{B6TnnFMgmCk} >= 5 && A{B6TnnFMgmCk} <= 14"
+      },
+      {
+       "optionId": "aZdc2LWuKmo",
+       "filter": "A{B6TnnFMgmCk} >= 15"
+      }
+     ]
+    },
+    {
+     "id": "yefKpLxC7DJ",
+     "categoryId": "W5iRaCEQlF9",
+     "mappingName": "Sex from attribute",
+     "optionMappings": [
+      {
+       "optionId": "sbIggsebQn5",
+       "filter": "A{CklPZdOd6H1} == 'Female'"
+      },
+      {
+       "optionId": "dD8yeNWqfu7",
+       "filter": "A{CklPZdOd6H1} == 'MALE'"
+      }
+     ]
+    }
+   ],
+   "attributeValues": []
+  }
+ ],
+ "programStages": [
+  {
+   "name": "Case outcome",
+   "description": "This stage details the final outcome of the case",
+   "minDaysFromStart": 0,
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "programStageDataElements": [
+    {
+     "created": "2018-01-24T22:27:19.933",
+     "lastUpdated": "2025-03-26T15:48:23.595",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "programStage": {
+      "id": "eHvTba5ijAh"
+     },
+     "dataElement": {
+      "id": "zXNfOKXRBA9"
+     },
+     "compulsory": true,
+     "allowProvidedElsewhere": false,
+     "sortOrder": 0,
+     "displayInReports": true,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "skipSynchronization": false,
+     "skipAnalytics": false,
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "S7L1Ecbi9vn",
+     "attributeValues": []
+    }
+   ],
+   "executionDateLabel": "Report date",
+   "autoGenerateEvent": false,
+   "validationStrategy": "ON_COMPLETE",
+   "displayGenerateEventBox": false,
+   "featureType": "NONE",
+   "blockEntryForm": false,
+   "preGenerateUID": false,
+   "remindCompleted": true,
+   "generatedByEnrollmentDate": false,
+   "allowGenerateNextVisit": false,
+   "openAfterEnrollment": false,
+   "sortOrder": 3,
+   "hideDueDate": true,
+   "enableUserAssignment": false,
+   "referral": false,
+   "id": "eHvTba5ijAh",
+   "attributeValues": [],
+   "repeatable": false,
+   "notificationTemplates": []
+  },
+  {
+   "name": "Household investigation",
+   "description": "Nearby household investigations occur when an index case is identified within a specific geographical area.",
+   "minDaysFromStart": 0,
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "programStageDataElements": [],
+   "autoGenerateEvent": false,
+   "validationStrategy": "ON_COMPLETE",
+   "displayGenerateEventBox": false,
+   "featureType": "POINT",
+   "blockEntryForm": false,
+   "preGenerateUID": false,
+   "remindCompleted": false,
+   "generatedByEnrollmentDate": false,
+   "allowGenerateNextVisit": false,
+   "openAfterEnrollment": false,
+   "sortOrder": 4,
+   "hideDueDate": true,
+   "enableUserAssignment": false,
+   "referral": false,
+   "id": "C0aLZo75dgJ",
+   "attributeValues": [],
+   "repeatable": false,
+   "notificationTemplates": []
+  },
+  {
+   "name": "Diagnosis & treatment",
+   "description": "This stage is used to identify initial diagnosis and treatment. This includes the method of case detection, information about the case include travel history, method of diagnosis, malaria species type and treatment details. ",
+   "minDaysFromStart": 0,
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "programStageDataElements": [
+    {
+     "created": "2017-02-27T18:38:06.137",
+     "lastUpdated": "2025-03-26T15:48:23.571",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "programStage": {
+      "id": "hYyB7FUS5eR"
+     },
+     "dataElement": {
+      "id": "qdjVZojEK8S"
+     },
+     "compulsory": false,
+     "allowProvidedElsewhere": false,
+     "sortOrder": 8,
+     "displayInReports": true,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "skipSynchronization": false,
+     "skipAnalytics": false,
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "lwIqsCG0JeT",
+     "attributeValues": []
+    },
+    {
+     "created": "2016-05-27T12:35:04.574",
+     "lastUpdated": "2025-03-26T15:48:23.577",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "programStage": {
+      "id": "hYyB7FUS5eR"
+     },
+     "dataElement": {
+      "id": "E0W0ZTTosXK"
+     },
+     "compulsory": false,
+     "allowProvidedElsewhere": false,
+     "sortOrder": 14,
+     "displayInReports": true,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "skipSynchronization": false,
+     "skipAnalytics": false,
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "bTPGuxtqAax",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-20T06:47:53.830",
+     "lastUpdated": "2025-03-26T15:48:23.581",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "programStage": {
+      "id": "hYyB7FUS5eR"
+     },
+     "dataElement": {
+      "id": "aY4kB8kS521"
+     },
+     "compulsory": false,
+     "allowProvidedElsewhere": false,
+     "displayInReports": false,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "skipSynchronization": false,
+     "skipAnalytics": false,
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "oVWhd4Qboef",
+     "attributeValues": []
+    }
+   ],
+   "executionDateLabel": "Date of diagnosis",
+   "autoGenerateEvent": true,
+   "validationStrategy": "ON_COMPLETE",
+   "displayGenerateEventBox": false,
+   "featureType": "POINT",
+   "blockEntryForm": false,
+   "preGenerateUID": false,
+   "remindCompleted": false,
+   "generatedByEnrollmentDate": true,
+   "allowGenerateNextVisit": false,
+   "openAfterEnrollment": true,
+   "reportDateToUse": "enrollmentDate",
+   "sortOrder": 1,
+   "hideDueDate": true,
+   "enableUserAssignment": false,
+   "referral": false,
+   "id": "hYyB7FUS5eR",
+   "attributeValues": [],
+   "repeatable": false,
+   "notificationTemplates": []
+  },
+  {
+   "name": "Case investigation & classification",
+   "description": "This includes the investigation of the index case (including the confirmation of symptoms, previous malaria history, LLIN usage details, IRS details), and the summary of the results for the case investigation including the final case classification (both the species type and the case classification). ",
+   "minDaysFromStart": 0,
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "programStageDataElements": [
+    {
+     "created": "2016-05-27T13:10:13.292",
+     "lastUpdated": "2025-03-26T15:48:23.585",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "programStage": {
+      "id": "wYTF0YCHMWr"
+     },
+     "dataElement": {
+      "id": "AZLp9Shoab9"
+     },
+     "compulsory": false,
+     "allowProvidedElsewhere": false,
+     "sortOrder": 1,
+     "displayInReports": true,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "skipSynchronization": false,
+     "skipAnalytics": false,
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "QYhnCRYcZcH",
+     "attributeValues": []
+    },
+    {
+     "created": "2017-05-30T17:59:36.995",
+     "lastUpdated": "2025-03-26T15:48:23.586",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "programStage": {
+      "id": "wYTF0YCHMWr"
+     },
+     "dataElement": {
+      "id": "ElxhP9pTTP6"
+     },
+     "compulsory": true,
+     "allowProvidedElsewhere": false,
+     "sortOrder": 25,
+     "displayInReports": true,
+     "allowFutureDate": false,
+     "renderOptionsAsRadio": false,
+     "skipSynchronization": false,
+     "skipAnalytics": false,
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "yiTWwFFEzxx",
+     "attributeValues": []
+    }
+   ],
+   "executionDateLabel": "Date of investigation",
+   "autoGenerateEvent": false,
+   "validationStrategy": "ON_COMPLETE",
+   "displayGenerateEventBox": false,
+   "featureType": "POINT",
+   "blockEntryForm": false,
+   "preGenerateUID": false,
+   "remindCompleted": false,
+   "generatedByEnrollmentDate": false,
+   "allowGenerateNextVisit": false,
+   "openAfterEnrollment": false,
+   "sortOrder": 2,
+   "hideDueDate": true,
+   "enableUserAssignment": false,
+   "referral": false,
+   "id": "wYTF0YCHMWr",
+   "attributeValues": [],
+   "repeatable": false,
+   "notificationTemplates": []
+  }
+ ],
+ "programIndicators": [
+  {
+   "name": "Malaria case - inpatient",
+   "shortName": "Malaria case - inpatient",
+   "legendSets": [],
+   "aggregationType": "COUNT",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{event_count}",
+   "filter": "#{hYyB7FUS5eR.E0W0ZTTosXK} == 'INPATIENT'",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.866",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "D1WCY2KFzF4",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.866",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "j07Cf2olyyu",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [],
+   "id": "LwT8zrqm90m",
+   "attributeValues": []
+  },
+  {
+   "name": "Malaria death",
+   "shortName": "Malaria death",
+   "legendSets": [],
+   "aggregationType": "AVERAGE",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{event_count}",
+   "filter": "#{eHvTba5ijAh.zXNfOKXRBA9} == 'Died'",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.877",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "QrxSYGcuf5U",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.878",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "GDFxCDmvFRt",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [],
+   "id": "QfVoLy0NZro",
+   "attributeValues": []
+  },
+  {
+   "name": "Cases with symptoms diagnosed with 24 hours",
+   "shortName": "Cases with symptoms diagnosed with 24 hours",
+   "legendSets": [],
+   "aggregationType": "AVERAGE",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{event_count}",
+   "filter": "V{program_stage_id} == hYyB7FUS5eR && ( d2:daysBetween(V{event_date},#{wYTF0YCHMWr.AZLp9Shoab9})  <= 1 )",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-07-26T15:31:23.292",
+     "lastUpdated": "2019-08-21T13:08:17.879",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "PsqynUOuvS0",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-07-26T15:31:23.292",
+     "lastUpdated": "2019-08-21T13:08:17.879",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "pI8crl1hHXS",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [],
+   "id": "WoEWCM4TMjz",
+   "attributeValues": []
+  },
+  {
+   "name": "Malaria case - local",
+   "shortName": "Malaria case - local",
+   "legendSets": [],
+   "aggregationType": "COUNT",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{event_count}",
+   "filter": "#{wYTF0YCHMWr.ElxhP9pTTP6} == 'LOCAL'",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.880",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "GGyZe81gXD7",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.881",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "qgsnlp5e3iq",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [],
+   "id": "hmSDFcYVUad",
+   "attributeValues": []
+  },
+  {
+   "name": "Malaria case - RDT+Microscopy 15+ years female",
+   "shortName": "Malaria case - RDT+Microscopy (f 15+)",
+   "description": "Total malaria positives cases by Microscopy and RDT",
+   "legendSets": [],
+   "aggregationType": "AVERAGE",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{enrollment_count}",
+   "filter": "d2:yearsBetween(A{BiTsLcJQ95V}, V{enrollment_date}) >= 15 and A{CklPZdOd6H1} == 'FEMALE' and (#{hYyB7FUS5eR.qdjVZojEK8S} == 'RDT' or #{hYyB7FUS5eR.qdjVZojEK8S} == 'MICROSCOPY') and (#{hYyB7FUS5eR.aY4kB8kS521} =='POSITIVE' or #{hYyB7FUS5eR.aY4kB8kS521} =='POSITIVE')",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.895",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "kwHqszPCq0M",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.895",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "lIhPgsrAeW6",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [],
+   "id": "F4pRzkg7zOP",
+   "attributeValues": []
+  },
+  {
+   "name": "Malaria test - microscopy",
+   "shortName": "Malaria test - microscopy",
+   "description": "The number of suspected malaria cases tested by Microscopy",
+   "legendSets": [],
+   "aggregationType": "COUNT",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{event_count}",
+   "filter": "#{hYyB7FUS5eR.qdjVZojEK8S} == 'MICROSCOPY'",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.896",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "QVc97MTnAe4",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.896",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "O34n8L24BDA",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "XiNhAnq8Xs2"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [
+    "nl9LJcjBaLZ",
+    "yefKpLxC7DJ"
+   ],
+   "id": "TN51OpurLU9",
+   "attributeValues": []
+  },
+  {
+   "name": "Malaria case",
+   "shortName": "Malaria case",
+   "legendSets": [],
+   "aggregationType": "COUNT",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{event_count}",
+   "filter": "#{hYyB7FUS5eR.aY4kB8kS521}=='POSITIVE'",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.883",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "T97BscUHKA6",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.883",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "ZJWLCoTC0ld",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "XiNhAnq8Xs2"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [
+    "nl9LJcjBaLZ",
+    "yefKpLxC7DJ"
+   ],
+   "id": "kL9jc0p6VlJ",
+   "attributeValues": []
+  },
+  {
+   "name": "Malaria case - RDT+Microscopy",
+   "shortName": "Malaria case - RDT+Microscopy",
+   "description": "Total malaria positives cases by Microscopy and RDT",
+   "legendSets": [],
+   "aggregationType": "AVERAGE",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{enrollment_count}",
+   "filter": "(#{hYyB7FUS5eR.qdjVZojEK8S} == 'RDT' or #{hYyB7FUS5eR.qdjVZojEK8S} == 'MICROSCOPY') and (#{hYyB7FUS5eR.aY4kB8kS521} =='POSITIVE' or #{hYyB7FUS5eR.aY4kB8kS521} =='POSITIVE')",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.870",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "c2DGh4w0T3I",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.871",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "GP1fe9pcU2J",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [],
+   "id": "Z0t2J0lvPlu",
+   "attributeValues": []
+  },
+  {
+   "name": "Malaria case investigated",
+   "shortName": "Malaria case investigated",
+   "legendSets": [],
+   "aggregationType": "COUNT",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "d2:hasValue(V{event_date})",
+   "filter": "V{program_stage_id} == 'wYTF0YCHMWr'",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.896",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "IQPxYzhsGXa",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.896",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "AyZUKckavcD",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [],
+   "id": "LUS2gZYJm1q",
+   "attributeValues": []
+  },
+  {
+   "name": "Malaria test - RDT",
+   "shortName": "Malaria test - RDT",
+   "description": "The number of suspected malaria cases tested by RDT",
+   "legendSets": [],
+   "aggregationType": "COUNT",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "expression": "V{event_count}",
+   "filter": "#{hYyB7FUS5eR.qdjVZojEK8S} == 'RDT'",
+   "displayInForm": false,
+   "analyticsType": "EVENT",
+   "analyticsPeriodBoundaries": [
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.863",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "Y83MoW4rA7C",
+     "attributeValues": []
+    },
+    {
+     "created": "2018-06-09T22:18:38.899",
+     "lastUpdated": "2019-08-21T13:08:17.863",
+     "translations": [],
+     "favorites": [],
+     "sharing": {
+      "users": {},
+      "userGroups": {}
+     },
+     "boundaryTarget": "EVENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD",
+     "access": {
+      "manage": true,
+      "write": true,
+      "read": true,
+      "update": true,
+      "delete": true
+     },
+     "favorite": false,
+     "id": "MyC7mxz0r0I",
+     "attributeValues": []
+    }
+   ],
+   "categoryCombo": {
+    "id": "XiNhAnq8Xs2"
+   },
+   "attributeCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryMappingIds": [
+    "nl9LJcjBaLZ",
+    "yefKpLxC7DJ"
+   ],
+   "id": "Vmi9vYnmkfI",
+   "attributeValues": []
+  },
+  {
+   "id": "ylj4YplT6m6",
+   "name": "Malaria cases, persons (malaria test)",
+   "shortName": "Malaria cases persons (mt)",
+   "program": {
+    "id": "qDkgAbB5Jlk"
+   },
+   "analyticsType": "ENROLLMENT",
+   "aggregationType": "COUNT",
+   "expression": "V{enrollment_count}",
+   "filter": "#{hYyB7FUS5eR.aY4kB8kS521} == 'POSITIVE'",
+   "analyticsPeriodBoundaries": [
+    {
+     "boundaryTarget": "ENROLLMENT_DATE",
+     "analyticsPeriodBoundaryType": "AFTER_START_OF_REPORTING_PERIOD"
+    },
+    {
+     "boundaryTarget": "ENROLLMENT_DATE",
+     "analyticsPeriodBoundaryType": "BEFORE_END_OF_REPORTING_PERIOD"
+    }
+   ],
+   "categoryCombo": {
+    "id": "XiNhAnq8Xs2"
+   },
+   "categoryMappingIds": [
+    "nl9LJcjBaLZ",
+    "yefKpLxC7DJ"
+   ]
+  }
+ ],
+ "dataElements": [
+  {
+   "code": "CS020",
+   "name": "Outcome of illness",
+   "shortName": "Outcome ",
+   "description": "The final outcome of the case",
+   "legendSets": [],
+   "aggregationType": "NONE",
+   "valueType": "TEXT",
+   "domainType": "TRACKER",
+   "aggregationLevels": [],
+   "zeroIsSignificant": false,
+   "optionSet": {
+    "id": "XawHdgVomWy"
+   },
+   "id": "zXNfOKXRBA9",
+   "attributeValues": [],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  },
+  {
+   "name": "Malaria case classification",
+   "shortName": "Malaria case classification",
+   "description": "The classification of the case (local, imported, other)",
+   "formName": "Case classified as",
+   "legendSets": [],
+   "aggregationType": "NONE",
+   "valueType": "TEXT",
+   "domainType": "TRACKER",
+   "aggregationLevels": [],
+   "zeroIsSignificant": false,
+   "optionSet": {
+    "id": "QOeB4ad4f3M"
+   },
+   "id": "ElxhP9pTTP6",
+   "attributeValues": [],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  },
+  {
+   "code": "CS010",
+   "name": "Malaria test result",
+   "shortName": "Malaria result",
+   "description": "Provides the result of the malaria test",
+   "legendSets": [],
+   "aggregationType": "NONE",
+   "valueType": "TEXT",
+   "domainType": "TRACKER",
+   "aggregationLevels": [],
+   "zeroIsSignificant": false,
+   "optionSet": {
+    "id": "WaV48ymJu9V"
+   },
+   "id": "aY4kB8kS521",
+   "attributeValues": [],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  },
+  {
+   "name": "Date onset of Symptoms",
+   "shortName": "Date onset of Symptoms",
+   "description": "The date of onset of symptoms for the case",
+   "legendSets": [],
+   "aggregationType": "COUNT",
+   "valueType": "DATE",
+   "domainType": "TRACKER",
+   "aggregationLevels": [],
+   "zeroIsSignificant": false,
+   "id": "AZLp9Shoab9",
+   "attributeValues": [],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  },
+  {
+   "code": "CS015",
+   "name": "Malaria inpatient/outpatient",
+   "shortName": "Services",
+   "description": "Identifies if the case is outpatient or inpatient",
+   "formName": "Inpatient/outpatient",
+   "legendSets": [],
+   "aggregationType": "NONE",
+   "valueType": "TEXT",
+   "domainType": "TRACKER",
+   "aggregationLevels": [],
+   "zeroIsSignificant": false,
+   "optionSet": {
+    "id": "yv45kWpv69K"
+   },
+   "id": "E0W0ZTTosXK",
+   "attributeValues": [],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  },
+  {
+   "name": "Malaria test",
+   "shortName": "Malaria test",
+   "description": "Identifies the method used to test the malaria case",
+   "formName": "Tested by",
+   "legendSets": [],
+   "aggregationType": "NONE",
+   "valueType": "TEXT",
+   "domainType": "TRACKER",
+   "aggregationLevels": [],
+   "zeroIsSignificant": false,
+   "optionSet": {
+    "id": "fKJZ2CiJSBM"
+   },
+   "id": "qdjVZojEK8S",
+   "attributeValues": [],
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   }
+  }
+ ],
+ "trackedEntityAttributes": [
+  {
+   "name": "Sex",
+   "shortName": "Sex",
+   "description": "Gender of Person",
+   "legendSets": [],
+   "aggregationType": "NONE",
+   "valueType": "TEXT",
+   "inherit": false,
+   "optionSet": {
+    "id": "hiQ3QFheQ3O"
+   },
+   "displayOnVisitSchedule": false,
+   "displayInListNoProgram": false,
+   "confidential": false,
+   "unique": false,
+   "generated": false,
+   "pattern": "",
+   "orgunitScope": false,
+   "skipSynchronization": false,
+   "minCharactersToSearch": 0,
+   "blockedSearchOperators": [],
+   "trigramIndexable": false,
+   "skipAnalytics": false,
+   "id": "CklPZdOd6H1",
+   "attributeValues": []
+  },
+  {
+   "name": "Age (years)",
+   "shortName": "Age (years)",
+   "description": "Age in years",
+   "legendSets": [],
+   "aggregationType": "AVERAGE",
+   "valueType": "INTEGER_ZERO_OR_POSITIVE",
+   "inherit": false,
+   "displayOnVisitSchedule": false,
+   "displayInListNoProgram": false,
+   "confidential": false,
+   "unique": false,
+   "generated": false,
+   "pattern": "",
+   "orgunitScope": false,
+   "skipSynchronization": false,
+   "minCharactersToSearch": 0,
+   "blockedSearchOperators": [],
+   "trigramIndexable": false,
+   "skipAnalytics": false,
+   "id": "B6TnnFMgmCk",
+   "attributeValues": []
+  },
+  {
+   "name": "Date of birth (mal)",
+   "shortName": "Date of birth (mal)",
+   "legendSets": [],
+   "aggregationType": "NONE",
+   "valueType": "DATE",
+   "inherit": false,
+   "displayOnVisitSchedule": false,
+   "displayInListNoProgram": false,
+   "confidential": false,
+   "unique": false,
+   "generated": false,
+   "pattern": "",
+   "orgunitScope": false,
+   "skipSynchronization": false,
+   "minCharactersToSearch": 0,
+   "blockedSearchOperators": [],
+   "trigramIndexable": false,
+   "skipAnalytics": false,
+   "id": "BiTsLcJQ95V",
+   "attributeValues": []
+  }
+ ],
+ "optionSets": [
+  {
+   "valueType": "TEXT",
+   "version": 4,
+   "name": "Sex",
+   "options": [
+    {
+     "id": "AZK4rjJCss5"
+    },
+    {
+     "id": "UrUdMteQzlT"
+    }
+   ],
+   "id": "hiQ3QFheQ3O",
+   "attributeValues": []
+  },
+  {
+   "valueType": "TEXT",
+   "version": 5,
+   "name": "Inpatient/Outpatient",
+   "options": [
+    {
+     "id": "TBnGWjKNJ3D"
+    },
+    {
+     "id": "e9mWKq6TS0f"
+    }
+   ],
+   "id": "yv45kWpv69K",
+   "attributeValues": []
+  },
+  {
+   "code": "Case classified as",
+   "valueType": "TEXT",
+   "version": 6,
+   "name": "Malaria case classification",
+   "options": [
+    {
+     "id": "TYjCSWeVOVC"
+    },
+    {
+     "id": "uQn3GDQGGdj"
+    },
+    {
+     "id": "A1etbE9j8ZO"
+    }
+   ],
+   "id": "QOeB4ad4f3M",
+   "attributeValues": []
+  },
+  {
+   "valueType": "TEXT",
+   "version": 5,
+   "name": "Malaria outcome",
+   "options": [
+    {
+     "id": "WGABqbFshO0"
+    },
+    {
+     "id": "urxD9lCwKFS"
+    }
+   ],
+   "id": "XawHdgVomWy",
+   "attributeValues": []
+  },
+  {
+   "valueType": "TEXT",
+   "version": 9,
+   "name": "Malaria diagnosis type",
+   "options": [
+    {
+     "id": "yEamagZmfQ4"
+    },
+    {
+     "id": "FRmCBnspuhB"
+    },
+    {
+     "id": "vIQpKXP0xEI"
+    },
+    {
+     "id": "dd1ExFs9LPG"
+    }
+   ],
+   "id": "fKJZ2CiJSBM",
+   "attributeValues": []
+  },
+  {
+   "valueType": "TEXT",
+   "version": 7,
+   "name": "Positive/Negative",
+   "options": [
+    {
+     "id": "zdSmHv0Gc9x"
+    },
+    {
+     "id": "K2uAuIFc3Ym"
+    }
+   ],
+   "id": "WaV48ymJu9V",
+   "attributeValues": []
+  }
+ ],
+ "options": [
+  {
+   "code": "PCR",
+   "name": "PCR",
+   "optionSet": {
+    "id": "fKJZ2CiJSBM"
+   },
+   "sortOrder": 3,
+   "style": {
+    "color": "#d98484",
+    "icon": "clinical_a_positive"
+   },
+   "id": "vIQpKXP0xEI",
+   "attributeValues": []
+  },
+  {
+   "code": "MALE",
+   "name": "Male",
+   "optionSet": {
+    "id": "hiQ3QFheQ3O"
+   },
+   "sortOrder": 2,
+   "id": "UrUdMteQzlT",
+   "attributeValues": []
+  },
+  {
+   "code": "INPATIENT",
+   "name": "Inpatient",
+   "optionSet": {
+    "id": "yv45kWpv69K"
+   },
+   "sortOrder": 2,
+   "id": "e9mWKq6TS0f",
+   "attributeValues": []
+  },
+  {
+   "code": "Cured",
+   "name": "Cured",
+   "optionSet": {
+    "id": "XawHdgVomWy"
+   },
+   "sortOrder": 1,
+   "id": "WGABqbFshO0",
+   "attributeValues": []
+  },
+  {
+   "code": "MICROSCOPY",
+   "name": "Microscopy",
+   "optionSet": {
+    "id": "fKJZ2CiJSBM"
+   },
+   "sortOrder": 2,
+   "style": {
+    "color": "#b98edd",
+    "icon": "microscope_positive"
+   },
+   "id": "FRmCBnspuhB",
+   "attributeValues": []
+  },
+  {
+   "code": "NEGATIVE",
+   "name": "Negative",
+   "optionSet": {
+    "id": "WaV48ymJu9V"
+   },
+   "sortOrder": 2,
+   "style": {
+    "color": "#508f36"
+   },
+   "id": "K2uAuIFc3Ym",
+   "attributeValues": []
+  },
+  {
+   "code": "OUTPATIENT",
+   "name": "Outpatient",
+   "optionSet": {
+    "id": "yv45kWpv69K"
+   },
+   "sortOrder": 1,
+   "id": "TBnGWjKNJ3D",
+   "attributeValues": []
+  },
+  {
+   "code": "IMPORTED",
+   "name": "Imported",
+   "optionSet": {
+    "id": "QOeB4ad4f3M"
+   },
+   "sortOrder": 2,
+   "id": "uQn3GDQGGdj",
+   "attributeValues": []
+  },
+  {
+   "code": "RDT",
+   "name": "RDT",
+   "optionSet": {
+    "id": "fKJZ2CiJSBM"
+   },
+   "sortOrder": 1,
+   "style": {
+    "color": "#d1cd5e",
+    "icon": "rdt_result_out_stock_positive"
+   },
+   "id": "yEamagZmfQ4",
+   "attributeValues": []
+  },
+  {
+   "code": "OTHER",
+   "name": "Other",
+   "optionSet": {
+    "id": "fKJZ2CiJSBM"
+   },
+   "sortOrder": 4,
+   "style": {
+    "color": "#5cb4a2",
+    "icon": "question_positive"
+   },
+   "id": "dd1ExFs9LPG",
+   "attributeValues": []
+  },
+  {
+   "code": "FEMALE",
+   "name": "Female",
+   "optionSet": {
+    "id": "hiQ3QFheQ3O"
+   },
+   "sortOrder": 1,
+   "id": "AZK4rjJCss5",
+   "attributeValues": []
+  },
+  {
+   "code": "POSITIVE",
+   "name": "Positive",
+   "optionSet": {
+    "id": "WaV48ymJu9V"
+   },
+   "sortOrder": 1,
+   "style": {
+    "color": "#8f3647"
+   },
+   "id": "zdSmHv0Gc9x",
+   "attributeValues": []
+  },
+  {
+   "code": "LOCAL",
+   "name": "Local",
+   "optionSet": {
+    "id": "QOeB4ad4f3M"
+   },
+   "sortOrder": 1,
+   "id": "TYjCSWeVOVC",
+   "attributeValues": []
+  },
+  {
+   "code": "Died",
+   "name": "Died",
+   "optionSet": {
+    "id": "XawHdgVomWy"
+   },
+   "sortOrder": 2,
+   "id": "urxD9lCwKFS",
+   "attributeValues": []
+  },
+  {
+   "code": "OTHER",
+   "name": "Other",
+   "optionSet": {
+    "id": "QOeB4ad4f3M"
+   },
+   "sortOrder": 3,
+   "id": "A1etbE9j8ZO",
+   "attributeValues": []
+  }
+ ],
+ "categories": [
+  {
+   "id": "sEPCr990Rto",
+   "name": "Age group (malaria test)",
+   "shortName": "Age group (malaria test)",
+   "dataDimensionType": "DISAGGREGATION",
+   "dataDimension": true,
+   "categoryOptions": [
+    {
+     "id": "C11WC1lXDMl"
+    },
+    {
+     "id": "CsfYQc87OMj"
+    },
+    {
+     "id": "aZdc2LWuKmo"
+    }
+   ]
+  },
+  {
+   "id": "W5iRaCEQlF9",
+   "name": "Sex (malaria test)",
+   "shortName": "Sex (malaria test)",
+   "dataDimensionType": "DISAGGREGATION",
+   "dataDimension": true,
+   "categoryOptions": [
+    {
+     "id": "sbIggsebQn5"
+    },
+    {
+     "id": "dD8yeNWqfu7"
+    }
+   ]
+  },
+  {
+   "code": "default",
+   "name": "default",
+   "shortName": "default",
+   "dataDimensionType": "DISAGGREGATION",
+   "dataDimension": false,
+   "categoryOptions": [
+    {
+     "id": "xYerKDKCefk"
+    }
+   ],
+   "id": "GLevLNI9wkl",
+   "attributeValues": []
+  }
+ ],
+ "categoryOptions": [
+  {
+   "id": "C11WC1lXDMl",
+   "name": "0-4 years (malaria test)",
+   "shortName": "0-4 years (mt)"
+  },
+  {
+   "id": "CsfYQc87OMj",
+   "name": "5-14 years (malaria test)",
+   "shortName": "5-14 years (mt)"
+  },
+  {
+   "id": "aZdc2LWuKmo",
+   "name": "15+ years (malaria test)",
+   "shortName": "15+ years (mt)"
+  },
+  {
+   "id": "sbIggsebQn5",
+   "name": "Female (malaria test)",
+   "shortName": "Female (mt)"
+  },
+  {
+   "id": "dD8yeNWqfu7",
+   "name": "Male (malaria test)",
+   "shortName": "Male (mt)"
+  },
+  {
+   "code": "default",
+   "name": "default",
+   "shortName": "default",
+   "organisationUnits": [],
+   "id": "xYerKDKCefk",
+   "attributeValues": []
+  }
+ ],
+ "categoryCombos": [
+  {
+   "id": "XiNhAnq8Xs2",
+   "name": "Age group and sex (malaria test)",
+   "dataDimensionType": "DISAGGREGATION",
+   "categories": [
+    {
+     "id": "sEPCr990Rto"
+    },
+    {
+     "id": "W5iRaCEQlF9"
+    }
+   ]
+  },
+  {
+   "code": "default",
+   "name": "default",
+   "categories": [
+    {
+     "id": "GLevLNI9wkl"
+    }
+   ],
+   "dataDimensionType": "DISAGGREGATION",
+   "skipTotal": false,
+   "id": "bjDvmb4bfuf"
+  }
+ ],
+ "categoryOptionCombos": [
+  {
+   "code": "default",
+   "name": "default",
+   "categoryCombo": {
+    "id": "bjDvmb4bfuf"
+   },
+   "categoryOptions": [
+    {
+     "id": "xYerKDKCefk"
+    }
+   ],
+   "ignoreApproval": false,
+   "id": "HllvX50cXC0",
+   "attributeValues": []
+  }
+ ]
+}

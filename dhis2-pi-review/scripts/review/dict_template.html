@@ -1,0 +1,360 @@
+<!-- PI dictionary page. assemble_dict.py replaces __TITLE__ and __DATA__ (dictionary.json + merged descriptions). Read-only, no capabilities. -->
+<title>__TITLE__ · PI dictionary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: reference register — filter column on the left, a dense list of indicator entries that open in place. */
+:root {
+  --bg: #f4f5f2; --panel: #ffffff; --ink: #1b2120; --muted: #5f6b67; --line: #d9dfdb; --soft: #eaefec;
+  --accent: #0d6e66; --accent-soft: #d6ece9; --accent-ink: #ffffff;
+  --fails: #b3261e; --zero: #b25e00; --wrong: #7a3fa0; --review: #2f5d9a; --ok: #2c7a3f;
+  --fails-soft: #f7dedb; --zero-soft: #f8e7d2; --wrong-soft: #eee2f5; --review-soft: #dfe8f5; --ok-soft: #dcefe1;
+  --code-bg: #f6f8f7; --tok-ref: #0d6e66; --tok-fn: #7a3fa0; --tok-str: #8a4b00; --tok-op: #b3261e; --tok-var: #2f5d9a;
+  --font-ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #101614; --panel: #18201e; --ink: #e5ece9; --muted: #9caaa5; --line: #2d3a37; --soft: #202b28;
+  --accent: #4fc2b5; --accent-soft: #163b37; --accent-ink: #0b1311;
+  --fails: #ff8a80; --zero: #ffb35c; --wrong: #d0a2f2; --review: #8db7f2; --ok: #7bd492;
+  --fails-soft: #3a1c1a; --zero-soft: #3a2a14; --wrong-soft: #2f2139; --review-soft: #1c2a3d; --ok-soft: #183222;
+  --code-bg: #121a18; --tok-ref: #6fd6c9; --tok-fn: #d0a2f2; --tok-str: #f2c07a; --tok-op: #ff8a80; --tok-var: #8db7f2;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #101614; --panel: #18201e; --ink: #e5ece9; --muted: #9caaa5; --line: #2d3a37; --soft: #202b28;
+  --accent: #4fc2b5; --accent-soft: #163b37; --accent-ink: #0b1311;
+  --fails: #ff8a80; --zero: #ffb35c; --wrong: #d0a2f2; --review: #8db7f2; --ok: #7bd492;
+  --fails-soft: #3a1c1a; --zero-soft: #3a2a14; --wrong-soft: #2f2139; --review-soft: #1c2a3d; --ok-soft: #183222;
+  --code-bg: #121a18; --tok-ref: #6fd6c9; --tok-fn: #d0a2f2; --tok-str: #f2c07a; --tok-op: #ff8a80; --tok-var: #8db7f2;
+  color-scheme: dark; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 16px; line-height: 1.5; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.app { display: grid; grid-template-columns: minmax(250px, 300px) minmax(0, 1fr); height: 100%; }
+@media (max-width: 820px) { .app { grid-template-columns: 1fr; height: auto; } .side { position: static; max-height: none; } }
+.side { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 20px 18px 28px; display: grid; align-content: start; gap: 18px; }
+.side h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.side .sub { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.fgroup { display: grid; gap: 6px; }
+.fgroup > .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.side input[type=search], .side select { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.chk { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 8px; align-items: center; font-size: 14px; padding: 3px 4px; border-radius: 6px; cursor: pointer; }
+.chk:hover { background: var(--soft); }
+.chk .c { color: var(--muted); font-variant-numeric: tabular-nums; }
+.chk .per { color: var(--muted); font-size: 12px; }
+.linkbtn { border: 0; background: none; color: var(--accent); padding: 0; font-size: 13px; text-align: left; }
+.main { overflow-y: auto; padding-inline: clamp(16px, 3vw, 44px); padding-block: 22px 60px; min-width: 0; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.bar .count { font-size: 18px; } .bar .count b { font-variant-numeric: tabular-nums; }
+.bar .opts { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 14px; color: var(--muted); }
+.bar select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); }
+.list { display: grid; gap: 8px; }
+.entry { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.entry > button.hd { width: 100%; border: 0; background: none; text-align: left; padding: 14px 16px; display: grid; grid-template-columns: minmax(9ch, auto) minmax(0, 1fr) auto; gap: 6px 16px; align-items: baseline; }
+.hd .code { font-family: var(--font-code); font-weight: 600; font-size: 14px; white-space: nowrap; }
+.hd .nm { font-weight: 700; min-width: 0; }
+.hd .desc { grid-column: 2 / 4; color: var(--muted); font-size: 15px; }
+.hd .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pill { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+.s-FAILS { color: var(--fails); background: var(--fails-soft); } .s-ALWAYS_ZERO { color: var(--zero); background: var(--zero-soft); }
+.s-WRONG_VALUE { color: var(--wrong); background: var(--wrong-soft); } .s-REVIEW { color: var(--review); background: var(--review-soft); }
+.s-OK { color: var(--ok); background: var(--ok-soft); }
+.ds { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.body { padding: 0 16px 18px; display: grid; gap: 16px; border-top: 1px solid var(--line); padding-top: 14px; margin-inline: 0; }
+.body h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.prose { font-size: 17px; max-width: 75ch; margin: 0; }
+.mismatch { border-left: 4px solid var(--zero); background: var(--zero-soft); padding: 8px 12px; border-radius: 0 8px 8px 0; font-size: 15px; }
+.counted { display: grid; gap: 4px; }
+.counted .unit { font-weight: 700; }
+.counted ul { margin: 6px 0 0; padding-left: 22px; }
+.counted li { margin-bottom: 3px; overflow-wrap: anywhere; }
+.f { font-style: normal; font-weight: 700; color: var(--accent); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > div { min-width: 0; }
+.expr { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-family: var(--font-code); font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.expr .ref { color: var(--tok-ref); font-weight: 600; } .expr .fn { color: var(--tok-fn); } .expr .str { color: var(--tok-str); }
+.expr .op { color: var(--tok-op); font-weight: 600; } .expr .var { color: var(--tok-var); }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: 14px; margin: 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+.kv code { font-family: var(--font-code); font-size: 13px; }
+.warn { color: var(--zero); font-weight: 700; }
+details.cat { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+details.cat + details.cat { margin-top: 6px; }
+details.cat summary { cursor: pointer; font-size: 14px; }
+details.cat summary span { color: var(--muted); }
+.bands { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+.bands td { padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.bands td:last-child { font-family: var(--font-code); overflow-wrap: anywhere; }
+.tablewrap { overflow-x: auto; }
+.notes { margin: 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+.issues { margin: 0; padding-left: 20px; font-size: 14px; }
+.more { margin-top: 12px; }
+.ghost { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 14px; }
+.empty { color: var(--muted); padding: 30px 0; }
+.legend { font-size: 13px; color: var(--muted); }
+.cmp { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.cmp + .cmp { margin-top: 10px; }
+.cmp h5 { margin: 0; padding: 8px 12px; background: var(--soft); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: space-between; }
+.cmp h5 span { color: var(--muted); font-weight: 400; }
+.cmp table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cmp th, .cmp td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+.cmp th { color: var(--muted); font-weight: 400; width: 15%; }
+.cmp td { width: 42%; }
+.cmp .cn { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.chip { display: inline-block; font-size: 13px; padding: 2px 9px; border-radius: 6px; margin: 2px 4px 2px 0; border: 1px solid var(--line); }
+.chip.only-pi { background: var(--fails-soft); color: var(--fails); border-color: transparent; font-weight: 700; }
+.chip.only-hmis { background: var(--zero-soft); color: var(--zero); border-color: transparent; font-weight: 700; }
+.chip.none { color: var(--muted); border-style: dashed; }
+.ok-line { color: var(--ok); font-weight: 700; }
+.odiff { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; display: grid; gap: 4px; }
+.odiff b { font-weight: 700; }
+.diffline { grid-column: 2 / 4; font-size: 13px; color: var(--zero); }
+.key { font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+</style>
+
+<div class="app">
+  <aside class="side" aria-label="Filters">
+    <div><h1 id="h1">PI dictionary</h1><p class="sub" id="sub"></p></div>
+    <div class="fgroup"><span class="lbl">Search</span><input id="q" type="search" placeholder="Code, name, field or value" autocomplete="off" aria-label="Search indicators"></div>
+    <div class="fgroup ds-only"><span class="lbl">Aggregate data set</span><div id="dsList"></div><button class="linkbtn" id="dsAll" type="button">Show all data sets</button></div>
+    <div class="fgroup"><span class="lbl">Counts</span>
+      <select id="fType" aria-label="Unit counted"><option value="">Anything</option><option value="EVENT">Events / persons from events</option><option value="ENROLLMENT">Enrollments (incl. cohorts)</option><option value="persons">Distinct persons</option><option value="sum">Summed quantities</option></select></div>
+    <div class="fgroup" id="stGroup"><span class="lbl">Validation status</span><div id="stList"></div></div>
+    <div class="fgroup"><span class="lbl">Other</span>
+      <label class="chk"><input type="checkbox" id="fMismatch"><span>Definition differs from name</span><span class="c" id="cMismatch"></span></label>
+      <label class="chk ds-only"><input type="checkbox" id="fCombo"><span>Breakdown differs from the data set</span><span class="c" id="cCombo"></span></label>
+      <label class="chk ds-only"><input type="checkbox" id="fAttr"><span>Attribute categories differ from the data set</span><span class="c" id="cAttr"></span></label>
+      <label class="chk ds-only"><input type="checkbox" id="fMulti"><span>Feeds more than one data set</span><span class="c" id="cMulti"></span></label>
+      <label class="chk"><input type="checkbox" id="fDisagg"><span>Has disaggregation</span><span class="c" id="cDisagg"></span></label>
+    </div>
+    <p class="legend" id="legend"></p>
+  </aside>
+  <main class="main" id="main">
+    <div class="bar">
+      <div class="count" id="count"></div>
+      <div class="opts">
+        <label>Sort <select id="sort" aria-label="Sort by"><option value="code">Code</option><option value="name">Name</option><option value="dataset" class="ds-only">Data set, then code</option><option value="status">Status (worst first)</option></select></label>
+        <label><input type="checkbox" id="readable" checked> Field names instead of UIDs</label>
+        <button class="ghost" id="expandAll" type="button">Open all shown</button>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+  </main>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const ROWS = D.rows, NAMES = D.names, MAPS = D.mappings;
+const SEV = { FAILS: 'Fails', ALWAYS_ZERO: 'Always zero', WRONG_VALUE: 'Wrong value', REVIEW: 'Needs review', OK: 'No issue found', UNKNOWN: 'Not validated' };
+const SEV_RANK = { FAILS: 0, ALWAYS_ZERO: 1, WRONG_VALUE: 2, REVIEW: 3, OK: 4, UNKNOWN: 5 };
+const HAS_DS = D.datasets.length > 0;              // export without data sets: no link columns
+const HAS_TARGET = ROWS.some(r => r.target);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let readable = true;
+try { readable = localStorage.getItem('dict-readable') !== '0'; } catch (e) {}
+$('#readable').checked = readable;
+const state = { q: '', ds: new Set(), st: new Set(), type: '', mismatch: false, combo: false, attr: false, multi: false, disagg: false, sort: 'code', shown: 60, open: new Set() };
+
+const dsShort = n => n.replace(/\s+-\s+/, ' · ');
+const lbl = r => r.label || r.name;
+ROWS.forEach(r => {
+  r._search = [r.code, r.name, r.description || '', r.headline, r.conditions.join(' '), r.filter, r.datasets.map(d => d.name).join(' ')].join(' ').toLowerCase();
+  r._persons = r.expr === 'V{tei_count}';
+  r._sum = !/^V\{|^1$/.test(r.expr);
+});
+$('#h1').textContent = `${D.title || 'Program indicators'} · PI dictionary`;
+$('#sub').textContent = `${ROWS.length.toLocaleString()} program indicators` + (HAS_DS ? ` · ${D.datasets.length} aggregate data sets` : '');
+$('#legend').textContent = `Definitions describe what each indicator counts as configured${D.exported ? ' in the export of ' + D.exported : ''}, not what the name intends.` + (D.hasStatus ? ` Validation statuses come from the PI review${D.version ? ' on DHIS2 ' + D.version : ''}.` : '');
+if (!HAS_DS) document.querySelectorAll('.ds-only').forEach(el => el.remove());
+if (!D.hasStatus) $('#stGroup').remove();
+
+function renderSide() {
+  if (HAS_DS) $('#dsList').innerHTML = D.datasets.map(d => `<label class="chk"><input type="checkbox" data-ds="${d.id}" ${state.ds.has(d.id) ? 'checked' : ''}><span>${esc(dsShort(d.name))} <span class="per">${esc(d.period)}</span></span><span class="c">${d.count}</span></label>`).join('');
+  const sc = {}; ROWS.forEach(r => sc[r.status] = (sc[r.status] || 0) + 1);
+  if (D.hasStatus) $('#stList').innerHTML = ['FAILS', 'ALWAYS_ZERO', 'WRONG_VALUE', 'REVIEW', 'OK'].map(s => `<label class="chk"><input type="checkbox" data-st="${s}" ${state.st.has(s) ? 'checked' : ''}><span><span class="pill s-${s}">${SEV[s]}</span></span><span class="c">${sc[s] || 0}</span></label>`).join('');
+  $('#cMismatch').textContent = ROWS.filter(r => r.nameMismatch).length;
+  if (HAS_DS) {
+    $('#cCombo').textContent = ROWS.filter(r => r.comboMatch === false).length;
+    $('#cAttr').textContent = ROWS.filter(r => r.attrMatch === false).length;
+    $('#cMulti').textContent = ROWS.filter(r => r.datasets.length > 1).length;
+  }
+  $('#cDisagg').textContent = ROWS.filter(r => r.disagg.length).length;
+}
+
+function filtered() {
+  const q = state.q.trim().toLowerCase();
+  let rs = ROWS.filter(r =>
+    (!q || q.split(/\s+/).every(w => r._search.includes(w))) &&
+    (!state.ds.size || r.datasets.some(d => state.ds.has(d.id))) &&
+    (!state.st.size || state.st.has(r.status)) &&
+    (!state.type || (state.type === 'persons' ? r._persons : state.type === 'sum' ? r._sum : r.type === state.type)) &&
+    (!state.mismatch || r.nameMismatch) && (!state.combo || r.comboMatch === false) && (!state.attr || r.attrMatch === false) && (!state.multi || r.datasets.length > 1) && (!state.disagg || r.disagg.length));
+  const by = {
+    code: (a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }),
+    name: (a, b) => lbl(a).localeCompare(lbl(b)),
+    dataset: (a, b) => ((a.datasets[0]?.name || '') + a.code).localeCompare((b.datasets[0]?.name || '') + b.code, undefined, { numeric: true }),
+    status: (a, b) => (SEV_RANK[a.status] - SEV_RANK[b.status]) || a.code.localeCompare(b.code, undefined, { numeric: true }),
+  };
+  return rs.sort(by[state.sort]);
+}
+
+function highlight(src) {
+  if (!src) return '<span style="color:var(--muted)">(none)</span>';
+  const re = /(#\{(\w+)\.(\w+)\})|(A\{(\w+)\})|(V\{\w+\})|(d2:\w+|containsItems|contains)(?=\()|('[^']*'|"[^"]*")|(&&|\|\||==|!=|<=|>=|<|>)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))) {
+    out += esc(src.slice(last, m.index));
+    if (m[1]) out += `<span class="ref" title="${esc(m[1])}">${esc(readable ? `[${NAMES[m[2]] || m[2]} › ${NAMES[m[3]] || m[3]}]` : m[1])}</span>`;
+    else if (m[4]) out += `<span class="ref" title="${esc(m[4])}">${esc(readable ? `[${NAMES[m[5]] || m[5]}]` : m[4])}</span>`;
+    else if (m[6]) out += `<span class="var">${esc(m[6])}</span>`;
+    else if (m[7]) out += `<span class="fn">${esc(m[7])}</span>`;
+    else if (m[8]) out += `<span class="str">${esc(m[8])}</span>`;
+    else out += `<span class="op">${esc(m[9])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+const fields = s => esc(s).replace(/‹([^›]+)›/g, '<em class="f">$1</em>');
+
+const CATS = D.cats;
+const catName = id => (CATS[id] && CATS[id].name) || id;
+function chips(mine, other) {
+  if (!mine.length) return '<span class="chip none">none</span>';
+  return mine.map(c => `<span class="chip ${other.includes(c) ? '' : 'X'}">${esc(catName(c))}</span>`).join('');
+}
+function catDiffText(t) {
+  const out = [];
+  const onlyP = t.piCats.filter(c => !t.hmisCats.includes(c)), onlyH = t.hmisCats.filter(c => !t.piCats.includes(c));
+  if (onlyP.length || onlyH.length) out.push(`disaggregation: indicator ${onlyP.length ? 'splits by ' + onlyP.map(catName).join(', ') : 'has no extra split'}${onlyH.length ? ', the data set expects ' + onlyH.map(catName).join(', ') : ''}`);
+  const aP = t.piAttr.filter(c => !t.hmisAttr.includes(c)), aH = t.hmisAttr.filter(c => !t.piAttr.includes(c));
+  if (aP.length || aH.length) out.push(`attribute: indicator ${t.piAttr.length ? 'has ' + t.piAttr.map(catName).join(', ') : 'has none'}, the data set expects ${t.hmisAttr.length ? t.hmisAttr.map(catName).join(', ') : 'none'}`);
+  return out;
+}
+function optionDiff(onlyP, onlyH) {
+  // pair categories that only one side has, and show how their options differ
+  const rows = [];
+  onlyP.forEach((p, i) => {
+    const h = onlyH[i]; if (!h) return;
+    const po = (CATS[p] || {}).options || [], ho = (CATS[h] || {}).options || [];
+    const a = po.filter(o => !ho.includes(o)), b = ho.filter(o => !po.includes(o)), same = po.filter(o => ho.includes(o));
+    rows.push(`<div><b>${esc(catName(p))}</b> vs <b>${esc(catName(h))}</b>: ${same.length} options in common${a.length ? `; only in the indicator: <span class="chip only-pi">${a.map(esc).join('</span> <span class="chip only-pi">')}</span>` : ''}${b.length ? `; only in the data set: <span class="chip only-hmis">${b.map(esc).join('</span> <span class="chip only-hmis">')}</span>` : ''}</div>`);
+  });
+  return rows.join('');
+}
+function compareBlock(r) {
+  if (!r.targets.length) return `<p class="legend">${r.target ? 'The aggregate data element with this code is in none of the exported data sets.' : 'No aggregate data element with this code in the exported data sets.'}</p>`;
+  return r.targets.map(t => {
+    const c = (mine, other, cls) => !mine.length ? '<span class="chip none">none</span>' : mine.map(x => `<span class="chip ${other.includes(x) ? '' : cls}">${esc(catName(x))}</span>`).join('');
+    const ok = t.ccMatch && t.acMatch;
+    const onlyP = t.piCats.filter(x => !t.hmisCats.includes(x)), onlyH = t.hmisCats.filter(x => !t.piCats.includes(x));
+    return `<div class="cmp"><h5>${esc(t.dsName)} <span>${ok ? '<span class="ok-line">Breakdown matches</span>' : 'Breakdown differs'}</span></h5>
+      <table><thead><tr><th></th><th>This indicator</th><th>Aggregate data element in this data set</th></tr></thead><tbody>
+        <tr><th>Disaggregation</th><td>${c(t.piCats, t.hmisCats, 'only-pi')}<span class="cn">${esc(r.piCombo)}</span></td>
+            <td>${c(t.hmisCats, t.piCats, 'only-hmis')}<span class="cn">${esc(t.effCombo)}${t.overridden ? ` (data set override; the data element’s own combo is ${esc(t.deCombo)})` : ''}</span></td></tr>
+        <tr><th>Attribute</th><td>${c(t.piAttr, t.hmisAttr, 'only-pi')}<span class="cn">${esc(r.attrCombo)}</span></td>
+            <td>${c(t.hmisAttr, t.piAttr, 'only-hmis')}<span class="cn">data set attribute combo: ${esc(t.dsAttr)}</span></td></tr>
+      </tbody></table>
+      ${optionDiff(onlyP, onlyH) ? `<div class="odiff">${optionDiff(onlyP, onlyH)}</div>` : ''}
+    </div>`;
+  }).join('') + '<div class="key"><span class="chip only-pi">red</span> only in the indicator <span class="chip only-hmis">amber</span> expected by the data set but missing from the indicator</div>';
+}
+
+function notes(r) {
+  const n = [];
+  if (r.type === 'ENROLLMENT' && /#\{/.test(r.filter + r.expr)) n.push('Values from events are read from the latest event of that stage in the enrollment.');
+  if (r.disagg.length) n.push(r.type === 'EVENT' ? 'A record is only counted if it matches exactly one option in every breakdown category; others are left out of the total too (DHIS2 2.43).' : 'Records that match no option in a breakdown category are left out of the breakdown but kept in the total (DHIS2 2.43).');
+  if (/contains\(/.test(r.filter)) n.push('“Contains the text” is a text search: it also matches every value that contains that text (e.g. “TB” matches “DR-TB”).');
+  if (r.type === 'ENROLLMENT' && /#\{/.test(r.filter + r.expr) && !(r.boundaryTargets || []).includes('EVENT_DATE')) n.push('No event-date boundary: the latest event is read even if it is after the reporting period.');
+  if (r.type === 'ENROLLMENT' && /#\{[^}]+\}\s*(<|<=|==)\s*\d/.test(r.filter) && !/d2:hasValue/.test(r.filter)) n.push('Enrollment indicators compare a blank number as 0: check whether a blank value satisfies the filter.');
+  if (r.type === 'EVENT' && /!=\s*'/.test(r.filter)) n.push('In event indicators, “is not X” excludes records where the field is blank.');
+  return n;
+}
+
+function body(r) {
+  const t = r.target;
+  return `<div class="body">
+    ${r.description ? `<div><h4>What it counts</h4><p class="prose">${esc(r.description)}</p></div>` : ''}
+    ${r.nameMismatch ? `<div class="mismatch"><strong>Differs from the name:</strong> ${esc(r.nameMismatch)}</div>` : ''}
+    <div class="counted"><h4>Definition, step by step</h4>
+      <div class="unit">${fields(r.headline)}</div>
+      <div>${fields(r.period)}</div>
+      ${r.conditions.length ? `<div>Only records where:</div><ul>${r.conditions.map(c => `<li>${fields(c)}</li>`).join('')}</ul>` : '<div>No filter: every record in the period counts.</div>'}
+    </div>
+    ${r.disagg.length ? `<div><h4>Breakdown</h4>${r.disagg.map(x => { const m = MAPS[x.mapping]; return `<details class="cat"><summary>${esc(x.category)} <span>· ${m ? esc(m.name) : 'no mapping defined'}</span></summary>${m ? `<div class="tablewrap"><table class="bands"><tbody>${m.options.map(o => `<tr><td>${esc(o.name)}</td><td>${readable ? highlight(o.filter) : esc(o.filter || '(no filter)')}</td></tr>`).join('')}</tbody></table></div>` : ''}</details>`; }).join('')}</div>` : ''}
+    <div class="grid2">
+      <div><h4>Filter</h4><div class="expr">${highlight(r.filter)}</div></div>
+      <div><h4>Expression</h4><div class="expr">${highlight(r.expr)}</div></div>
+    </div>
+    <div class="grid2">
+      <div><h4>Configuration</h4><dl class="kv">
+        <dt>Analytics type</dt><dd>${r.type === 'EVENT' ? 'Event' : 'Enrollment'} · aggregation ${esc(r.agg || '(none)')}</dd>
+        <dt>Breakdown combo</dt><dd>${esc(r.piCombo)}${r.attrCombo !== 'default' ? ` + ${esc(r.attrCombo)}` : ''}</dd>
+        <dt>UID</dt><dd><code>${esc(r.id)}</code></dd>
+      </dl></div>
+      ${HAS_TARGET ? `<div><h4>Feeds aggregate data element</h4>${t ? `<dl class="kv">
+        <dt>Data element</dt><dd>${esc(t.name)} <code>${esc(t.id)}</code></dd>
+        <dt>Matched by</dt><dd>code ${esc(t.code)}${t.match !== 'exact' ? ' (case differs)' : ''}</dd>
+        ${HAS_DS ? `<dt>Data sets</dt><dd>${r.datasets.length} ${r.datasets.length > 1 ? '<span class="warn">(feeds more than one)</span>' : ''}</dd>` : ''}
+      </dl>` : '<p class="legend">No aggregate data element with this code.</p>'}</div>` : ''}
+    </div>
+    ${HAS_DS ? `<div><h4>Breakdown compared with the data set</h4>${compareBlock(r)}</div>` : ''}
+    ${notes(r).length ? `<div><h4>How DHIS2 evaluates it</h4><ul class="notes">${notes(r).map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
+    ${r.issues.length ? `<div><h4>Validation findings</h4><ul class="issues">${r.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>` : ''}
+  </div>`;
+}
+
+function entry(r) {
+  const open = state.open.has(r.id);
+  return `<article class="entry" id="${r.id}">
+    <button class="hd" type="button" data-id="${r.id}" aria-expanded="${open}">
+      <span class="code">${esc(r.code)}</span><span class="nm">${esc(lbl(r))}</span>
+      <span class="tags">${r.nameMismatch ? '<span class="pill s-ALWAYS_ZERO">Differs from name</span>' : ''}${r.comboMatch === false || r.attrMatch === false ? '<span class="pill s-REVIEW">Breakdown differs</span>' : ''}${D.hasStatus ? `<span class="pill s-${r.status}">${SEV[r.status] || esc(r.status)}</span>` : ''}</span>
+      <span class="desc">${esc(r.description || r.headline.replace(/[‹›]/g, ''))} ${r.datasets.map(d => `<span class="ds">${esc(dsShort(d.name).split(' · ')[0])}</span>`).join(' ')}</span>
+      ${r.targets.some(x => !x.ccMatch || !x.acMatch) ? `<span class="diffline">${r.targets.filter(x => !x.ccMatch || !x.acMatch).map(x => `vs ${esc(dsShort(x.dsName).split(' · ')[0])}: ${esc(catDiffText(x).join('; '))}`).join(' · ')}</span>` : ''}
+    </button>
+    ${open ? body(r) : ''}
+  </article>`;
+}
+
+let current = [];
+function render() {
+  current = filtered();
+  $('#count').innerHTML = `<b>${current.length.toLocaleString()}</b> of ${ROWS.length.toLocaleString()} indicators`;
+  const shown = current.slice(0, state.shown);
+  $('#list').innerHTML = shown.length ? shown.map(entry).join('') + (current.length > state.shown ? `<button class="ghost more" id="more" type="button">Show ${Math.min(60, current.length - state.shown)} more of ${current.length - state.shown}</button>` : '') : '<p class="empty">No indicator matches these filters.</p>';
+}
+
+document.addEventListener('input', e => { if (e.target.id === 'q') { state.q = e.target.value; state.shown = 60; render(); } });
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.ds) { t.checked ? state.ds.add(t.dataset.ds) : state.ds.delete(t.dataset.ds); }
+  else if (t.dataset.st) { t.checked ? state.st.add(t.dataset.st) : state.st.delete(t.dataset.st); }
+  else if (t.id === 'fType') state.type = t.value;
+  else if (t.id === 'fMismatch') state.mismatch = t.checked;
+  else if (t.id === 'fCombo') state.combo = t.checked;
+  else if (t.id === 'fAttr') state.attr = t.checked;
+  else if (t.id === 'fMulti') state.multi = t.checked;
+  else if (t.id === 'fDisagg') state.disagg = t.checked;
+  else if (t.id === 'sort') state.sort = t.value;
+  else if (t.id === 'readable') { readable = t.checked; try { localStorage.setItem('dict-readable', readable ? '1' : '0'); } catch (err) {} }
+  else return;
+  state.shown = 60; render();
+});
+document.addEventListener('click', e => {
+  const h = e.target.closest('button.hd');
+  if (h) { const id = h.dataset.id; state.open.has(id) ? state.open.delete(id) : state.open.add(id); const el = document.getElementById(id); el.outerHTML = entry(ROWS.find(r => r.id === id)); return; }
+  if (e.target.id === 'more') { state.shown += 60; render(); return; }
+  if (e.target.id === 'dsAll') { state.ds.clear(); renderSide(); state.shown = 60; render(); return; }
+  if (e.target.id === 'expandAll') { const ids = current.slice(0, state.shown).map(r => r.id); const allOpen = ids.every(id => state.open.has(id)); ids.forEach(id => allOpen ? state.open.delete(id) : state.open.add(id)); e.target.textContent = allOpen ? 'Open all shown' : 'Close all shown'; render(); }
+});
+document.addEventListener('keydown', e => { if (e.key === '/' && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) { e.preventDefault(); $('#q').focus(); } });
+
+const h = location.hash.slice(1);
+const hit = ROWS.find(r => r.id === h);
+if (hit) { state.q = hit.code; $('#q').value = hit.code; state.open.add(hit.id); }
+renderSide(); render();
+</script>

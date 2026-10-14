@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<!-- Reviewer guide for the PI fix approval page. Filled in and rendered to PDF by manual_shots.py:
+     double-brace placeholders come from the config and fix-review.json; figures whose screenshot could not be made are
+     removed. Keep it free of program content: everything specific comes from the placeholders. -->
+<title>PI Fix Approvals: reviewer guide</title>
+<style>
+@page { size: A4; margin: 18mm 17mm 20mm }
+:root { --ink: #14201d; --muted: #55635f; --line: #d6dedb; --soft: #eef3f1; --accent: #0d6e66; --warn: #9a5b00; --warn-soft: #f8e7d2; --ok: #2c7a3f; --no: #b3261e }
+* { box-sizing: border-box }
+body { font: 10.5pt/1.5 "DejaVu Sans", "Segoe UI", Arial, sans-serif; color: var(--ink); margin: 0; background: #fff }
+h1 { font-size: 22pt; margin: 0 0 4px; letter-spacing: -.01em }
+h2 { font-size: 14pt; margin: 22px 0 6px; color: var(--accent); break-after: avoid }
+h3 { font-size: 11.5pt; margin: 14px 0 4px; break-after: avoid }
+p { margin: 5px 0 } ul, ol { margin: 4px 0 6px; padding-left: 20px } li { margin: 2px 0 }
+.sub { color: var(--muted); font-size: 11pt; margin-bottom: 14px }
+code { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 9pt; background: var(--soft); padding: 0 3px; border-radius: 3px; overflow-wrap: anywhere }
+pre { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 8.5pt; background: var(--soft); border: 1px solid var(--line); border-radius: 5px; padding: 7px 9px; white-space: pre-wrap; margin: 6px 0; break-inside: avoid }
+figure { margin: 8px 0 10px; break-inside: avoid } figure img { max-width: 100%; max-height: 92mm; width: auto; margin: 0 auto; border: 1px solid var(--line); border-radius: 4px; display: block }
+figcaption { font-size: 9pt; color: var(--muted); margin-top: 3px }
+.box { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: #f7faf9; border-radius: 4px; padding: 8px 11px; margin: 8px 0; break-inside: avoid }
+.box.warn { border-left-color: var(--warn); background: var(--warn-soft) }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; break-inside: avoid }
+th, td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top }
+th { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .04em; color: var(--muted) }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+.flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; break-inside: avoid }
+.flow div { border: 1px solid var(--line); border-radius: 5px; padding: 7px 8px; font-size: 9pt; background: #fff; position: relative }
+.flow b { display: block; color: var(--accent); font-size: 9.5pt; margin-bottom: 2px }
+.flow div:not(:last-child)::after { content: "→"; position: absolute; right: -9px; top: 40%; color: var(--muted); font-size: 11pt }
+.btnlike { display: inline-block; border: 1px solid #b9c7c3; border-radius: 4px; padding: 0 5px; font-size: 9pt; white-space: nowrap }
+.pb { break-before: page }
+.add { background: #d4f0dc; color: #145c2a; padding: 0 2px } .del { background: #f8d9d6; color: #8f1d16; text-decoration: line-through; padding: 0 2px }
+@media screen { body { max-width: 190mm; margin: 0 auto; padding: 16px } .cols, .flow { grid-template-columns: 1fr } }
+</style></head><body>
+
+<h1>PI Fix Approvals</h1>
+<div class="sub">Reviewer guide · {{TITLE}} · program indicator fixes · {{DATE}}</div>
+
+<p>The <b>PI Fix Approvals</b> page lets you review the proposed corrections to the {{TITLE}} program indicators (PIs) and their disaggregation (category) mappings, approve or reject each one, and produce the files that a DHIS2 administrator imports. Every proposal has been tested end to end on a disposable DHIS2 test instance{{VERSION_NOTE}}; the evidence is shown in the page.</p>
+
+<table>
+<tr><th>What</th><th>Count</th></tr>
+<tr><td>Program indicators with a proposed change (filter, expression, period boundaries, mapping list and a new description)</td><td>{{NPIS}}</td></tr>
+<tr><td>Disaggregation (category) mappings with a proposed change</td><td>{{NMAPS}}</td></tr>
+<tr><td>Other indicators whose breakdown changes through those mappings</td><td>{{NVIA}}</td></tr>
+<tr><td>Agreed topics not proposed yet, because they need a decision first (listed under “Not proposed”)</td><td>{{NEXCL}}</td></tr>
+</table>
+
+<h2>Two ways to open the page</h2>
+<div class="cols">
+<div class="box"><b>Standalone file</b> <code>pi-fix-review-standalone.html</code><br>No account needed. Open it in Chrome, Edge, Firefox or Safari; it works offline. Your decisions are kept in your browser, and you share them by sending a small decisions file (see “Working together”).</div>
+<div class="box"><b>Claude link</b> (artifact)<br>For people with a Claude account in the organisation. Decisions are saved for everyone automatically and appear live for the others. People who can only view the link can look but not approve.</div>
+</div>
+<p>Both show the same proposals and evidence and produce the same import files. This guide follows the standalone file; the Claude link works the same way, without the decisions files.</p>
+
+<h2>The page at a glance</h2>
+<figure data-shot="m1-overview"><img src="m1-overview.png" alt="Overview of the page"><figcaption>The overview. Left: the fix groups with progress. Top: your name, decisions files and downloads.</figcaption></figure>
+<ul>
+<li><b>Header:</b> overall progress, <span class="btnlike">Your name</span>, <span class="btnlike">Save decisions file</span>, <span class="btnlike">Load decisions files</span>, and the four downloads.</li>
+<li><b>Left rail:</b> one entry per <i>fix group</i>. A group is one kind of change agreed in the review meeting, applied to every indicator or mapping that needs it. The bar under each entry shows approved (green) and rejected (red).</li>
+<li><b>Overview and test evidence:</b> how the fixes were tested (server syntax check, analytics before and after, comparison with an independent calculation, hand-written scenarios, screenshots).</li>
+<li><b>Not proposed:</b> agreed topics that still need a decision, with the reason for each.</li>
+</ul>
+
+<h2>Reviewing a group</h2>
+<figure data-shot="m2-group"><img src="m2-group.png" alt="A fix group"><figcaption>A group: what changes, why, notes on other systems that use these definitions, the scenario test, then one card per item.</figcaption></figure>
+<p>The top of each group explains the change in one line and why it is needed. Where other systems use the same definitions (for example a report pipeline), a note says what the change means for them. If a <b>scenario</b> was tested on DHIS2 for the group, its expected and actual values before and after are shown. Below that is one card per indicator or mapping.</p>
+
+<h3>Reading a card</h3>
+<figure data-shot="m3-card"><img src="m3-card.png" alt="An indicator card"><figcaption>An indicator card with “Show current vs proposed” opened.</figcaption></figure>
+<ul>
+<li><b>Chips</b> under the name list every fix that touches this indicator and its state in each group.</li>
+<li><b>Test data line:</b> the indicator value on the test data before → after the fix, and whether DHIS2 matched an independent calculation.</li>
+<li><b>Coloured notes:</b> red = still fails after these fixes (with the reason); orange = the name and the definition don’t quite match; grey = other open topics on this indicator that are not changed here.</li>
+<li><b>Show current vs proposed:</b> side-by-side view of the filter, expression, period boundaries and mapping list. <span class="del">Removed</span> parts are red and struck through, <span class="add">added</span> parts are green. Tick <i>Field names instead of UIDs</i> to read field names.</li>
+<li><b>Description:</b> the proposed description is editable. Whatever is in the box is what gets exported.</li>
+</ul>
+<p>Mapping cards show each changed option of the mapping and which indicators use the mapping.</p>
+
+<h2>Approving and rejecting</h2>
+<ul>
+<li><span class="btnlike">Approve</span> / <span class="btnlike">Reject</span> on a card records your decision for <b>this fix</b> on that item. Click the same button again to undo. Your name and the date appear under the buttons.</li>
+<li><span class="btnlike">Approve all N pending</span> at the top of a group approves every item you haven’t decided yet. Use it where the change is identical on every item (the header says “same change on every item”). Decisions you already made are left as they are.</li>
+<li><span class="btnlike">Reset group</span> clears every decision in the group.</li>
+<li>Use <i>Show: Pending</i> and the search box to find what is left.</li>
+</ul>
+<div class="box warn"><b>An item is exported only when every fix on it is approved.</b> The proposed definition combines all its fixes. Approving one of them leaves the item “partly approved”, and it is not in the download yet. One rejection blocks the item.</div>
+<figure data-shot="m5-partial"><img src="m5-partial.png" alt="Partly approved indicator"><figcaption>Partly approved: the card says which fixes are still needed. <span class="btnlike">Approve all N fixes</span> approves them in one click.</figcaption></figure>
+<p>The progress line in the header counts approved, <i>partly approved</i>, blocked and pending items separately.</p>
+
+<h2 class="pb">Working together</h2>
+<p>With the standalone file, each person reviews in their own browser and sends their decisions to one <b>coordinator</b>, who merges them and produces the import files.</p>
+<div class="flow">
+<div><b>1. Share the file</b>The coordinator sends <code>pi-fix-review-standalone.html</code> to the reviewers (email, shared drive).</div>
+<div><b>2. Review</b>Each reviewer types their name, reviews their groups and approves or rejects.</div>
+<div><b>3. Send decisions</b>Each reviewer clicks <span class="btnlike">Save decisions file</span> and sends the downloaded <code>pi-fix-decisions-&lt;name&gt;-&lt;date&gt;.json</code> to the coordinator.</div>
+<div><b>4. Merge and export</b>The coordinator clicks <span class="btnlike">Load decisions files</span>, selects all received files, settles disagreements and downloads the import files.</div>
+</div>
+
+<h3>Dividing the work</h3>
+<p>Reviewers don’t need to look at everything. Split the groups by programme area or by who knows the indicators best, and let one person review the disaggregation mapping groups. Anyone can still open any group. Items that sit in several groups are easiest when one person approves all their fixes.</p>
+
+<h3>Saving your progress</h3>
+<ul>
+<li>Decisions are kept in your browser automatically, so you can close the page and continue later <b>on the same computer and browser</b>.</li>
+<li>They are <b>not</b> kept in a private/incognito window or after clearing browsing data. Save a decisions file now and then; you can load it back with <span class="btnlike">Load decisions files</span>.</li>
+<li>A decisions file is small and contains only decisions, names, dates and edited descriptions. Send it, not the large HTML file.</li>
+</ul>
+
+<h3>How merging works</h3>
+<ul>
+<li>Decisions are merged <b>per item and per fix</b>. For each one the <b>newest</b> decision wins, whoever made it.</li>
+<li>Loading the same file twice is harmless. You can load files at different times as they arrive.</li>
+<li>Edited descriptions merge the same way: the newest edit wins.</li>
+<li>A file saved from a different version of the page (for example after the proposals were updated) is still loaded, with a warning. Check those items again.</li>
+</ul>
+<h3>When reviewers disagree</h3>
+<figure data-shot="m7-conflict"><img src="m7-conflict.png" alt="Disagreement list"><figcaption>The overview lists every item where one reviewer approved and another rejected.</figcaption></figure>
+<p>The newest decision is kept, but disagreements are listed on the overview so they can be discussed. Once agreed, the coordinator sets the final decision on the card; as the newest decision, it is the one exported. To spread the outcome, the coordinator saves a decisions file and sends it back to everyone.</p>
+
+<h3>Using the Claude link instead</h3>
+<p>Everyone signed in with write access sees the same decisions live; there are no files to send. If two people change the same item, the last click wins. The downloads are identical.</p>
+
+<h2>Producing the import files</h2>
+<figure data-shot="m4-header"><img src="m4-header.png" alt="Header with downloads"><figcaption>The downloads only include fully approved items. The numbers on the buttons show how many.</figcaption></figure>
+<table>
+<tr><th>Button</th><th>File</th><th>What it is for</th></tr>
+<tr><td>Approved PIs</td><td><code>{{STEM}}-program-indicators-approved-&lt;date&gt;.json</code></td><td>Approved indicators that work after the fixes. DHIS2 metadata import payload.</td></tr>
+<tr><td>Approved, still failing</td><td><code>…-approved-still-failing-&lt;date&gt;.json</code></td><td>Approved indicators that still fail in analytics because of a topic that isn’t fixed yet (shown in red on the card). They import without errors and fail no worse than today; you may prefer to hold them until that topic is fixed.</td></tr>
+<tr><td>Mapping patch</td><td><code>{{STEM}}-categoryMappings-&lt;date&gt;.patch.json</code></td><td>Approved mapping changes, as a JSON Patch for the program (mappings belong to the program, not to the indicators).</td></tr>
+<tr><td>Summary (.csv)</td><td><code>{{STEM}}-fix-review-summary-&lt;date&gt;.csv</code></td><td>Every item and fix with its decision, who decided and when. Opens in Excel; keep it as the record of the review.</td></tr>
+</table>
+
+<h3>Importing (for the DHIS2 administrator)</h3>
+<p>Import into a test copy first, run analytics and check a few indicators, then repeat on production. With curl, using your own server address and a personal access token with metadata write rights:</p>
+<pre>curl -H "Authorization: ApiToken $TOKEN" -H "Content-Type: application/json" \
+  -X POST "https://&lt;server&gt;/api/metadata?importStrategy=UPDATE&amp;atomicMode=ALL" \
+  -d @{{STEM}}-program-indicators-approved-&lt;date&gt;.json
+
+curl -H "Authorization: ApiToken $TOKEN" -H "Content-Type: application/json-patch+json" \
+  -X PATCH "https://&lt;server&gt;/api/programs/{{PROGRAM}}" \
+  -d @{{STEM}}-categoryMappings-&lt;date&gt;.patch.json</pre>
+<p>Check that the import report says <code>"status": "OK"</code> with the expected number of updated objects, then run the analytics tables update. The indicator file can also be loaded with the Import/Export app (metadata import, strategy “Update”); the mapping patch needs the API call.</p>
+<div class="box warn"><b>Check for changes made since the export{{EXPORTED_NOTE}}.</b> The files contain the complete indicator objects and the complete list of the program’s category mappings as they were exported, changed only where shown. If anyone has edited these indicators or mappings since, importing would overwrite those edits. Compare first, or ask for the proposals to be regenerated from a fresh export.</div>
+
+<h2>Questions</h2>
+<table>
+<tr><th>Question</th><th>Answer</th></tr>
+<tr><td>The download button stays grey after I approved something.</td><td>The item has other fixes that are still pending. The card says which; use <span class="btnlike">Approve all N fixes</span>, or approve the other groups.</td></tr>
+<tr><td>My decisions are gone.</td><td>The page was opened in another browser, a private window, or browsing data was cleared. Load your last decisions file.</td></tr>
+<tr><td>“Came from another version of this page”</td><td>The proposals changed after that file was saved. The decisions were loaded; recheck the items in groups that changed.</td></tr>
+<tr><td>I disagree with a description.</td><td>Edit it in the card. Your text is used in the export (and merged like a decision).</td></tr>
+<tr><td>Where is the full test evidence?</td><td>In the end-to-end test write-up (<code>E2E-TEST.md</code>) with the API log, results and screenshots; summarised on the page’s overview.</td></tr>
+<tr><td>A topic I care about isn’t in the page.</td><td>See “Not proposed”: these need a programme decision first.</td></tr>
+</table>
+</body></html>
