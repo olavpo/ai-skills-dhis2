@@ -11,7 +11,7 @@ A collection of [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/
 | `dhis2-docs` | Work with the DHIS2 Web API and look up official DHIS2 documentation. |
 | `dhis2-indicators` | Author, validate, and test aggregate indicators and program indicators. |
 | `dhis2-integrity` | Remediate broken/duplicate metadata so an instance passes DHIS2 data-integrity checks. |
-| `dhis2-pi-review` | Validate, review with the programme team, fix, test end to end and approve a program's indicators at scale. |
+| `dhis2-indicator-review` | Validate, review with the programme team, fix, test end to end and approve program or aggregate indicators at scale. |
 | `dhis2-metadata` | Export, split, transform, compare, validate, and import DHIS2 metadata in bulk. |
 | `dhis2-prototyping` | Run a comparative DHIS2 proof of concept: generated metadata, synthetic data, verified indicators, scripted entry flows, report. |
 | `dhis2-tracker-design` | Design and review tracker data models: entity types, programs vs stages vs relationships, access, analytics reach. |

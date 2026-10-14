@@ -4,7 +4,7 @@
                                       [--agg COUNT] [--boundaries SPEC ...] [--pe 2026Q1] [--ou UID] [--keep]
                                       [--config pireview.json]
 
-Use it to verify an engine behaviour before relying on it (references/program-indicators/dhis2-behaviours.md), e.g. whether a blank
+Use it to verify an engine behaviour before relying on it (references/program-indicators/behaviours.md), e.g. whether a blank
 number compares as 0:
     probe.py --type ENROLLMENT "#{<stage>.<numDe>} < 3" "d2:hasValue(#{<stage>.<numDe>}) && #{<stage>.<numDe>} < 3"
 

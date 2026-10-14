@@ -90,6 +90,9 @@ def read_back(cfg, A, payload, aux_all):
     adiff = []
     if aux_all is not None:
         want = {m['id']: m for m in aux_all}
+        if not getattr(A, 'AUX_REPLACES_ALL', False):          # e.g. data elements: only the changed ones were sent
+            changed = {x['id'] for x in E.fixes(cfg)['aux']}
+            want = {k: v for k, v in want.items() if k in changed}
         have = A.read_back_aux(cfg, list(want))
         name = lambda m: A.aux_describe(cfg, m)['name']
         adiff = [{'aux': k, 'name': name(w)} for k, w in want.items()

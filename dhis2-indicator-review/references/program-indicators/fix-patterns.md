@@ -34,6 +34,7 @@ Every pattern asserts its match exactly once per item (whitespace-insensitive) a
 | MAX "return a date" | A PI returns a number; encoding (YYYYMM?) and source are a design choice. |
 | Clinical windows (`== 42` days) | `>= 42` vs a window is a clinical definition. |
 | Unmapped values | Add an "Unknown/Other" option (changes the category model) or accept dropping. |
+| Breakdown reads a field that may be blank (`mapping-reads-optional-field`) | Make the field mandatory (existing records stay blank), derive the value from a mandatory field (e.g. age from date of birth), or add an "Unknown" option. |
 | Overlapping roll-up options | Splitting categories changes the data set mapping. |
 | Literal on the wrong field | The intended field is a guess. |
 | `contains` → `containsItems` where substrings may be intended | e.g. "TB" vs "MDR-TB": a programme definition. |

@@ -118,7 +118,7 @@ def fill(cfg, D, made, out):
             'VERSION_NOTE': f' (DHIS2 {e(cfg.dhis2_version)})' if cfg.dhis2_version else '',
             'NPIS': str(len(D['items'])), 'NMAPS': str(len(D['aux'])), 'NVIA': str(via), 'NEXCL': str(len(D['excluded'])),
             'STEM': e(stem), 'ITEMS_STEM': e(f"{stem}-{LB.get('items', 'items').replace(' ', '-')}"), 'PREFIX': e(D.get('prefix', 'review')),
-            'SHORT': e(LB.get('short', '')), 'SHORTS': e(LB.get('shorts', 'items')), 'ITEM': e(LB.get('item', 'item')),
+            'SHORT': e(LB.get('short', '')[:1].upper() + LB.get('short', '')[1:]), 'SHORTS': e(LB.get('shorts', 'items')), 'ITEM': e(LB.get('item', 'item')),
             'ITEMS': e(LB.get('items', 'items')), 'ITEMS_CAP': e(capf(LB.get('items', 'items'))), 'FIELDS': e(LB.get('fields', 'the definition')),
             'AUXS': e(LB.get('auxs', '')), 'AUXS_CAP': e(capf(LB.get('auxs', ''))), 'AUX_SHORT': e(LB.get('aux_short', '')),
             'AUX_SHORTS': e(LB.get('aux_shorts', '')), 'AUX_SHORT_CAP': e(capf(LB.get('aux_short', ''))), 'AUX_SHORTS_CAP': e(capf(LB.get('aux_shorts', ''))),

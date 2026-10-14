@@ -181,6 +181,10 @@ claimers = C.defaultdict(set)
 for n, r in enumerate(rows):
     if claimed[n]:
         claimers[r['pid']].add(claimed[n])
+# a 'uses-<check>' row (the item uses a defective aux object) is explained by the aux topic that claims <check>
+for n, r in enumerate(rows):
+    if r['cat'].startswith('uses-'):
+        claimers[r['pid']] |= {t['key'] for t in topics if t['kind'] == AK and r['cat'][5:] in t['checks']}
 symptom = {t['key'] for t in topics if t.get('onlyUnexplained')}
 # A server rejection is a cause of its own: only a syntax-type topic explains it (an AVERAGE on a count
 # doesn't explain an unquoted UID). Analytics errors are explained by any other topic on the item.

@@ -25,6 +25,7 @@ import common  # noqa: E402  (this folder's common.py: the type folder is first 
 TYPE = 'program-indicators'
 ITEM_KIND = 'pi'
 AUX_KIND = 'mapping'
+AUX_REPLACES_ALL = True   # the mapping patch replaces the program's whole categoryMappings list
 PREFIX = 'pi'
 LABELS = {'item': 'program indicator', 'items': 'program indicators', 'short': 'PI', 'shorts': 'PIs',
           'aux': 'category mapping', 'auxs': 'category mappings', 'Item': 'Program indicator', 'Items': 'Program indicators',

@@ -45,7 +45,7 @@ def engine(cfg, tag, ccfg, skip):
         if r.get('expected_total') is None:
             continue
         exp, got = r['expected_total'], r.get('analytics_total')
-        per[r['id']] = {'expected': exp, 'analytics': got, 'totalOk': got is not None and abs(exp - got) < 1e-6, 'cellsOk': r.get('cells_ok')}
+        per[r['id']] = {'expected': exp, 'analytics': got, 'totalOk': r['total_ok'] if 'total_ok' in r else (got is not None and abs(exp - got) < 1e-6), 'cellsOk': r.get('cells_ok')}
     errs = {k: v['total_err'] for k, v in an.items() if v.get('total_err')}
     return {'queried': len(an), 'errors': len(errs), 'errorByItem': {lab(k): e[:160] for k, e in errs.items()},
             'compared': len(per), 'totalMismatch': [lab(k) for k, v in per.items() if not v['totalOk']],
@@ -60,7 +60,7 @@ def scenarios(cfg):
     out = []
     for s in S:
         b, a = B.get(s['key'], {}), A.get(s['key'], {})
-        val = lambda r: None if not r else ('error' if r.get('status') != 200 else r.get('total'))
+        val = lambda r: 'missing' if not r else ('error' if r.get('status') != 200 else r.get('total'))   # None = no value
         bv, av = val(b), val(a)
         cells = a.get('cells') or {}
         cells_ok = all(E.same_value((cells.get(c) or {}).get(o, 0.0), v) for c, cs in s['expectCellsAfter'].items() for o, v in cs.items())
@@ -69,7 +69,7 @@ def scenarios(cfg):
                     'expectBefore': s['expectBefore'], 'gotBefore': bv, 'beforeError': b.get('error'),
                     'expectAfter': s['expectAfter'], 'gotAfter': av, 'afterError': a.get('error'),
                     'expectCells': s['expectCellsAfter'], 'gotCells': cells,
-                    'pass': bv is not None and av is not None and E.same_value(bv, s['expectBefore']) and E.same_value(av, s['expectAfter']) and cells_ok})
+                    'pass': 'missing' not in (bv, av) and E.same_value(bv, s['expectBefore']) and E.same_value(av, s['expectAfter']) and cells_ok})
     return out
 
 

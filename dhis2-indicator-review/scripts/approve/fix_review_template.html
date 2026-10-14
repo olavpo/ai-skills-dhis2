@@ -158,7 +158,7 @@ let view = 'overview', filt = 'all', q = '', readable = false, open = new Set();
 try { readable = localStorage.getItem('fix-readable') === '1'; view = localStorage.getItem('fix-view') || 'overview'; } catch (e) {}
 if (!(view === 'overview' || view === 'excluded' || GK[view])) view = 'overview';
 document.title = `${LB.short || ''} Fix Approvals: ` + DATA.title;
-$('#ptype').textContent = `${LB.short || ''} Fix Approvals`;
+$('#ptype').textContent = `${(LB.short || "").replace(/^./, c => c.toUpperCase())} Fix Approvals`;
 $('#ptitle').textContent = DATA.title;
 $('#saCtl').hidden = !SA;
 new ResizeObserver(() => document.documentElement.style.setProperty('--hdr', $('#top').offsetHeight + 'px')).observe($('#top'));

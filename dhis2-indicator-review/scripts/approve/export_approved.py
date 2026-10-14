@@ -1,11 +1,11 @@
 """Import files from the approvals, without the page: the same four files the page downloads.
 
-Decisions come from either
+Decisions come from either or both (reviewers on the shared page and reviewers on the standalone file):
   --dump DIR         a dump of the artifact store: DIR/approvals/<group>.json and DIR/descriptions/<itemId>.json
-                     (e.g. ArtifactData "list" with out_dir; a document may be wrapped as {"data": {...}}), or
-  --decisions F ...  decisions files saved from the standalone page, merged like the page does: per (group, item)
-                     the newest "at" wins; disagreements between reviewers are printed; files from another data
-                     version are used with a warning.
+                     (e.g. ArtifactData "list" with out_dir; a document may be wrapped as {"data": {...}})
+  --decisions F ...  decisions files saved from the standalone page
+All sources are merged like the page does: per (group, item) the newest "at" wins; disagreements between reviewers
+are printed; files from another data version are used with a warning.
 Export rule: an item is exported only when EVERY fix on it is approved (the proposed object combines them); one
 rejection blocks it. Edited descriptions replace the proposed ones.
 
@@ -26,6 +26,7 @@ import config  # noqa: E402
 
 
 def load_dump(d):
+    """The artifact store dump in the shape of a decisions file (no dataVersion: the store belongs to this page)."""
     def coll(name):
         r = {}
         for f in glob.glob(os.path.join(d, name, '*.json')):
@@ -33,23 +34,29 @@ def load_dump(d):
                 j = json.load(fh)
             r[os.path.basename(f)[:-5]] = j.get('data', j) if isinstance(j, dict) else j
         return r
-    return coll('approvals'), coll('descriptions'), []
+    return {'format': 'pireview-fix-decisions/store', 'approvals': coll('approvals'), 'descriptions': coll('descriptions')}
 
 
-def merge_files(files, version, groups):
+def load_file(path):
+    with open(path) as f:
+        j = json.load(f)
+    if not str(j.get('format', '')).startswith('pireview-fix-decisions/'):
+        sys.exit(f'{path}: not a decisions file')
+    return j
+
+
+def merge(sources, version, groups):
+    """sources: [(label, decisions dict)]."""
     ap, de, conflicts = {}, {}, []
-    for path in files:
-        with open(path) as f:
-            j = json.load(f)
-        if not str(j.get('format', '')).startswith('pireview-fix-decisions/'):
-            sys.exit(f'{path}: not a decisions file')
+    for path, j in sources:
         if j.get('dataVersion') and j['dataVersion'] != version:
             print(f'warning: {path} was saved from another version of the page ({j["dataVersion"]} vs {version})')
         for g, o in (j.get('approvals') or {}).items():
             if g not in groups:
                 continue
             cur = ap.setdefault(g, {'states': {}, 'meta': {}})
-            for i, m in (o.get('meta') or {}).items():
+            for i in set(o.get('meta') or {}) | set(o.get('states') or {}):    # a state without meta still counts
+                m = (o.get('meta') or {}).get(i) or {}
                 mine, theirs, ours = cur['meta'].get(i), (o.get('states') or {}).get(i, 'pending'), cur['states'].get(i, 'pending')
                 if mine and theirs != ours and 'pending' not in (theirs, ours) and (mine.get('by') or '') != (m.get('by') or ''):
                     conflicts.append((g, i, mine.get('by'), ours, m.get('by'), theirs))
@@ -67,16 +74,18 @@ def merge_files(files, version, groups):
 
 def main():
     ap_ = config.arg_parser(__doc__.split('\n')[0])
-    src = ap_.add_mutually_exclusive_group(required=True)
-    src.add_argument('--dump', help='artifact store dump directory')
-    src.add_argument('--decisions', nargs='+', help='decisions files from the standalone page')
+    ap_.add_argument('--dump', help='artifact store dump directory (the shared page)')
+    ap_.add_argument('--decisions', nargs='+', default=[], help='decisions files from the standalone page')
     ap_.add_argument('--out', help='output directory (default <work_dir>/export)')
     args = ap_.parse_args()
     cfg = config.load(args)
     with open(cfg.out('fix-review.json')) as f:
         F = json.load(f)
     groups = {g['key']: g for g in F['groups']}
-    ap, de, conflicts = load_dump(args.dump) if args.dump else merge_files(args.decisions, F['version'], groups)
+    if not args.dump and not args.decisions:
+        ap_.error('give --dump, --decisions or both')
+    sources = ([(args.dump, load_dump(args.dump))] if args.dump else []) + [(p, load_file(p)) for p in args.decisions]
+    ap, de, conflicts = merge(sources, F['version'], groups)
     st = lambda g, i: ((ap.get(g) or {}).get('states') or {}).get(i, 'pending')
     status = lambda it: 'rejected' if any(st(g, it['id']) == 'rejected' for g in it['groups']) else (
         'approved' if all(st(g, it['id']) == 'approved' for g in it['groups']) else 'pending')

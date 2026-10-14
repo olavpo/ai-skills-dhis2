@@ -463,6 +463,20 @@
    "fix": "Decide per mapping: add the values to an option, or add an “Unknown/Other” option."
   },
   {
+   "key": "blank-mapping-field",
+   "severity": "REVIEW",
+   "kind": "mapping",
+   "checks": [
+    "mapping-reads-optional-field"
+   ],
+   "title": "Breakdowns that read a field people may leave blank",
+   "confidence": "medium",
+   "confidenceWhy": "The behaviour is verified. How much it matters depends on how often the field is blank in real data.",
+   "what": "The mapping reads an attribute that isn’t mandatory in the program (or a data element that isn’t compulsory in its stage), and no option takes a blank value. Records without it match no option: event indicators drop them from the total too; enrollment indicators drop them from the breakdown.",
+   "evidence": "Program attribute and stage data element settings compared with the mapping filters.",
+   "fix": "Decide per mapping: make the field mandatory (doesn’t fix existing records), derive the value from a mandatory field (e.g. age from date of birth), or add an “Unknown” option."
+  },
+  {
    "key": "dropped",
    "severity": "REVIEW",
    "kind": "pi",

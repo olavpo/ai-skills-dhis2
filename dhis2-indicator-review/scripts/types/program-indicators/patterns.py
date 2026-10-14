@@ -708,6 +708,7 @@ NOT_CLEAR = {
     'count-expression-wrong-aggregation': ('The intended aggregation depends on what the indicator should return.', 'Choose the aggregation type per indicator.'),
     'contains-substring-overmatch': ('contains() may be meant as a substring search.', 'Confirm per field whether whole-item matching (containsItems) is meant.'),
     'mapping-option-values-unmapped': ('Records with unmapped values are dropped from event indicators.', 'Per mapping: add the missing values, an “Unknown/Other” option, or accept dropping.'),
+    'mapping-reads-optional-field': ('Records without the field are dropped from event indicators.', 'Per mapping: make the field mandatory, derive it from a mandatory field, or add an “Unknown” option.'),
     'mapping-range-overlap': ('Overlapping roll-up options need their own category.', 'Split the category (changes the category model and data set mapping) or accept.'),
     'duplicate-definition': ('Two indicators with the same definition: one of them is probably meant differently.', 'Decide per pair what each should count.'),
 }

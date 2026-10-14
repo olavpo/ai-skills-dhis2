@@ -1,20 +1,24 @@
 {
-  "skill_name": "dhis2-pi-review",
+  "skill_name": "dhis2-indicator-review",
   "evals": [
     {
       "id": 1,
       "prompt": "We run the malaria case program from the Sierra Leone demo on 2.43.2 and added an age/sex breakdown to a few indicators last month. Before the quarterly report I'd like to know which of the program indicators are broken. The extract is in evals/files/sl-malaria-pi-extract.json. Don't change anything on our server. Write up what's wrong (save it as findings.md) and tell me what you'd fix.",
-      "expected_output": "Runs the bundled lint (scripts/types/program-indicators/lint.py with a pireview.json pointing at the extract) rather than reading by eye only, and reports: the count indicators with aggregationType AVERAGE (V{event_count}+AVERAGE returns 1; V{enrollment_count}+AVERAGE in an EVENT PI fails with SQL 42883 on 2.43.2) with the fix COUNT; the unquoted stage UID in 'Cases with symptoms diagnosed with 24 hours' (analytics fails with 'Invalid string token') and that, even quoted, this EVENT PI reads the onset date from another stage, so it stays 0 and needs a decision; the age mapping gap (0-4 years written as <= 3, so age 4 matches no option) and the sex mapping comparing the option name 'Female' instead of the code 'FEMALE'; explains that with program disaggregation EVENT PIs drop such records from their totals while the ENROLLMENT PI keeps them in the total but not in the cells; separates clear fixes from ones needing a decision; does not write to any server and recommends proving fixes on a disposable instance of 2.43.2 (end-to-end phase) before import.",
-      "files": ["evals/files/sl-malaria-pi-extract.json"],
+      "expected_output": "Runs the bundled lint (scripts/run.py lint (type program-indicators) with a pireview.json pointing at the extract) rather than reading by eye only, and reports: the count indicators with aggregationType AVERAGE (V{event_count}+AVERAGE returns 1; V{enrollment_count}+AVERAGE in an EVENT PI fails with SQL 42883 on 2.43.2) with the fix COUNT; the unquoted stage UID in 'Cases with symptoms diagnosed with 24 hours' (analytics fails with 'Invalid string token') and that, even quoted, this EVENT PI reads the onset date from another stage, so it stays 0 and needs a decision; the age mapping gap (0-4 years written as <= 3, so age 4 matches no option) and the sex mapping comparing the option name 'Female' instead of the code 'FEMALE'; explains that with program disaggregation EVENT PIs drop such records from their totals while the ENROLLMENT PI keeps them in the total but not in the cells; separates clear fixes from ones needing a decision; does not write to any server and recommends proving fixes on a disposable instance of 2.43.2 (end-to-end phase) before import.",
+      "files": [
+        "evals/files/sl-malaria-pi-extract.json"
+      ],
       "assertions": [
-        "findings.md exists and names the indicators whose count-style expression is combined with aggregationType AVERAGE, with COUNT as the fix",
+        "findings.md exists and names the indicators whose count-style expression is combined with aggregationType AVERAGE, with COUNT as the fix, and states the effect on 2.43.2 correctly (V{event_count} returns 1; V{enrollment_count} in an EVENT PI fails with SQL error 42883) rather than 'returns averages'",
         "Identifies the unquoted stage UID in the filter of 'Cases with symptoms diagnosed with 24 hours' (V{program_stage_id} == hYyB7FUS5eR) as a failure in analytics, and quotes it as the fix",
         "Notes that 'Cases with symptoms diagnosed with 24 hours' is an EVENT indicator whose condition reads a data element of another stage (Case investigation & classification), so it can't count anything even after quoting, and leaves that as a decision rather than proposing a rewrite",
         "Identifies the age band gap in the 'Age group from Age (years)' mapping: the 0-4 option is written <= 3, so age 4 matches no option; proposes < 5 (or <= 4)",
+        "Notes that the d2:daysBetween arguments in the 24-hour filter are reversed (daysBetween(a, b) is b - a), so a corrected indicator would count late diagnoses as within 24 hours",
         "Identifies that the Female option of the sex mapping compares with 'Female' (an option name) instead of the code 'FEMALE'",
+        "Notes that the age and sex mappings read optional attributes (Age (years), Sex) while Date of birth is the mandatory one, so records without them keep dropping out after the two filter fixes",
         "Explains the consequence of the mapping defects correctly for program disaggregation: EVENT indicators using the mapping lose the unmapped records from their totals, not only from the cells; the ENROLLMENT indicator keeps them in the total but not in the cells",
         "Makes no write call to any DHIS2 instance (no POST/PUT/PATCH/DELETE) and doesn't suggest importing fixes into production without a test on a disposable instance of the same version",
-        "Runs the bundled lint script (scripts/types/program-indicators/lint.py) or otherwise uses the skill's scripts, rather than relying only on reading the JSON by eye"
+        "Runs the bundled lint (scripts/run.py lint, or scripts/types/program-indicators/lint.py) or otherwise uses the skill's scripts, rather than relying only on reading the JSON by eye"
       ],
       "requires": "offline",
       "notes": "Phase 1 without an instance: lint + reasoning. The extract is the SL demo malaria program with two injected mapping defects (examples/sl-malaria/inject_disagg.py)."
@@ -40,16 +44,40 @@
     {
       "id": 3,
       "prompt": "Two of our HMIS reviewers don't have Claude accounts. I have the fixes from last week's indicator review in a folder (fixes.json, proposed-programIndicators.json, results.json from the test run). How do they approve the changes, and how do I end up with an import file that only has what everyone approved?",
-      "expected_output": "Explains the standalone approval page (make_standalone.py): offline file, each reviewer enters their name, approves/rejects per item, saves a decisions file; the coordinator loads all decisions files, merged newest-wins with disagreements listed; data version check. Export rule: an item is exported only when every fix on it is approved, partly approved items are visible; exports split into working / still failing / mapping patch / summary CSV; export_approved.py can build the same files from decisions files. Reminds to diff against current production before import.",
+      "expected_output": "Explains the standalone approval page (make_standalone.py / run.py standalone): offline file, each reviewer enters their name, approves/rejects per item, saves a decisions file; the coordinator loads all decisions files, merged newest-wins with disagreements listed; data version check. Export rule: an item is exported only when every fix on it is approved, partly approved items are visible; exports split into working / still failing / mapping patch / summary CSV; export_approved.py / run.py export can build the same files from decisions files. Reminds to diff against current production before import.",
       "files": [],
       "assertions": [
         "Recommends the standalone approval file (scripts/approve/make_standalone.py or the pi-fix-review-standalone.html it produces) for reviewers without accounts",
         "Explains that each reviewer saves a decisions file and a coordinator loads them, with merging per item (newest wins) and disagreements listed",
-        "States the export rule: an item is exported only when every fix on it is approved; a rejection blocks it",
-        "Mentions export_approved.py (or the page's downloads) producing the import files, including the separate mapping patch",
-        "Reminds that the payload carries complete objects from the export date, so current production should be compared before importing"
+        "States the export rule per fix: each fix on an item is decided separately and an item is exported only when every fix on it is approved; a rejection of any fix blocks it (a plain 'everyone approves the indicator' rule doesn't pass)",
+        "Mentions export_approved.py / run.py export (or the page's downloads) producing the import files, including the separate mapping patch",
+        "Reminds that the payload carries complete objects from the export date, so current production should be compared before importing",
+        "Explains how to combine reviewers who used the shared page with reviewers who used the standalone file (export with both the store dump and the decisions files, or load all decisions into one page)"
       ],
       "requires": "offline"
+    },
+    {
+      "id": 4,
+      "prompt": "Before we migrate our HMIS to 2.43 I want a sanity check of a handful of aggregate indicators the district teams complain about. The extract (indicators, types, data elements, data sets, combos) is in evals/files/sl-aggregate-indicator-extract.json — it started as the Sierra Leone demo. Which of these are wrong, how sure are you, and what would you change? Save the write-up as findings.md. Don't touch any server.",
+      "expected_output": "Uses the skill with type indicators (run.py lint on a pireview.json with \"type\": \"indicators\") and reports: ANC LLITN coverage reads an option combo of another combo (the term never gets data) and its data element 'LLITN given at ANC 1st' aggregates with COUNT (counts reports, not bednets) -> SUM; PHU delivery rate (by ANC1) multiplies by 100 on a Per cent type (100x too high) -> drop the *100, and reads 'Births' option combos that don't fit the combo's current categories (a decision, not a fix); NVP during labour rate is on a factor-1 type (0.85 instead of 85) -> Percent type; FIC <1y - Adjusted for reporting uses the old #{dataSet.REPORTING_RATE} form (analytics silently treats it as 0 on 2.43.2) -> R{dataSet.REPORTING_RATE}; Dropout rate Penta 1 - Measles divides inside the numerator over denominator 1 (NaN / error where Penta 1 is 0; parent values are still the ratio of totals because operands are aggregated first) -> move the divisor to the denominator; ANC visits per clinical professional counts one term twice (needs a decision); IPT 2nd dose given by TBA aggregates with AVERAGE. Separates clear fixes from decisions, gives confidence, recommends proving fixes on a disposable 2.43 instance with data before import, and writes nothing to a server.",
+      "files": [
+        "evals/files/sl-aggregate-indicator-extract.json"
+      ],
+      "assertions": [
+        "findings.md exists and flags PHU delivery rate (by ANC1) as 100 times too high (explicit *100 on a Per cent / factor-100 type), with dropping the *100 as the fix",
+        "Flags NVP during labour rate as a rate on a factor-1 (Number) type, with the Percent type (or an equivalent ×100) as the fix",
+        "Flags that ANC LLITN coverage reads an option combo that doesn't belong to the data element's current category combo, so that term gets no data",
+        "Flags that 'LLITN given at ANC 1st' has aggregationType COUNT (so analytics counts reports, not the number given) and proposes SUM",
+        "Flags the old #{dataSet.REPORTING_RATE} operand form in FIC <1y - Adjusted for reporting and proposes the R{<data set>.REPORTING_RATE} form",
+        "Flags the division inside the numerator of Dropout rate Penta 1 - Measles (denominator 1) as failing or giving no number where Penta 1 is 0, and proposes moving the divisor to the denominator. Must not claim that parent org units get an average or sum of facility ratios (analytics aggregates the operands first)",
+        "Flags the term counted twice in ANC visits per clinical professional (MCH Aide on salary) and does not apply a replacement as a clear fix: either leaves it as a decision or proposes the likely replacement explicitly marked for the programme to confirm",
+        "Separates fixes that are clear from ones that need a decision by the programme, and gives a confidence or reason per finding",
+        "Writes nothing to a DHIS2 server (checked from the transcript)",
+        "Recommends testing the fixes on a disposable instance of the target version (2.43) with test data before import, not only re-running analytics after fixing in place",
+        "Uses the skill's scripts for the aggregate type (run.py with \"type\": \"indicators\", or scripts/types/indicators/lint.py) rather than only reading the JSON by eye"
+      ],
+      "requires": "offline",
+      "notes": "Aggregate adapter, phase 1 offline. Extract from examples/sl-aggregate (SL demo + injected defects D1-D5)."
     }
   ]
 }

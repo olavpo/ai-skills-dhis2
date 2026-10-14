@@ -1,0 +1,12 @@
+{
+  "type": "indicators",
+  "title": "Sierra Leone demo: aggregate indicators",
+  "metadata": "export/metadata.json",
+  "work_dir": "out",
+  "test_period": "2026Q1",
+  "org_units": {"root": "TstRoot0001", "facilities": ["TstFacA0001", "TstFacB0001", "TstFacC0001"], "scenario_prefix": "TstScn"},
+  "dhis2_version": "2.43.2",
+  "exported": "2026-10-14",
+  "test_instance": true,
+  "seed": 42
+}

@@ -4,6 +4,8 @@ Every file passed between phases. All live in the run's `work_dir` unless noted.
 
 The core scripts (`scripts/run.py`, `lib/`, `validate/assemble.py`, `review/`, `fix/`, `e2e/`, `approve/`) are type-neutral; everything specific to a metadata type is in its adapter (`scripts/types/<type>/adapter.py`, interface at the end of this file). Examples below use program indicators (type `program-indicators`): `<p>` in file names is the type's `PREFIX` (`pi`), `<P>` the same in capitals; "item" is the primary object (a PI), "aux" the secondary object fixes may change (a category mapping of the program). `kind` values are the adapter's `ITEM_KIND` (`pi`) and `AUX_KIND` (`mapping`).
 
+Type-specific files (aggregate indicators: `truth.json` with null blanks, `testsetup.json`, `"NaN"`/null values in `analytics.json`, `scenarios.json` with `values`) are in `references/indicators/data-formats.md`.
+
 ## Run configuration: `pireview.json`
 
 One file per run (default `./pireview.json`, or `--config` / `$PIREVIEW_CONFIG`; `run.py --config` sets the variable). Paths are relative to the config file. Read by every script through `scripts/lib/config.py`, which returns the type's config class (`adapter.CONFIG`) so type keys are available to type scripts. Credentials never go in it: `DHIS2_URL` plus `DHIS2_TOKEN`, or `DHIS2_USER` + `DHIS2_PASSWORD`.
@@ -231,7 +233,7 @@ The aux entry's own keys are type-specific (`patterns.explicit_aux`; PIs: `optio
 ```
 Merge (page and export_approved.py): per (group, item) the newest `meta.at` wins; two reviewers with different non-pending states → disagreement; a different `dataVersion` loads with a warning.
 
-**Export files** (page downloads `<fileStem>-…-<date>`; `export_approved.py --dump DIR | --decisions F…` writes the same names without the date to `export/`). `--dump` reads `DIR/approvals/<group>.json` and `DIR/descriptions/<itemId>.json` (docs may be wrapped as `{"data": …}`). An item is exported only when every fix on it is approved; edited descriptions replace the proposed ones.
+**Export files** (page downloads `<fileStem>-…-<date>`; `export_approved.py [--dump DIR] [--decisions F…]` (either or both, merged) writes the same names without the date to `export/`). `--dump` reads `DIR/approvals/<group>.json` and `DIR/descriptions/<itemId>.json` (docs may be wrapped as `{"data": …}`). An item is exported only when every fix on it is approved; edited descriptions replace the proposed ones.
 - `<stem>-<items>-approved.json` (`<items>` = `labels.items` with dashes, PIs `program-indicators`): `{"<payloadKey>": [...]}` approved items whose analytics works after the fix
 - `<stem>-<items>-approved-still-failing.json`: approved, but `test.after.error` is set
 - `<stem>-<auxExport.file>.patch.json` (jsonpatch kind, PIs `categoryMappings`): JSON Patch with every aux object as exported, approved ones replaced; metadata kind: `<stem>-<auxExport.file>.json` = `{"<key>": [approved aux objects]}`

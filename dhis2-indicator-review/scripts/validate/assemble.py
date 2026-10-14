@@ -33,6 +33,13 @@ PRI = {'FAILS': 0, 'ALWAYS_ZERO': 1, 'WRONG_VALUE': 2, 'REVIEW': 3}
 NAMES = {0: 'FAILS', 1: 'ALWAYS_ZERO', 2: 'WRONG_VALUE', 3: 'REVIEW', 9: 'OK'}
 
 
+
+def fmtv(v):
+    """A total for a message: number, 'no value' or the raw text (e.g. NaN)."""
+    if v is None:
+        return 'no value'
+    return f'{v:g}' if isinstance(v, (int, float)) else str(v)
+
 def lint_status(A, f, obj):
     if hasattr(A, 'lint_status'):
         return A.lint_status(f, obj)
@@ -114,7 +121,7 @@ def main():
             continue
         if not x['total_ok'] or x.get('cells_ok') is False:
             add(pid, 'REVIEW', 'test:engine-mismatch',
-                f"analytics {x['analytics_total']:g} vs evaluator {x['expected_total']:g}" + (f"; {x.get('n_cell_diffs')} cells differ" if x.get('cells_ok') is False else '')
+                f"analytics {fmtv(x.get('analytics_total'))} vs evaluator {fmtv(x.get('expected_total'))}" + (f"; {x.get('n_cell_diffs')} cells differ" if x.get('cells_ok') is False else '')
                 + ": read by hand (unmodelled DHIS2 behaviour or evaluator gap)")
     hard = {r[0] for r in rows if PRI[r[1]] <= 1}
     for pid in P:
@@ -223,7 +230,7 @@ def write_md(cfg, A, path, P, summary, rows, lint, syn, an, cmp_, unsat):
         L += [f'| `{k}` | {v} |' for k, v in per_status[st].most_common()]
         L += ['', '<!-- TODO: group into causes; per cause: plain explanation, count, examples (codes) -->', '']
     L += ['## DHIS2 behaviours this configuration trips over', '',
-          f'<!-- TODO: list the behaviours (references/{A.TYPE}/dhis2-behaviours.md ids) that explain findings or mismatches -->', '',
+          f'<!-- TODO: list the behaviours (references/{A.TYPE}/behaviours.md ids) that explain findings or mismatches -->', '',
           '## Recommended fix order', '', '<!-- TODO -->', '', '## Limitations', '',
           f'<!-- TODO: what the synthetic data cannot show; intent-dependent findings; {Ss} not evaluated -->', '']
     with open(path, 'w') as f:

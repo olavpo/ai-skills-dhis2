@@ -139,8 +139,8 @@ def run_type(cfg, script, *args):
 
 
 def same_value(a, b):
-    """Scenario value comparison: 'error' matches only 'error'; numbers within 1e-6."""
-    if a == 'error' or b == 'error':
+    """Scenario value comparison: 'error' matches only 'error', None (no value) only None; numbers within 1e-6."""
+    if a == 'error' or b == 'error' or a is None or b is None:
         return a == b
     try:
         return abs(float(a) - float(b)) < 1e-6

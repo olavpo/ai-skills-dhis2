@@ -79,6 +79,9 @@ Checks (id, severity, what). Ids are stable: review topics and assemble.py key o
   mapping-range-overlap              ERROR  values two bands both take (at the field resolution)
   mapping-option-values-unmapped     INFO   option-set values not mapped to any category option
   mapping-value-in-two-options       ERROR  one option-set value mapped to two category options
+  mapping-reads-optional-field       WARN   filters read an attribute that is not mandatory in the program (or a data
+                                            element not compulsory in its stage) and no option takes a blank value:
+                                            records without it match no option (EVENT PIs drop them from totals, C1)
   (the reference/literal/structure checks above also run on every mapping filter)
 """
 import collections as C, math, os, re, sys
@@ -121,6 +124,7 @@ class Lint:
              'trackedEntityAttributes', 'programStages'])
         self.stage_des = {s['id']: {x['dataElement']['id']: x for x in s.get('programStageDataElements', [])} for s in d['programStages']}
         self.prog_teas = {x['trackedEntityAttribute']['id'] for x in self.prog.get('programTrackedEntityAttributes', [])}
+        self.mandatory_teas = {x['trackedEntityAttribute']['id'] for x in self.prog.get('programTrackedEntityAttributes', []) if x.get('mandatory')}
         self.MAP = {m['id']: m for m in self.prog.get('categoryMappings') or []}
         self.os_codes = {k: [self.OPT[o['id']]['code'] for o in v.get('options', []) if o['id'] in self.OPT] for k, v in self.OS.items()}
         self.os_names = {k: [self.OPT[o['id']]['name'] for o in v.get('options', []) if o['id'] in self.OPT] for k, v in self.OS.items()}
@@ -373,6 +377,23 @@ class Lint:
                 self.add('ERROR', 'mapping-identical-filters', obj, f"identical filter on several options: {dupf[:3]}")
             self.bands(obj, filters)
             self.value_coverage(obj, filters)
+            self.optional_fields(obj, filters)
+
+    def optional_fields(self, obj, filters):
+        if any(re.search(r"!\s*d2:hasValue|==\s*(''|\"\")|d2:hasValue\([^)]*\)\s*==\s*false", f) for f in filters.values()):
+            return                                  # some option takes a blank value
+        opt = []
+        for tok in sorted({t for f in filters.values() for t in re.findall(OPERAND, f)}):
+            kind, r = self.resolve(tok)
+            if kind == 'TEA' and r['uid'] in self.prog_teas and r['uid'] not in self.mandatory_teas:
+                opt.append(f"{self.label(tok)} (not mandatory in the program)")
+            elif kind == 'DE' and r['uid'] in self.stage_des.get(r['stage'], {}) and not self.stage_des[r['stage']][r['uid']].get('compulsory'):
+                opt.append(f"{self.label(tok)} (not compulsory in the stage)")
+        if opt:
+            self.add('WARN', 'mapping-reads-optional-field', obj,
+                     f"filters read {', '.join(opt)} and no option takes a blank value: records without it match no option, "
+                     "so EVENT PIs using this mapping drop them from their totals and ENROLLMENT PIs leave them out of the cells (C1/C2). "
+                     "Decision: make the field mandatory, derive the value from a mandatory field, or add an 'unknown' option")
 
     def bands(self, obj, filters):
         """Numeric bands: name vs range, gaps and overlaps at the field resolution."""

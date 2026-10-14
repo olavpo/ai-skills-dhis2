@@ -1,38 +1,41 @@
 # Writing descriptions and scenarios
 
-## Per-indicator descriptions (sub-agent prompt)
+## Descriptions of the corrected items (sub-agents)
 
-`scripts/fix/prep_desc.py` writes the batches (~45 PIs each). Give each batch to a sub-agent with the brief in `scripts/types/program-indicators/description_brief.md`. In short:
+`run.py descriptions` (`scripts/fix/prep_desc.py`) writes the changed items in batches (`desc_in/batchN.json`, ~45 items each) with UIDs replaced by names. Give each batch to a sub-agent with the type's brief, verbatim, with `{INPUT}` and `{OUTPUT}` filled in:
 
-> You are writing the DHIS2 `description` field for corrected program indicators. Read the input file (a JSON list). Each item has the CORRECTED definition (analyticsType, aggregationType, expression, filter with UIDs replaced by "Stage.Field" names, boundaries, disaggregatedBy) plus, for context only, the old definition, a description of the old behaviour, and the list of changes.
->
-> For every item write a description of what the CORRECTED indicator counts, for people who read it in DHIS2:
-> - Plain English, 1–3 sentences, at most 450 characters. No markdown.
-> - Describe the corrected definition only. Never mention fixes, bugs, history or the review.
-> - Unit: EVENT + V{event_count} → number of <stage> events in the period; EVENT + V{tei_count} → number of clients with at least one matching event; ENROLLMENT → number of clients (enrollments); SUM → total of the field.
-> - Period logic from the boundaries in words (event date in the period; enrolled on or before the period end using the latest visit up to the period end; cohort enrolled N months earlier; date field in the period).
-> - Field names in words, option values in double quotes; summarise long option lists.
-> - `contains` = "includes"; `containsItems` = "includes exactly".
-> - End with "Disaggregated by …" (short category names).
-> - Describe faithfully even if a condition looks odd. Don't invent conditions.
-> Set `concern` to one sentence if the corrected definition still doesn't match the indicator name; otherwise null. Be conservative.
-> Write `{"<id>": {"description": "...", "concern": ...}}`, validate (all ids, ≤ 450 chars), reply with the count and doubtful items.
+- program indicators: `scripts/types/program-indicators/description_brief.md`
+- aggregate indicators: `scripts/types/indicators/description_brief.md`
 
-Add program-specific phrasing at the end of the brief when the program has recurring constructs, e.g. how to say "active at the end of the period" when it is defined as status plus a next-appointment window (`status == 'Active' && d2:daysBetween(V{analytics_period_end}, next appointment) > -28`). The brief itself is in `scripts/types/program-indicators/description_brief.md`.
+What every brief asks for: a plain-language description of what the CORRECTED item counts, 1–3 sentences, ≤ 450 characters, no history of the fix, faithful to the definition even where it looks odd, and a `concern` (one sentence) when the corrected definition still doesn't match the name. Add program-specific phrasing at the end of a brief when the set has recurring constructs (for example how to say "active at the end of the period" when it is defined as a status plus a next-appointment window).
 
-Then: read the concerns (show them to reviewers, don't fix silently), and hand-adjust descriptions whose meaning changed afterwards (overrides file).
+Then show every concern to the reviewers (don't fix it silently), and hand-adjust descriptions in `desc_overrides.json` where needed. `run.py payload` merges them.
 
 ## Scenarios (intent tests)
 
-A scenario proves that a fix makes the indicator count what it should. Rules:
+A scenario proves that a fix makes an indicator count what it should. It is written by hand in `work_dir/scenarios.json`; formats in the type's `scen.py` docstring and `scenarios.example.json`.
+
+Rules for every type:
 
 1. **One fix (or one interaction) per scenario**, on a real indicator of the group.
-2. **Its own org unit**, so other scenarios and the bulk test data can't change the value.
-3. **2–4 clients**, at least one that must count and one near-miss that must not (e.g. appointment 26 vs 39 days before period end; registration date in vs before the period; a later visit after the period).
-4. **Expected values before and after, worked out by hand** from the indicator's meaning and written into the scenario with a one-line note explaining them. "error" is a valid "before".
-5. **Disaggregation-safe:** fill every category so each client matches exactly one option (the builder checks it); otherwise event PIs drop the client and the test proves nothing.
-6. **Cells** where the fix is about breakdowns (e.g. age 14.5 lands in 0-14).
-7. Where the real indicator can't show the effect (still broken by another topic), test a **probe copy** of the filter without the breakdown and say so.
-8. Generate **new UIDs** for every regeneration (deleted tracker objects keep their UIDs).
+2. **Its own org unit** (the builder creates one per scenario), so other scenarios and the bulk test data can't change the value.
+3. **A near miss next to every case that counts**: something that must *not* be counted or must not change the value.
+4. **Expected values before and after, worked out by hand** from the indicator's meaning — never from the evaluator — with a one-line note explaining them. `"error"` is a valid "before"; `null` means "no value".
+5. Where the real indicator can't show the effect (still broken by another open topic), test a **probe copy** and say so, or record that the fix is verified by lint and the engine check only.
 
-Query each scenario's PI at its org unit for the scenario period, before and after, and record pass/fail with both values in the evidence document.
+### Program indicators
+
+- **2–4 clients** per scenario (e.g. appointment 26 vs 39 days before the period end; registration date in vs before the period; a later visit after the period).
+- **Disaggregation-safe:** every counted record must match exactly one option in every mapped category, or event PIs drop it and the test proves nothing. The builder fills fields the scenario doesn't set and refuses records that would match 0 or 2 options.
+- **Cells** where the fix is about breakdowns (e.g. an age of 4 lands in "0-4 years").
+- Generate **new UIDs** for every regeneration (deleted tracker objects keep their UIDs).
+
+### Aggregate indicators
+
+- **Data values per month** (`dataElement`, `coc`, `period`, `value`) in the scenario's org unit; yearly data (population) as a yearly period.
+- Choose values that make the fix **visible as a different number**: a COUNT → SUM fix needs values other than 1 and more than one month; an option-combo fix needs data on both the old and the current combo; a factor fix needs a ratio that isn't already a round number.
+- Expected values are what analytics shows: the indicator's factor, `annualized` (× 365 / days in the period) and rounding to its decimals (2 when unset). Expect "no value" when every operand on one side is missing.
+- Use `cellsAfter` with `"pe"` (per month) when the fix is about how values aggregate over time.
+- Option combos that a fresh instance refuses (E1130/E8024) can't hold scenario data; verify such fixes by lint and the engine check, and say so.
+
+`run.py check` queries each scenario's indicator at its org unit for the scenario period, before and after, and writes pass/fail with both values to `results.json` and `E2E-TEST.md`.

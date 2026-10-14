@@ -16,7 +16,7 @@ Layers
         .window(p, pe)                      enrollment/event windows from the analytics period boundaries (P1, P3, C5)
         .evaluate(p, truth, pe, cats)       expected total and cells from truth.json records (C1, C2, C4, C5, E4)
 
-Behaviours encoded (ids from references/program-indicators/dhis2-behaviours.md, verified on DHIS2 2.43.2; see RULES):
+Behaviours encoded (ids from references/program-indicators/behaviours.md, verified on DHIS2 2.43.2; see RULES):
   C1  EVENT PIs with a disaggregation drop records that match 0 or >1 option in any mapped category from the TOTAL too
   C2  ENROLLMENT PIs keep such records in the total but not in any cell
   C3  blank TEXT compared with ==/!= : EVENT -> NULL (excluded); ENROLLMENT -> coalesced to '' (so `!= 'x'` is true)
