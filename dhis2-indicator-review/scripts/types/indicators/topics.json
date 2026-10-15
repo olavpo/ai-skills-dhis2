@@ -1,0 +1,313 @@
+{
+ "_comment": [
+  "Topic catalogue for build_review.py (aggregate indicators): one topic = one cause = one proposed fix.",
+  "checks: finding categories that feed the topic. For kind 'indicator' these are the 'category' values of",
+  "  indicator-findings.csv (a lint check id, 'uses-<check>' for an indicator reading a flagged data element,",
+  "  'server-rejects-numerator|denominator', 'analytics-error', 'test:<observation>'); for kind 'dataElement' they are",
+  "  lint check ids on data elements in findings.json. Same keys as the program-indicator catalogue.",
+  "Behaviour ids (A1...) refer to references/indicators/behaviours.md."
+ ],
+ "topics": [
+  {
+   "key": "legacy-rate",
+   "severity": "FAILS",
+   "kind": "indicator",
+   "checks": [
+    "legacy-reporting-rate-operand",
+    "server-rejects-numerator",
+    "server-rejects-denominator"
+   ],
+   "match": "REPORTING_RATE|ACTUAL_REPORTS|EXPECTED_REPORTS|not well-formed",
+   "title": "Reporting rate written in the old #{dataSet.REPORTING_RATE} form",
+   "confidence": "high",
+   "confidenceWhy": "The server’s own expression check rejects the text, and analytics returns 0 for the indicator at every org unit and period, without an error (verified on 2.43.2).",
+   "what": "The numerator multiplies by a reporting rate written as #{<data set>.REPORTING_RATE}, a form older DHIS2 versions accepted. The current parser can’t read it. Analytics doesn’t report an error: it treats the whole numerator as 0, so the indicator shows 0 everywhere.",
+   "evidence": "Server validation: “Expression is not well-formed”. On the test copy the indicator read 0 at every org unit and month, even where the other terms had data.",
+   "fix": "Write the operand as R{<data set>.REPORTING_RATE}. The meaning is unchanged."
+  },
+  {
+   "key": "unknown-refs",
+   "severity": "WRONG_VALUE",
+   "kind": "indicator",
+   "checks": [
+    "unknown-de",
+    "unknown-coc",
+    "unknown-aoc",
+    "unknown-constant",
+    "unknown-org-unit-group",
+    "unknown-indicator-type",
+    "empty-expression"
+   ],
+   "title": "References to objects that don’t exist",
+   "confidence": "high",
+   "confidenceWhy": "The uid isn’t in the metadata. An unknown data element is treated as a term without data, so the indicator still shows a value, made from the remaining terms (verified).",
+   "what": "A numerator or denominator names a data element, category option combo, constant or org unit group that doesn’t exist (deleted, or copied from another system). The term silently adds nothing.",
+   "evidence": "The uids aren’t in the export.",
+   "fix": "Replace each unknown reference with the intended object, or remove the term."
+  },
+  {
+   "key": "coc-other-combo",
+   "severity": "WRONG_VALUE",
+   "kind": "indicator",
+   "checks": [
+    "coc-not-in-de-combo"
+   ],
+   "title": "A term reads a disaggregation the data element no longer has",
+   "confidence": "high",
+   "confidenceWhy": "The category option combo belongs to another category combo than the data element’s. DHIS2 2.43.2 refuses new data values with it (E8024), so the term can only read data stored before the combo changed.",
+   "what": "#{data element.option combo} picks one disaggregation cell. Here the option combo comes from another (often old, “… DELETE”) category combo. The import and the expression check accept it, so nothing warns, but new data entry never fills that cell: the term stays empty and the indicator is too low.",
+   "evidence": "The option combo’s category combo differs from the data element’s (and from any data set override). On the test copy the term read no data.",
+   "fix": "Point the term at the option combo of the current combo with the same category options. Clear only when exactly one option combo of the current combo has the same options."
+  },
+  {
+   "key": "double-100",
+   "severity": "WRONG_VALUE",
+   "kind": "indicator",
+   "checks": [
+    "factor-100-and-times-100"
+   ],
+   "title": "Percentages multiplied by 100 twice",
+   "confidence": "high",
+   "confidenceWhy": "The indicator type already multiplies by 100; the numerator does it again (verified on test data: 100 times the expected value).",
+   "what": "The indicator type is a percentage (factor 100) and the numerator also ends in × 100. The result is 100 times too high (e.g. 8500 % instead of 85 %).",
+   "evidence": "Factor 100 on the indicator type and “* 100” in the numerator.",
+   "fix": "Remove the “* 100” from the numerator; keep the Percent type."
+  },
+  {
+   "key": "percent-number",
+   "severity": "WRONG_VALUE",
+   "kind": "indicator",
+   "checks": [
+    "percent-name-number-type"
+   ],
+   "title": "Rates and percentages on the Number type (factor 1)",
+   "confidence": "medium",
+   "confidenceWhy": "The name says rate / % / coverage and the factor is 1, so the value reads 0.85 instead of 85. A few names say “rate” for a ratio that is meant per one; read the list.",
+   "what": "The indicator type sets the factor that multiplies numerator ÷ denominator. A percentage needs factor 100. With the Number type the indicator shows a fraction.",
+   "evidence": "Name, indicator type and factor in the export.",
+   "fix": "Change the indicator type to the Percent type. Clear when the instance has exactly one indicator type with factor 100."
+  },
+  {
+   "key": "ratio-in-numerator",
+   "severity": "REVIEW",
+   "kind": "indicator",
+   "checks": [
+    "division-in-numerator-denominator-1",
+    "test:nan-values"
+   ],
+   "title": "The whole rate is computed inside the numerator",
+   "confidence": "high",
+   "confidenceWhy": "Verified on 2.43.2: analytics aggregates every operand first and then evaluates the expression, so the values are the same as numerator ÷ denominator, except where the divisor is 0: there it shows NaN.",
+   "what": "The numerator is written as (a − b) / a with denominator 1. DHIS2 sums each operand over the org units and months first, so the value equals (a − b) ÷ a at every level. Where a is 0 or empty for an org unit and period the cell shows NaN instead of staying empty, and the definition hides what the rate is divided by (it is not visible as the denominator in pivot tables or the indicator description).",
+   "evidence": "Numerator with a division by data and denominator 1; NaN in analytics at the facility and month with a = 0 in the test data; equal totals otherwise.",
+   "fix": "Move the divisor to the denominator: numerator a − b, denominator a. Same values; a zero divisor gives no value instead of NaN."
+  },
+  {
+   "key": "factor-mismatch",
+   "severity": "WRONG_VALUE",
+   "kind": "indicator",
+   "checks": [
+    "count-name-percent-type",
+    "name-factor-mismatch",
+    "numerator-equals-denominator",
+    "denominator-zero"
+   ],
+   "checkEach": true,
+   "title": "Indicator type or definition contradicts the name",
+   "confidence": "medium",
+   "confidenceWhy": "Each case is a contradiction between the name and the factor or the definition; which side is wrong needs a decision.",
+   "what": "A count (denominator 1) on a percentage type, a “per 10 000” name with another factor, the same expression on both sides, or a denominator of 0.",
+   "evidence": "Name, indicator type and expressions in the export.",
+   "fix": "Decide per indicator what it should show, then correct the type or the expressions."
+  },
+  {
+   "key": "inner-division",
+   "severity": "REVIEW",
+   "kind": "indicator",
+   "checks": [
+    "inner-division"
+   ],
+   "checkEach": true,
+   "title": "Divisions by data inside the numerator or denominator",
+   "confidence": "medium",
+   "confidenceWhy": "A zero divisor gives NaN (verified); whether it occurs depends on the data.",
+   "what": "A term such as a / b inside the numerator or denominator. Where b is 0 or empty for an org unit and period, analytics returns NaN for that cell.",
+   "evidence": "Expressions in the export.",
+   "fix": "Guard the division (if(b > 0, a / b, 0)) or restructure so the division is numerator ÷ denominator."
+  },
+  {
+   "key": "stale-cocs",
+   "severity": "REVIEW",
+   "kind": "indicator",
+   "checks": [
+    "coc-not-fitting-combo"
+   ],
+   "title": "Terms read option combos left over from an earlier version of a category combo",
+   "confidence": "medium",
+   "confidenceWhy": "The option combos don’t match their combo’s current categories. Data stored under them still counts, but they can’t be recreated (2.43 refuses them, E1130), and data entry built from the current categories produces other option combos.",
+   "what": "The category combo was changed (e.g. from attendant × location to attendant × sex) without rebuilding the option combos. Indicators were written against the old cells and keep reading the old data; new data in the new cells is not counted, and a metadata copy or combo rebuild removes the old cells.",
+   "evidence": "Option combos whose category options aren’t one per category of their combo. The test copy can’t hold them, so these terms read nothing there.",
+   "fix": "Decide the target structure with the data owners: rebuild the combo and migrate the data, or rewrite the indicators against the current categories."
+  },
+  {
+   "key": "overlap",
+   "severity": "REVIEW",
+   "kind": "indicator",
+   "checks": [
+    "overlapping-operands"
+   ],
+   "checkEach": true,
+   "title": "The same data counted twice",
+   "confidence": "medium",
+   "confidenceWhy": "A term appears twice in a sum (or a whole data element is added next to one of its cells); usually a copy-paste slip, but the intended term can’t be inferred.",
+   "what": "One side adds the same cell twice, so it is double counted.",
+   "evidence": "Expressions in the export.",
+   "fix": "Replace the duplicate with the intended term (often another option combo of the same data element)."
+  },
+  {
+   "key": "annualization",
+   "severity": "REVIEW",
+   "kind": "indicator",
+   "checks": [
+    "population-rate-not-annualized",
+    "annualized-without-population"
+   ],
+   "checkEach": true,
+   "title": "Annualization doesn’t fit the denominator",
+   "confidence": "medium",
+   "confidenceWhy": "Annualization multiplies by 365 ÷ days in the period (verified). Monthly counts over a yearly population need it; counts over counts don’t.",
+   "what": "A rate of monthly events over a yearly population that is not annualized shows 1/12 of the annual rate for a month; an annualized indicator without a yearly denominator is scaled for nothing.",
+   "evidence": "Data element period types and aggregation, the annualized flag.",
+   "fix": "Set or clear annualized per indicator, depending on what the rate should show."
+  },
+  {
+   "key": "rate-denominator-1",
+   "severity": "REVIEW",
+   "kind": "indicator",
+   "checks": [
+    "rate-name-denominator-1"
+   ],
+   "checkEach": true,
+   "title": "Called a rate, defined as a count",
+   "confidence": "low",
+   "confidenceWhy": "Intent decides: either the name or the definition is wrong.",
+   "what": "The name says rate, %, coverage or proportion, but the denominator is 1.",
+   "evidence": "Name and denominator in the export.",
+   "fix": "Rename the indicator, or add the intended denominator."
+  },
+  {
+   "key": "dupes",
+   "severity": "REVIEW",
+   "kind": "indicator",
+   "checks": [
+    "duplicate-definition",
+    "duplicate-name",
+    "duplicate-shortName",
+    "duplicate-code"
+   ],
+   "checkEach": true,
+   "title": "Duplicate indicators",
+   "confidence": "medium",
+   "confidenceWhy": "Same definition (or name) on several indicators; one of them is probably meant differently or redundant.",
+   "what": "Several indicators have the same numerator, denominator, factor and annualization, or share a name or code.",
+   "evidence": "Definitions in the export.",
+   "fix": "Keep one, or correct the one that is meant differently."
+  },
+  {
+   "key": "de-count",
+   "severity": "WRONG_VALUE",
+   "kind": "dataElement",
+   "checks": [
+    "de-aggregation-count",
+    "de-aggregation-none"
+   ],
+   "title": "Count data elements that analytics doesn’t add up",
+   "confidence": "high",
+   "confidenceWhy": "With aggregation type COUNT, analytics counts the number of reported values instead of adding them up (verified: 3 reports of 7, 9 and 11 give 3).",
+   "what": "The data element holds a number of events (doses, visits, clients), but its aggregation type is COUNT (or none). Every indicator reading it gets the number of reports instead of the number of events.",
+   "evidence": "Aggregation type in the export; on the test copy the indicator followed the count of values.",
+   "fix": "Set the data element’s aggregation type to SUM. This changes every indicator, pivot table and map using the data element."
+  },
+  {
+   "key": "de-average",
+   "severity": "REVIEW",
+   "kind": "dataElement",
+   "checks": [
+    "de-aggregation-average"
+   ],
+   "title": "Monthly count data elements averaged instead of added up",
+   "confidence": "medium",
+   "confidenceWhy": "AVERAGE gives the mean over facilities and months (verified). Right for a few measures (e.g. a mean score), wrong for counts of events.",
+   "what": "Aggregation type AVERAGE on a data element reported monthly: a district gets the average of its facilities, a quarter the average of its months. Indicators that count events are far too low above facility level.",
+   "evidence": "Aggregation type and period type in the export.",
+   "fix": "SUM for counts of events. Clear when the data element is a monthly count (name and value type say so); stocks and populations need AVERAGE_SUM_ORG_UNIT or LAST instead."
+  },
+  {
+   "key": "long-period-sum",
+   "severity": "REVIEW",
+   "kind": "dataElement",
+   "checks": [
+    "sum-data-long-period"
+   ],
+   "title": "Yearly data that monthly and quarterly views can’t show",
+   "confidence": "high",
+   "confidenceWhy": "A SUM data element entered yearly has no value for a month or a quarter (verified); the indicator only shows for whole years.",
+   "what": "The data element is collected once a year (e.g. “facility has running water”) and summed. Views by month or quarter are empty.",
+   "evidence": "Data set period type and aggregation type in the export; no value in the test quarter.",
+   "fix": "If the yearly status should show in shorter periods, use AVERAGE_SUM_ORG_UNIT (the yearly value is then used for each month and quarter). Otherwise, document that the indicator is yearly."
+  },
+  {
+   "key": "no-data-set",
+   "severity": "REVIEW",
+   "kind": "dataElement",
+   "checks": [
+    "de-in-no-data-set",
+    "de-not-numeric",
+    "de-domain-tracker"
+   ],
+   "title": "Data elements that can’t carry aggregate data",
+   "confidence": "high",
+   "confidenceWhy": "A data element in no data set can’t receive values on 2.43.2 (E8003); a text or tracker data element never aggregates.",
+   "what": "The indicator reads a data element that has no aggregate data: it is in no data set, is text, or belongs to a tracker program.",
+   "evidence": "Data set membership, value type and domain in the export.",
+   "fix": "Add the data element to the data set that should collect it, or point the indicator at the right data element."
+  },
+  {
+   "key": "no-value",
+   "severity": "REVIEW",
+   "kind": "indicator",
+   "checks": [
+    "test:reads-no-data",
+    "test:no-value-in-quarter",
+    "test:zero-despite-witness"
+   ],
+   "checkEach": true,
+   "onlyUnexplained": true,
+   "title": "No value in the test quarter, unexplained",
+   "confidence": "low",
+   "confidenceWhy": "The test data gives the indicator no value at the root for the quarter and no other finding explains it.",
+   "what": "Read the definition by hand.",
+   "evidence": "Analytics on the test copy.",
+   "fix": "Per indicator."
+  },
+  {
+   "key": "otherfail",
+   "severity": "FAILS",
+   "kind": "indicator",
+   "checks": [
+    "server-rejects-numerator",
+    "server-rejects-denominator",
+    "analytics-error",
+    "test:engine-mismatch"
+   ],
+   "checkEach": true,
+   "onlyUnexplained": true,
+   "title": "Other server rejections, analytics errors or engine differences",
+   "confidence": "low",
+   "confidenceWhy": "No other topic explains these.",
+   "what": "Read each by hand.",
+   "evidence": "Server validation, analytics error messages, the engine check.",
+   "fix": "Per indicator."
+  }
+ ]
+}

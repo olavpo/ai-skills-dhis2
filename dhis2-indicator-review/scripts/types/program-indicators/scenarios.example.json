@@ -1,0 +1,60 @@
+{
+ "_about": "Example scenarios for a FICTIONAL tracker program (stages 'Screening visit' and 'Lab test'; data elements 'Age in years', 'Client status', 'Next appointment', 'Test type', 'Test result'; attribute 'Sex'; categories 'Age group' and 'Sex'). Copy to <work_dir>/scenarios.json and write your own. Names, codes or uids are accepted for stages, fields, PIs, categories and options. Expected values are worked out by hand from what the indicator is meant to count.",
+ "scenarios": [
+  {
+   "id": "active-window",
+   "group": "adddays+window",
+   "title": "Active at end of period: enrolled before the period, last visit within it",
+   "note": "Counted after: A (appointment after period end) and C (appointment 10 days before period end; the visit in the next quarter where the client died is ignored). Not counted: B (appointment 40 days before period end), D (enrolled after the period). Before: d2:addDays fails on the server.",
+   "clients": [
+    {"label": "A", "enrolled": "2025-06-01", "attributes": {"Sex": "Female"},
+     "events": [{"stage": "Screening visit", "date": "2026-02-15", "values": {"Client status": "Active", "Next appointment": "2026-04-10"}}]},
+    {"label": "B (near miss)", "enrolled": "2026-01-10", "attributes": {"Sex": "Female"},
+     "events": [{"stage": "Screening visit", "date": "2026-02-01", "values": {"Client status": "Active", "Next appointment": "2026-02-19"}}]},
+    {"label": "C", "enrolled": "2025-09-01", "attributes": {"Sex": "Male"},
+     "events": [{"stage": "Screening visit", "date": "2026-03-01", "values": {"Client status": "Active", "Next appointment": "2026-03-21"}},
+                {"stage": "Screening visit", "date": "2026-05-01", "values": {"Client status": "Died"}}]},
+    {"label": "D (near miss)", "enrolled": "2026-05-01", "attributes": {"Sex": "Male"},
+     "events": [{"stage": "Screening visit", "date": "2026-05-02", "values": {"Client status": "Active", "Next appointment": "2026-06-01"}}]}
+   ],
+   "expect": [{"pi": "NUT-03", "before": "error", "after": 2}]
+  },
+  {
+   "id": "age-gap",
+   "group": "agebands",
+   "title": "Visit at age 14.5 (gap between the 5-14 and 15+ options)",
+   "note": "Before, age 14.5 matched no age option, so the event was dropped from the whole indicator. Sex is filled automatically.",
+   "clients": [
+    {"enrolled": "2026-01-05",
+     "events": [{"stage": "Screening visit", "date": "2026-02-01", "values": {"Age in years": "14.5"}}]}
+   ],
+   "expect": [
+    {"pi": "NUT-10", "before": 0, "after": 1, "cellsAfter": {"Age group": {"5-14 years": 1}}},
+    {"pi": "NUT-01", "before": 0, "after": 1}
+   ]
+  },
+  {
+   "id": "contradiction",
+   "group": "contradiction",
+   "title": "Positive test: one RDT positive, one microscopy positive, one RDT negative",
+   "choose": {"Sex": "Female"},
+   "clients": [
+    {"enrolled": "2026-01-05", "events": [{"stage": "Lab test", "date": "2026-02-01", "values": {"Test type": "RDT", "Test result": "Positive"}}]},
+    {"enrolled": "2026-01-05", "events": [{"stage": "Lab test", "date": "2026-02-02", "values": {"Test type": "Microscopy", "Test result": "Positive"}}]},
+    {"enrolled": "2026-01-05", "events": [{"stage": "Lab test", "date": "2026-02-03", "values": {"Test type": "RDT", "Test result": "Negative"}}]}
+   ],
+   "expect": [{"pi": "NUT-05", "before": 0, "after": 2}]
+  },
+  {
+   "id": "cohort-offset",
+   "group": "offsettype",
+   "title": "6-month cohort: one enrolled 2025Q3, one enrolled 2026Q1",
+   "note": "Same total, different client: before, the missing offset type made DHIS2 count the 2026Q1 enrollment; after, the 2025Q3 one. Query period stays 2026Q1.",
+   "clients": [
+    {"label": "cohort", "enrolled": "2025-08-15", "attributes": {"Sex": "Female"}, "events": [{"stage": "Screening visit", "date": "2025-08-15", "values": {"Client status": "Active"}}]},
+    {"label": "current", "enrolled": "2026-02-01", "attributes": {"Sex": "Female"}, "events": [{"stage": "Screening visit", "date": "2026-02-01", "values": {"Client status": "Active"}}]}
+   ],
+   "expect": [{"pi": "NUT-08", "before": 1, "after": 1}]
+  }
+ ]
+}

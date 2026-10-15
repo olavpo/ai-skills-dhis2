@@ -1,0 +1,3 @@
+{"explicit": [{"group": "quote-uid", "items": ["WoEWCM4TMjz"], "field": "filter",
+  "find": "V{program_stage_id} == hYyB7FUS5eR", "replace": "V{program_stage_id} == 'hYyB7FUS5eR'",
+  "justification": "A stage UID compared without quotes is read as an unknown token; the meeting agreed to quote it."}]}

@@ -1,0 +1,569 @@
+{
+ "_comment": [
+  "Topic catalogue for build_review.py: one topic = one cause = one proposed fix.",
+  "checks: finding categories that feed the topic. For kind 'pi' these are the 'category' values of pi-findings.csv",
+  "  (a lint check id, 'uses-<check>' for a PI that uses a flagged mapping, 'server-rejects-<where>', 'analytics-error',",
+  "  'test:<observation>'); for kind 'mapping' they are lint check ids on mapping objects in findings.json.",
+  "match / notMatch: optional regular expressions on the finding detail; topics with a match are applied first.",
+  "nameMismatch: true takes the PIs whose per-PI description (--descriptions) reports a name-vs-definition concern.",
+  "compare: engine-check selectors on compare.json: total-mismatch, cells-mismatch, units-in-no-cell, units-in-several-cells.",
+  "checkEach: true when the topic usually groups different problems and each item needs its own decision.",
+  "onlyUnexplained: true for symptom categories (analytics errors): a PI stays only if no other topic explains it.",
+  "Per-program additions and overrides go in a separate file passed with --topics-extra (same shape)."
+ ],
+ "topics": [
+  {
+   "key": "unsupported-function",
+   "severity": "FAILS",
+   "kind": "pi",
+   "checks": [
+    "unsupported-function",
+    "server-rejects-filter",
+    "server-rejects-expression"
+   ],
+   "match": "not supported|unsupported|addDays",
+   "title": "Filters use a function that server analytics doesn’t support",
+   "confidence": "high",
+   "confidenceWhy": "The server’s own validation rejects every one of these, and analytics returns an error.",
+   "what": "The definition calls a function that exists elsewhere in DHIS2 (for example d2:addDays, a program rule function) but not in program indicator expressions. Server analytics can’t compute these indicators. The Android Capture app may evaluate them on the device, so they can look fine there.",
+   "evidence": "Server validation of the expression or filter (“not supported for this type of expression”); analytics error for the same indicators. The metadata import accepts these filters without an error.",
+   "fix": "Rewrite with a supported function of the same meaning, e.g. d2:addDays(D, n) > V{analytics_period_end} becomes d2:daysBetween(V{analytics_period_end}, D) > -n. Verify the replacement on test data before proposing it."
+  },
+  {
+   "key": "nullmap",
+   "severity": "FAILS",
+   "kind": "pi",
+   "checks": [
+    "null-mapping-id"
+   ],
+   "title": "A null entry in the indicator’s disaggregation mapping list",
+   "confidence": "high",
+   "confidenceWhy": "A null in categoryMappingIds makes analytics fail with HTTP 500 (verified). If the indicator also fails for another reason, which error shows first can’t be told.",
+   "what": "categoryMappingIds holds an empty (null) entry, usually a reference to a mapping that was deleted.",
+   "evidence": "The null is in the exported metadata; analytics returns HTTP 500 with an empty or “pk is null” message.",
+   "fix": "Remove the null from the list (re-save in the Maintenance app or update via the API)."
+  },
+  {
+   "key": "eventvar-enrollment",
+   "severity": "FAILS",
+   "kind": "pi",
+   "checks": [
+    "event-var-in-enrollment-pi"
+   ],
+   "title": "Event variables used in enrollment indicators",
+   "confidence": "high",
+   "confidenceWhy": "Analytics returns SQL error 42703: the column doesn’t exist in the enrollment table.",
+   "what": "Enrollment indicators count enrollments. V{event_count} and V{event_date} only exist for event indicators.",
+   "evidence": "Analytics: “Query failed because of a syntax error (SqlState: 42703)”.",
+   "fix": "Use V{enrollment_count} (or V{tei_count}) instead of V{event_count}; replace V{event_date} with a date the enrollment has."
+  },
+  {
+   "key": "mapping-structure",
+   "severity": "FAILS",
+   "kind": "mapping",
+   "checks": [
+    "mapping-unknown-category",
+    "mapping-foreign-options",
+    "mapping-duplicate-option",
+    "unbalanced-parens",
+    "server-rejects-mapping"
+   ],
+   "title": "Disaggregation mappings with structural errors",
+   "confidence": "high",
+   "confidenceWhy": "One malformed mapping filter makes every indicator that uses it fail, including the plain total (verified).",
+   "what": "The mapping points at an unknown category, maps options of another category, maps an option twice, or has a filter that can’t be parsed.",
+   "evidence": "Mapping definitions in the export; analytics errors on the indicators using them.",
+   "fix": "Correct the mapping: one filter per option of its own category, each a valid expression."
+  },
+  {
+   "key": "agg-on-count",
+   "severity": "FAILS",
+   "kind": "pi",
+   "checks": [
+    "count-expression-wrong-aggregation"
+   ],
+   "title": "Count expressions with an aggregation type that can’t count",
+   "confidence": "high",
+   "confidenceWhy": "V{tei_count} with MAX fails with SQL error 42804 (verified); other combinations give a meaningless number.",
+   "what": "The expression counts records or persons, but the aggregation type is MAX, MIN, AVERAGE or similar.",
+   "evidence": "Metadata: expression and aggregationType; analytics error on the test instance.",
+   "fix": "Set aggregationType to COUNT, or change the expression if a value (e.g. a date or a year) was intended."
+  },
+  {
+   "key": "bad-reference",
+   "severity": "FAILS",
+   "kind": "pi",
+   "checks": [
+    "de-not-in-stage",
+    "unknown-de",
+    "unknown-stage",
+    "unknown-tea",
+    "tea-not-in-program",
+    "de-skip-analytics"
+   ],
+   "title": "Definitions read fields that aren’t where they are read from",
+   "confidence": "high",
+   "confidenceWhy": "Checked against the metadata; analytics fails with SQL error 42703 because the column doesn’t exist.",
+   "what": "A data element is read from a stage it isn’t assigned to, a data element or attribute isn’t in the export or the program, or the data element is excluded from analytics.",
+   "evidence": "Metadata (programStageDataElements, programTrackedEntityAttributes); analytics errors on the test instance.",
+   "fix": "Point the reference at the right stage or field, add the field to the stage if it is meant to be captured there, or remove the condition."
+  },
+  {
+   "key": "noagg",
+   "severity": "FAILS",
+   "kind": "pi",
+   "checks": [
+    "no-aggregation-type"
+   ],
+   "checkEach": true,
+   "title": "Indicators with no aggregation type",
+   "confidence": "high",
+   "confidenceWhy": "Verified: with no aggregation type, a count expression returns 1 whatever the count, and V{tei_count} fails.",
+   "what": "aggregationType is empty. Count indicators return 1 or fail; value indicators are averaged.",
+   "evidence": "Metadata; probe indicators on the test instance (SQL 42883 for V{tei_count}).",
+   "fix": "Set aggregationType to COUNT for counts, or the intended aggregation for values."
+  },
+  {
+   "key": "nomapping",
+   "severity": "FAILS",
+   "kind": "pi",
+   "checks": [
+    "combo-category-without-mapping",
+    "unknown-mapping",
+    "two-mappings-same-category",
+    "mapping-category-not-in-combo",
+    "unknown-category-combo"
+   ],
+   "title": "Disaggregation set-up doesn’t match the category combo",
+   "confidence": "high",
+   "confidenceWhy": "A disaggregation category with no mapping makes analytics fail with HTTP 409 (verified).",
+   "what": "A category of the indicator’s category combo or attribute combo has no mapping, a mapping is unknown or for a category the combo doesn’t have, or two mappings cover one category.",
+   "evidence": "Metadata; analytics error “disaggregation category … needs a category mapping in the program”.",
+   "fix": "Add or correct the mapping for each category of the combo, or change the combo."
+  },
+  {
+   "key": "otherfail",
+   "severity": "FAILS",
+   "kind": "pi",
+   "checkEach": true,
+   "onlyUnexplained": true,
+   "checks": [
+    "server-rejects-filter",
+    "server-rejects-expression",
+    "analytics-error",
+    "analytics-error-disaggregated"
+   ],
+   "title": "Other indicators that fail in analytics",
+   "confidence": "high",
+   "confidenceWhy": "Each fails with an error from the server; the cause differs per indicator.",
+   "what": "Analytics or the server’s syntax check returns an error for reasons not covered by the other topics (e.g. a malformed comparison that passes the syntax check but fails as SQL).",
+   "evidence": "Error messages from the syntax check and analytics on the test instance (see each item).",
+   "fix": "Fix each definition as the error indicates."
+  },
+  {
+   "key": "crossstage",
+   "severity": "ALWAYS_ZERO",
+   "kind": "pi",
+   "checks": [
+    "event-pi-cross-stage"
+   ],
+   "title": "Event indicators that need data from two stages at once",
+   "confidence": "high",
+   "confidenceWhy": "An event only holds its own stage’s values; in the data test the records built to match stayed at 0.",
+   "what": "The filter combines conditions on fields of different stages. Each event belongs to one stage, so the conditions on the other stage are always blank and nothing is counted.",
+   "evidence": "Metadata; data test: witness records present, analytics 0, matching the independent calculation.",
+   "fix": "Make these enrollment indicators (with suitable period boundaries), or limit the condition to the stage being counted."
+  },
+  {
+   "key": "mapstage",
+   "severity": "ALWAYS_ZERO",
+   "kind": "pi",
+   "checks": [
+    "mapping-stage-differs-from-pi"
+   ],
+   "title": "Disaggregation reads a field from a different stage than the one counted",
+   "confidence": "high",
+   "confidenceWhy": "Data test: always 0. The category never matches, so event indicators drop every record.",
+   "what": "The indicator counts events of one stage, but its mapping filters on a field of another stage, which is blank on these events.",
+   "evidence": "Metadata; data test: witness records dropped from the total and the breakdown.",
+   "fix": "Give the counted stage its own mapping on a field it has (or an attribute), or make the indicators enrollment-type."
+  },
+  {
+   "key": "reversed",
+   "severity": "ALWAYS_ZERO",
+   "kind": "pi",
+   "checks": [
+    "impossible-period-window",
+    "reversed-period-window"
+   ],
+   "title": "Reporting-period test written backwards",
+   "confidence": "high",
+   "confidenceWhy": "Pure logic: “period start ≥ date and period end ≤ date” can only hold for a period of zero length.",
+   "what": "The filter compares a date with the reporting period the wrong way round, so no date satisfies it.",
+   "evidence": "Filter text; the data test confirms 0.",
+   "fix": "Change to #{date} >= V{analytics_period_start} && #{date} <= V{analytics_period_end}."
+  },
+  {
+   "key": "contradiction",
+   "severity": "ALWAYS_ZERO",
+   "kind": "pi",
+   "checks": [
+    "contradictory-equalities",
+    "contradictory-range",
+    "contradictory-filter",
+    "impossible-date-equality",
+    "boundary-offsets-differ"
+   ],
+   "checkEach": true,
+   "title": "Filters or boundaries that contradict themselves",
+   "confidence": "high",
+   "confidenceWhy": "Pure logic: each requires a field to have two different values at once, or gives an empty period window.",
+   "what": "Examples: a field must equal two different values (usually “or” was meant), a date must equal both the period start and end, or the start and end boundaries have different offsets.",
+   "evidence": "Filter text and boundaries; the data test confirms 0.",
+   "fix": "Rewrite each condition as intended (mostly && → ||); use the same offset on both boundaries."
+  },
+  {
+   "key": "contains-nomatch",
+   "severity": "ALWAYS_ZERO",
+   "kind": "pi",
+   "checks": [
+    "contains-literal-not-an-option-code"
+   ],
+   "match": "matches no option code",
+   "title": "Text searches for values that no option code contains",
+   "confidence": "high",
+   "confidenceWhy": "Compared against the option sets in the export: no code contains these texts.",
+   "what": "contains(field, 'text') looks for a text that appears in none of the option codes, so that part of the filter is always false.",
+   "evidence": "Option set codes from the export.",
+   "fix": "Use the exact option code (with containsItems() for multi-select fields)."
+  },
+  {
+   "key": "enrollment-window",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "active-name-enrollment-start-boundary",
+    "active-name-no-event-cap"
+   ],
+   "title": "“Active / current” indicators count only enrollments in the period, or read events after it",
+   "confidence": "high",
+   "confidenceWhy": "Verified behaviour: enrollment indicators apply the boundaries to the enrollment date and read the latest event of the stage, including events after the period, unless an event-date boundary caps it.",
+   "what": "An indicator meant to count everyone active at the end of the period has an “enrollment date after period start” boundary (so only new enrollments count), or has no event-date boundary (so a later visit in the next period changes the answer).",
+   "evidence": "Metadata (analyticsPeriodBoundaries); probe on the test instance.",
+   "fix": "Keep only “enrollment date before end of reporting period”, and add an event-date boundary “before end of reporting period” so event values come from visits up to the period end."
+  },
+  {
+   "key": "blank-as-zero",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "enrollment-blank-number-as-zero"
+   ],
+   "title": "Enrollment filters that a blank number satisfies",
+   "confidence": "high",
+   "confidenceWhy": "Verified behaviour: enrollment indicators compare a blank numeric data element as 0.",
+   "what": "A condition such as “days < 90” or “result < 1000” is true when the value is blank, so everyone without a value is counted.",
+   "evidence": "Filter text; probe indicators on the test instance.",
+   "fix": "Guard the condition with d2:hasValue(#{…}) && …"
+  },
+  {
+   "key": "name-vs-definition",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "nameMismatch": true,
+   "checkEach": true,
+   "title": "Indicators whose definition doesn’t match their name",
+   "confidence": "medium",
+   "confidenceWhy": "Found by reading each definition against its name while writing the plain-language descriptions, not by testing. Each needs a quick confirmation.",
+   "what": "The name promises a condition (a time window, a result, an outcome) that the definition doesn’t have, or the definition counts something the name excludes.",
+   "evidence": "Plain-language description of each definition compared with the indicator name (see the PI dictionary).",
+   "fix": "Add the missing conditions, or rename the indicator to match what it counts."
+  },
+  {
+   "key": "overmatch",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "contains-substring-overmatch"
+   ],
+   "checkEach": true,
+   "title": "Text searches that catch more values than intended",
+   "confidence": "medium",
+   "confidenceWhy": "The mechanism is certain (contains() is a substring match, verified). Whether the wider match is intended has to be decided per case.",
+   "what": "contains(field, 'X') also matches every option code that contains X, e.g. 'TB' also matches 'DR-TB'.",
+   "evidence": "Option set codes from the export; contains() semantics verified on the test instance.",
+   "fix": "Use containsItems() for multi-select fields, or == with the exact code(s)."
+  },
+  {
+   "key": "precedence",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "mixed-and-or-without-parens"
+   ],
+   "title": "“And/or” mix-ups let conditions escape the filter",
+   "confidence": "high",
+   "confidenceWhy": "The engine evaluates these exactly as written (verified). A trailing “or” escapes all the conditions before it.",
+   "what": "&& binds tighter than ||, so “A && B || C” counts every record with C, whatever A and B are.",
+   "evidence": "Filter text; the data test matches analytics.",
+   "fix": "Add brackets around the “or” groups."
+  },
+  {
+   "key": "dupes",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "same-definition-different-meaning",
+    "duplicate-definition"
+   ],
+   "checkEach": true,
+   "title": "Different indicators with an identical definition",
+   "confidence": "medium",
+   "confidenceWhy": "They are certainly identical. Whether that is wrong depends on the names: some pairs may be intended.",
+   "what": "Two or more indicators share the same filter, expression, disaggregation and period boundaries, usually after a copy without editing.",
+   "evidence": "Exact comparison of the definitions.",
+   "fix": "Correct the copied definition of one side of each pair, or retire the duplicate."
+  },
+  {
+   "key": "literals",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "literal-not-an-option-code",
+    "contains-literal-not-an-option-code",
+    "literal-whitespace",
+    "string-literal-on-boolean"
+   ],
+   "title": "Filters compare against texts that aren’t option codes",
+   "confidence": "high",
+   "confidenceWhy": "Analytics stores option codes (and 1/0 for yes/no fields). These literals don’t exist, so that part of the filter never matches.",
+   "what": "The filter uses the option name instead of the code, a spelling or case variant, extra spaces, or 'Yes'/'No' text for a boolean field.",
+   "evidence": "Option set codes and value types from the export.",
+   "fix": "Replace each literal with the exact code (1/0 or true/false for boolean fields)."
+  },
+  {
+   "key": "mapliterals",
+   "severity": "WRONG_VALUE",
+   "kind": "mapping",
+   "checks": [
+    "literal-not-an-option-code",
+    "literal-whitespace",
+    "string-literal-on-boolean"
+   ],
+   "title": "Category mapping filters compare against texts that aren’t option codes",
+   "confidence": "high",
+   "confidenceWhy": "Analytics stores option codes. A mapping option whose filter uses a name or a misspelt code never matches, so its records land in no option.",
+   "what": "A category option of the breakdown can never be filled. Event indicators that use the mapping also lose those records from their total; enrollment indicators keep them in the total but not in the breakdown.",
+   "evidence": "Option set codes from the export; the engine check shows the records in no option.",
+   "fix": "Replace each literal with the exact code. Every indicator using the mapping changes with it."
+  },
+  {
+   "key": "valuetype",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "numeric-compare-on-text-option",
+    "numeric-compare-on-non-numeric",
+    "string-literal-on-numeric",
+    "value-expression-with-count"
+   ],
+   "title": "Comparisons or aggregations that don’t fit the field’s value type",
+   "confidence": "medium",
+   "confidenceWhy": "The mismatch is certain; what the database makes of it (text ordering, a cast) depends on the values.",
+   "what": "A text field is compared with < or >, a number is compared with a quoted string, or a value expression is aggregated with COUNT (which counts rows and ignores the value).",
+   "evidence": "Value types and aggregation types from the export.",
+   "fix": "Compare with values of the field’s type; use SUM/AVERAGE for value expressions or a count expression for counts."
+  },
+  {
+   "key": "offsettype",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "offset-without-period-type"
+   ],
+   "title": "Cohort offsets without a period type",
+   "confidence": "high",
+   "confidenceWhy": "Verified behaviour: offsetPeriods without offsetPeriodType is ignored, so the indicator counts the current period instead of the cohort.",
+   "what": "The boundaries set offsetPeriods (e.g. −12) but no offsetPeriodType.",
+   "evidence": "Metadata (analyticsPeriodBoundaries).",
+   "fix": "Set offsetPeriodType (usually Monthly) on each boundary with an offset."
+  },
+  {
+   "key": "bandgaps",
+   "severity": "WRONG_VALUE",
+   "kind": "mapping",
+   "checks": [
+    "mapping-range-gap"
+   ],
+   "title": "Numeric bands with gaps: some values fall in no band",
+   "confidence": "high",
+   "confidenceWhy": "Checked at the field’s real resolution; the data test confirmed that records in the gaps disappear.",
+   "what": "A band ending “< 9” followed by one starting “≥ 10” loses every value from 9 to 10. In event indicators these records disappear from the total too, not just from the breakdown.",
+   "evidence": "Mapping filters; data test (dropped records).",
+   "fix": "Make bands contiguous: ≥ a && < b, with b equal to the next band’s a."
+  },
+  {
+   "key": "bandoverlap",
+   "severity": "WRONG_VALUE",
+   "kind": "mapping",
+   "checks": [
+    "mapping-range-overlap",
+    "mapping-range-vs-name",
+    "mapping-identical-filters",
+    "mapping-value-in-two-options"
+   ],
+   "title": "Bands that overlap or don’t match their names",
+   "confidence": "medium",
+   "confidenceWhy": "Overlaps are certain, and records in two options are dropped (verified). Some name mismatches are judgement calls.",
+   "what": "Records matching two options are dropped by event indicators. Typical causes: roll-up options in the same category as detailed ones, typos in band limits, identical filters on two options.",
+   "evidence": "Mapping filters; data test.",
+   "fix": "Move roll-up options into their own category; fix the limits so each value matches exactly one option."
+  },
+  {
+   "key": "nofilter",
+   "severity": "WRONG_VALUE",
+   "kind": "mapping",
+   "checks": [
+    "mapping-option-without-filter",
+    "mapping-missing-options"
+   ],
+   "title": "Category options with no mapping filter",
+   "confidence": "high",
+   "confidenceWhy": "Metadata: an option without a filter can never get a value.",
+   "what": "Some options of the category have no filter (or no mapping at all), so their cells are always empty.",
+   "evidence": "Mapping definitions.",
+   "fix": "Add the missing filters."
+  },
+  {
+   "key": "cellsnotadd",
+   "severity": "WRONG_VALUE",
+   "kind": "pi",
+   "checks": [
+    "test:cells-do-not-add-up"
+   ],
+   "title": "Enrollment indicators whose breakdown doesn’t add up to the total",
+   "confidence": "high",
+   "confidenceWhy": "Observed in the data test: enrollment indicators keep unmapped records in the total but drop them from the breakdown (verified behaviour).",
+   "what": "A report showing the total next to the breakdown shows two numbers that don’t reconcile.",
+   "evidence": "Data test.",
+   "fix": "Close the mapping gaps; consider an “Unknown/Other” option with a catch-all filter."
+  },
+  {
+   "key": "dropped-values",
+   "severity": "REVIEW",
+   "kind": "mapping",
+   "checks": [
+    "mapping-option-values-unmapped"
+   ],
+   "title": "Values that no category option maps",
+   "confidence": "medium",
+   "confidenceWhy": "The behaviour is verified. How much it matters depends on how often these values occur in real data, and on whether they were left out on purpose.",
+   "what": "Records with these values match no option of the category. Event indicators drop them from the total too; enrollment indicators drop them from the breakdown.",
+   "evidence": "Option set codes compared with the mapping filters.",
+   "fix": "Decide per mapping: add the values to an option, or add an “Unknown/Other” option."
+  },
+  {
+   "key": "blank-mapping-field",
+   "severity": "REVIEW",
+   "kind": "mapping",
+   "checks": [
+    "mapping-reads-optional-field"
+   ],
+   "title": "Breakdowns that read a field people may leave blank",
+   "confidence": "medium",
+   "confidenceWhy": "The behaviour is verified. How much it matters depends on how often the field is blank in real data.",
+   "what": "The mapping reads an attribute that isn’t mandatory in the program (or a data element that isn’t compulsory in its stage), and no option takes a blank value. Records without it match no option: event indicators drop them from the total too; enrollment indicators drop them from the breakdown.",
+   "evidence": "Program attribute and stage data element settings compared with the mapping filters.",
+   "fix": "Decide per mapping: make the field mandatory (doesn’t fix existing records), derive the value from a mandatory field (e.g. age from date of birth), or add an “Unknown” option."
+  },
+  {
+   "key": "dropped",
+   "severity": "REVIEW",
+   "kind": "pi",
+   "checks": [
+    "test:total-loses-undisaggregatable-records"
+   ],
+   "title": "Records with blank or unmapped values vanish from event totals",
+   "confidence": "medium",
+   "confidenceWhy": "Observed in the data test and verified behaviour; the size of the effect depends on real data.",
+   "what": "Event indicators with a breakdown count a record only if it matches exactly one option in every category. Records with a blank or unmapped value disappear from the total.",
+   "evidence": "Data test: records passing the filter were missing from the analytics total.",
+   "fix": "Fix the mappings (see the mapping topics), or add an “Unknown” option."
+  },
+  {
+   "key": "exactday",
+   "severity": "REVIEW",
+   "kind": "pi",
+   "checks": [
+    "exact-day-equality"
+   ],
+   "title": "Date differences compared with == count only one exact day",
+   "confidence": "low",
+   "confidenceWhy": "The filter is literal. Whether a range was meant is a domain question.",
+   "what": "d2:daysBetween(…) == n counts only records exactly n days apart; “n days after” often means ≥ n or a window.",
+   "evidence": "Filter text.",
+   "fix": "Probably >= n (or a window); confirm with the programme team."
+  },
+  {
+   "key": "parse-error",
+   "severity": "REVIEW",
+   "kind": "pi",
+   "checks": [
+    "parse-error"
+   ],
+   "checkEach": true,
+   "title": "Definitions the local checker could not read",
+   "confidence": "low",
+   "confidenceWhy": "Only the local parser failed; the server syntax check and analytics decide whether the definition works.",
+   "what": "The expression or filter uses syntax the offline checker doesn’t understand, so the other offline checks skipped it.",
+   "evidence": "Local parser error (see each item).",
+   "fix": "Check each definition by hand; if the server also rejects it, fix the syntax."
+  },
+  {
+   "key": "boundaries",
+   "severity": "REVIEW",
+   "kind": "pi",
+   "checks": [
+    "boundaries-missing"
+   ],
+   "title": "Indicators with fewer than two period boundaries",
+   "confidence": "medium",
+   "confidenceWhy": "A missing start boundary means no lower limit (verified); whether that is intended depends on the indicator.",
+   "what": "Without both boundaries the indicator counts everything up to (or from) the period edge, e.g. all enrollments ever.",
+   "evidence": "Metadata (analyticsPeriodBoundaries).",
+   "fix": "Add the missing boundary, unless “everything up to the end of the period” is intended."
+  },
+  {
+   "key": "dup-identity",
+   "severity": "REVIEW",
+   "kind": "pi",
+   "checks": [
+    "duplicate-code",
+    "duplicate-name",
+    "duplicate-shortName"
+   ],
+   "title": "Indicators that share a code or name",
+   "confidence": "high",
+   "confidenceWhy": "Exact comparison; a shared code breaks any link by code (for example to an aggregate data element).",
+   "what": "Two or more indicators have the same code, name or short name.",
+   "evidence": "Metadata.",
+   "fix": "Give each indicator a unique code and name."
+  },
+  {
+   "key": "unsat",
+   "severity": "REVIEW",
+   "kind": "pi",
+   "checks": [
+    "test:generator-could-not-satisfy",
+    "test:zero-despite-witness"
+   ],
+   "title": "Indicators the test data could not exercise",
+   "confidence": "low",
+   "confidenceWhy": "Nothing is known to be wrong: the generator could not build a record that passes the filter, or the filter could not be parsed locally, so the engine check says nothing about these.",
+   "what": "These need to be read by hand. Often the filter is impossible (always 0) or uses syntax the server rejects.",
+   "evidence": "unsat.json from the data generator; the filter text on each item.",
+   "fix": "Read each one; add a finding or a scenario where the reading shows a problem.",
+   "checkEach": true
+  }
+ ]
+}

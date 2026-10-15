@@ -1,0 +1,77 @@
+{
+ "_about": "Intent scenarios for the Sierra Leone aggregate run (2026Q1). Expected values worked out by hand from what each indicator should show; rounded as analytics shows them (2 decimals).",
+ "scenarios": [
+  {
+   "id": "llitn",
+   "group": "cocremap+decount",
+   "title": "ANC LLITN coverage: 70 LLITNs at 100 ANC 1st visits",
+   "note": "Jan: LLITN fixed 30, outreach 10; ANC1 fixed 40, outreach 10. Feb: LLITN fixed 25, outreach 5; ANC1 fixed 45, outreach 5. After: (30+10+25+5)/100 = 70 %. Before: the fixed term read an old option combo (no data) and LLITN aggregated with COUNT, so the outreach term counted 2 reports: 2/100 = 2 %.",
+   "values": [
+    {"dataElement": "LLITN given at ANC 1st", "coc": "Fixed", "period": "202601", "value": "30"},
+    {"dataElement": "LLITN given at ANC 1st", "coc": "Outreach", "period": "202601", "value": "10"},
+    {"dataElement": "LLITN given at ANC 1st", "coc": "Fixed", "period": "202602", "value": "25"},
+    {"dataElement": "LLITN given at ANC 1st", "coc": "Outreach", "period": "202602", "value": "5"},
+    {"dataElement": "ANC 1st visit", "coc": "Fixed", "period": "202601", "value": "40"},
+    {"dataElement": "ANC 1st visit", "coc": "Outreach", "period": "202601", "value": "10"},
+    {"dataElement": "ANC 1st visit", "coc": "Fixed", "period": "202602", "value": "45"},
+    {"dataElement": "ANC 1st visit", "coc": "Outreach", "period": "202602", "value": "5"}
+   ],
+   "expect": [{"item": "ANC LLITN coverage", "before": 2, "after": 70, "cellsAfter": {"pe": {"202601": 80, "202602": 60}}}]
+  },
+  {
+   "id": "nvp",
+   "group": "percenttype",
+   "title": "NVP during labour: 16 of 20 HIV-positive women",
+   "note": "Jan: NVP 15-24y 6, 25-49y 10; HIV-positive 15-24y 8, 25-49y 12. 16/20 = 80 %; before, the Number type showed 0.8.",
+   "values": [
+    {"dataElement": "PMTCT women received NVP during labour", "coc": "15-24y", "period": "202601", "value": "6"},
+    {"dataElement": "PMTCT women received NVP during labour", "coc": "25-49y", "period": "202601", "value": "10"},
+    {"dataElement": "PMTCT women HIV positve", "coc": "15-24y", "period": "202601", "value": "8"},
+    {"dataElement": "PMTCT women HIV positve", "coc": "25-49y", "period": "202601", "value": "12"}
+   ],
+   "expect": [{"item": "NVP during labour rate", "before": 0.8, "after": 80}]
+  },
+  {
+   "id": "dropout",
+   "group": "movedivisor",
+   "title": "Penta 1 - measles dropout: same value before and after",
+   "note": "Jan: Penta1 20, measles 15; Feb: Penta1 10, measles 10 (all fixed, <1y). Quarter (30-25)/30 = 16.67 %; Jan 25 %, Feb 0 %. Moving the divisor keeps the value at every level (operands are aggregated before the expression is evaluated, A5); the only change is no value instead of NaN where Penta 1 is 0 (engine check, facility C in February).",
+   "values": [
+    {"dataElement": "Penta1 doses given", "coc": "Fixed, <1y", "period": "202601", "value": "20"},
+    {"dataElement": "Penta1 doses given", "coc": "Fixed, <1y", "period": "202602", "value": "10"},
+    {"dataElement": "Measles doses given", "coc": "Fixed, <1y", "period": "202601", "value": "15"},
+    {"dataElement": "Measles doses given", "coc": "Fixed, <1y", "period": "202602", "value": "10"}
+   ],
+   "expect": [{"item": "Dropout rate Penta 1 - Measles", "before": 16.67, "after": 16.67, "cellsAfter": {"pe": {"202601": 25, "202602": 0}}}]
+  },
+  {
+   "id": "fic-adjusted",
+   "group": "legacyrate",
+   "title": "FIC <1y adjusted for reporting: 30 fully immunized, every month reported, population 1200",
+   "note": "FIC (fixed, <1y) Jan 12, Feb 6, Mar 12 = 30; Child Health reported every month (rate 100 %); population <1y 1200. 30/1200 x 100, annualized x 365/90 = 10.14. Before, the old #{dataSet.REPORTING_RATE} form made the numerator 0.",
+   "values": [
+    {"dataElement": "Fully Immunized child", "coc": "Fixed, <1y", "period": "202601", "value": "12"},
+    {"dataElement": "Fully Immunized child", "coc": "Fixed, <1y", "period": "202602", "value": "6"},
+    {"dataElement": "Fully Immunized child", "coc": "Fixed, <1y", "period": "202603", "value": "12"},
+    {"dataElement": "Total population < 1 year", "period": "2026", "value": "1200"}
+   ],
+   "expect": [{"item": "FIC <1y - Adjusted for reporting", "before": 0, "after": 10.14}]
+  },
+  {
+   "id": "ipt-tba",
+   "group": "deaverage",
+   "title": "IPT 2nd dose by TBAs: 60 doses in the quarter",
+   "note": "IPT 2nd dose by TBA (fixed) Jan 10, Feb 20, Mar 30; ANC 2nd visit (fixed) 50 each month. After: 60 doses, 60/150 = 40 %. Before, AVERAGE gave the mean month (20): 20 doses, 13.33 %.",
+   "values": [
+    {"dataElement": "IPT 2nd dose given by TBA", "coc": "Fixed", "period": "202601", "value": "10"},
+    {"dataElement": "IPT 2nd dose given by TBA", "coc": "Fixed", "period": "202602", "value": "20"},
+    {"dataElement": "IPT 2nd dose given by TBA", "coc": "Fixed", "period": "202603", "value": "30"},
+    {"dataElement": "ANC 2nd visit", "coc": "Fixed", "period": "202601", "value": "50"},
+    {"dataElement": "ANC 2nd visit", "coc": "Fixed", "period": "202602", "value": "50"},
+    {"dataElement": "ANC 2nd visit", "coc": "Fixed", "period": "202603", "value": "50"}
+   ],
+   "expect": [{"item": "ANC IPT 2 Coverage", "before": 13.33, "after": 40},
+              {"item": "IPT doses total", "before": 20, "after": 60}]
+  }
+ ]
+}

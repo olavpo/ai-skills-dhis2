@@ -1,0 +1,35 @@
+{
+ "_about": "Example scenarios for a FICTIONAL aggregate data set ('Monthly clinic report' with data elements 'First visits' and 'Bednets given' on a 'Fixed/Outreach' combo, and a yearly 'Population under 1' with the default combo). Copy to <work_dir>/scenarios.json and write your own: values per scenario org unit, expected values worked out by hand from what the indicator should show (never from the evaluator), rounded as analytics shows them (2 decimals unless the indicator sets decimals). Data elements, option combos and indicators may be given by uid, code or name.",
+ "scenarios": [
+  {
+   "id": "bednet-coverage",
+   "group": "cocremap+decount",
+   "title": "Bednets at first visit: 70 bednets at 100 first visits",
+   "note": "Jan: bednets fixed 30, outreach 10; visits fixed 40, outreach 10. Feb: bednets fixed 25, outreach 5; visits fixed 45, outreach 5. After: 70/100 = 70 %. Before: the fixed term pointed at an old option combo and the data element counted reports (COUNT), so 2 reports / 100 = 2 %.",
+   "values": [
+    {"dataElement": "Bednets given", "coc": "Fixed", "period": "202601", "value": "30"},
+    {"dataElement": "Bednets given", "coc": "Outreach", "period": "202601", "value": "10"},
+    {"dataElement": "Bednets given", "coc": "Fixed", "period": "202602", "value": "25"},
+    {"dataElement": "Bednets given", "coc": "Outreach", "period": "202602", "value": "5"},
+    {"dataElement": "First visits", "coc": "Fixed", "period": "202601", "value": "40"},
+    {"dataElement": "First visits", "coc": "Outreach", "period": "202601", "value": "10"},
+    {"dataElement": "First visits", "coc": "Fixed", "period": "202602", "value": "45"},
+    {"dataElement": "First visits", "coc": "Outreach", "period": "202602", "value": "5"}
+   ],
+   "expect": [{"item": "Bednet coverage at first visit", "before": 2, "after": 70, "cellsAfter": {"pe": {"202601": 80, "202602": 60}}}]
+  },
+  {
+   "id": "coverage-annualized",
+   "group": "percenttype",
+   "title": "First-visit coverage: 30 visits in the quarter, population 1200",
+   "note": "30/1200 = 2.5 %; annualized for a 90-day quarter x 365/90 = 10.14 %. Before, the Number type showed 0.1.",
+   "values": [
+    {"dataElement": "First visits", "coc": "Fixed", "period": "202601", "value": "12"},
+    {"dataElement": "First visits", "coc": "Fixed", "period": "202602", "value": "6"},
+    {"dataElement": "First visits", "coc": "Fixed", "period": "202603", "value": "12"},
+    {"dataElement": "Population under 1", "period": "2026", "value": "1200"}
+   ],
+   "expect": [{"item": "First visit coverage", "before": 0.1, "after": 10.14}]
+  }
+ ]
+}

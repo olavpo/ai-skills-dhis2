@@ -67,6 +67,23 @@ A whole class of defect is invisible to expression-level checks because both ver
 
 This is a ten-line script against `GET /api/dataElements/<uid>.json?fields=aggregationType,valueType,domainType,zeroIsSignificant,categoryCombo[categoryOptionCombos]`. Run it first; it is the cheapest bug you will ever catch.
 
+### Program indicator lint
+
+The same idea for program indicators: parse expression, filter and mapping filters, and check them against the program metadata before any data. The checks that found real problems (details and the behaviour behind each in `program-indicators.md`):
+
+- **References:** every `#{stage.de}` uses a stage of the program, and the DE is in *that* stage (otherwise SQL 42703); every `A{attr}` is on the program; no `skipAnalytics` DEs.
+- **Literals:** each comparison literal is an option **code** of the field's option set (suggest the nearest code when it isn't); no leading/trailing spaces; no numeric comparison on a text field.
+- **`contains()`** literals: matching no code, or more codes than intended.
+- **Structure:** balanced brackets; `&&` and `||` mixed at one level without brackets; contradictions on one field; reversed period tests; event variables in ENROLLMENT PIs; EVENT PIs with conditions on more than one stage (always 0).
+- **Aggregation:** missing aggregation type; count-style expression with AVERAGE/MAX/none; value expression with COUNT.
+- **Boundaries:** none at all (API-created, unbounded); `offsetPeriods` without `offsetPeriodType`; start and end offsets that differ; "active/current" names with an `AFTER_START` enrollment boundary or without an `EVENT_DATE` cap.
+- **Blank as 0:** ENROLLMENT PI with a numeric comparison that 0 satisfies and no `d2:hasValue` guard.
+- **Mappings** (PIs with `categoryMappingIds`): `null` entries; every option of each category mapped exactly once; options without a filter; numeric bands with gaps or overlaps at the field's real resolution; bands disagreeing with the option names; mappings reading a stage other than the one an EVENT PI counts.
+- **Duplicates:** different PIs with an identical definition (including boundaries).
+- **Name vs definition:** names stating a band, sex or window the filter doesn't apply.
+
+The `dhis2-indicator-review` skill bundles lint scripts that implement these checks (and the aggregate pre-flight lint above) across a whole program or indicator set.
+
 ---
 
 # Part A — Aggregate indicators
@@ -85,7 +102,7 @@ Build the cell map from metadata: for each referenced data element, read its `ca
 Before importing, clear two traps:
 
 - **Closed periods.** If the dataset ships with `dataInputPeriods` or `expiryDays`, the period may be closed and *every* value is rejected with `E7643 Period is not open for this data set`. Either add `force=true` to the import (superuser only) or strip `dataInputPeriods`/`expiryDays` from the dataset first.
-- **Zeros.** Two independent mechanisms eat zeros, which makes the "numerator 0 → 0.0 in analytics" edge case untestable as shipped: the importer **silently drops** a `0` for any DE with `zeroIsSignificant=false` (not stored, not counted in `importCount`), and analytics excludes even stored zeros unless the system setting `keyIncludeZeroValuesInAnalytics` is on. If you need zeros to appear, do both *before* generating data: set `zeroIsSignificant=true` on the relevant DEs and `POST /api/systemSettings/keyIncludeZeroValuesInAnalytics?value=true`.
+- **Zeros.** Two independent mechanisms eat zeros, which makes the "numerator 0 → 0.0 in analytics" edge case untestable as shipped: a `0` for any DE with `zeroIsSignificant=false` is lost — on earlier versions the importer **silently drops** it (not stored, not counted in `importCount`); on 2.43.2 it is stored (`updated: 1`, readable via `/api/dataValueSets`) but analytics ignores it — and analytics excludes even stored zeros unless the system setting `keyIncludeZeroValuesInAnalytics` is on. If you need zeros to appear, do both *before* generating data: set `zeroIsSignificant=true` on the relevant DEs and `POST /api/systemSettings/keyIncludeZeroValuesInAnalytics?value=true`.
 
 ```bash
 curl -sg -u "$AUTH" -H 'Content-Type: application/json' -X POST \
@@ -97,7 +114,7 @@ Do not rely on `ignored == 0` and `conflicts == empty` as the import check — s
 
 Two more import facts that bite:
 
-- **The importer accepts a data value whose COC does not belong to the DE's category combo.** Wrong-COC values import cleanly and are picked up by whatever indicator references that COC. This is exactly why the cell map must come from server metadata, never from the indicator expressions or a hardcoded list.
+- **Wrong-COC values: version-dependent.** On earlier versions the importer accepted a data value whose COC does not belong to the DE's category combo; wrong-COC values imported cleanly and were picked up by whatever indicator referenced that COC. On 2.43.2 the importer refuses it (E8024) and rejects the whole data-set request (HTTP 409, nothing imported), and refuses to create COCs that don't fit their combo's categories (E1130), so a `#{de.coc}` with a COC of another combo never gets new data there. This is exactly why the cell map must come from server metadata, never from the indicator expressions or a hardcoded list.
 - **UID-less metadata imports duplicate on re-run.** A new-indicators file with no `id` fields matches nothing on a second import and creates a fresh duplicate set. Assign UIDs first, or treat that import as single-shot.
 
 ### 3. Run analytics
@@ -140,6 +157,20 @@ curl -sg -u "$AUTH" -H 'Content-Type: application/json' -X POST \
 
 Design units deliberately: some that should pass the filter and some that shouldn't (value above/below a threshold, status equal to a specific option, element present vs absent); distinct values so a COUNT/SUM/AVERAGE mistake shows; `occurredAt`/`enrolledAt` dates on both sides of a period boundary; a unit with the relevant element blank (null handling). Record which units you expect counted, in which period, at which org unit — that is your intent layer.
 
+More cases that program indicators need, each tied to a verified behaviour:
+
+- **An event after the period** for ENROLLMENT PIs about status at period end (active in Q1, died in Q2): catches the missing event-date cap.
+- **A blank numeric value** in ENROLLMENT PIs with a range filter: catches blank-as-0.
+- **For disaggregated PIs, values on and around every band edge** (14.5, 14.999, 15, 19.5), a blank, and an unmapped value. And keep each *scenario* record mapped to exactly one option in every category, or an EVENT PI drops it and the scenario proves nothing.
+- **For cohort PIs with offsets, data in the offset period**, not the query period.
+- **One org unit per scenario** when you test several situations at once: each scenario's expected value can then be read off its own org unit without other scenarios contaminating it.
+
+Tracker import gotchas on 2.43:
+
+- `validationMode=SKIP` speeds up a large synthetic import, but a data value whose DE isn't in the event's stage then returns **HTTP 500 (NPE)** instead of a validation error. Drop such values before importing.
+- Tracker DELETE is a **soft delete**: re-importing the same UIDs afterwards fails with a duplicate-key error. Regenerate UIDs for each data run, or reset the instance.
+- On a fresh 2.43 instance, event analytics fails with "column yearly does not exist" until `dataOutputPeriodTypes` is configured: `POST /api/configuration/dataOutputPeriodTypes` with the period types you need.
+
 ### 3. Run analytics (include events)
 
 Program-indicator results live in the event/enrollment analytics tables, so do **not** skip events:
@@ -179,7 +210,8 @@ Compare the aggregated value, your engine-layer recomputation of expression+filt
 - **Bust the server-side analytics cache when verifying a metadata change.** `/api/analytics` responses are cached by identical URL for as long as the system setting `keyCacheStrategy` says (default `CACHE_1_MINUTE`; the Sierra Leone demo seeds use `CACHE_TWO_WEEKS`, served as `Cache-Control: public, max-age=1209600`), so after PATCHing an indicator/PI, re-querying the same URL returns the stale pre-change result — which looks exactly like "my fix didn't work". Append a fresh `_cb=<random>` parameter to every verification query, or verify via a fresh throwaway PI.
 - **Throwaway-PI probing isolates the failure class cheaply.** To separate "reference doesn't resolve" from "filter logic wrong" from "no matching data", create obviously-named temp PIs (`ZZZTEMP …`) that A/B-test one candidate at a time — e.g. a bare `d2:hasValue(#{stage.de})` filter to prove the reference resolves at all, then a loosened threshold. Minutes per probe; delete the temps when done.
 - **Seeded demos: check data recency before using relative periods.** On a *seeded* instance (as opposed to this method's self-entered data), check `max(occurreddate)` / the newest period first — demo seeds are snapshots that age at different rates (the SL v40 seed's tracker data ends Aug 2024 while the v43 seed is current), and `LAST_12_MONTHS` silently returns nothing on a stale seed.
-- **Independent expected values, scripted** — read the saved input payload and metadata; produce the engine layer (evaluate the stored expression) and the intent layer (classify from metadata) separately; diff both against analytics.
+- **Independent expected values, scripted** — read the saved input payload and metadata; produce the engine layer (evaluate the stored expression) and the intent layer (classify from metadata) separately; diff both against analytics. For program indicators, the engine layer is a small evaluator of the PI expression language with SQL null semantics, extended with the verified behaviours (blank coalescing in ENROLLMENT filters, latest-event lookup, disaggregation drop rules, offsets). When it agrees with analytics on every total and cell, the remaining problems are in the configuration, not the engine. `dhis2-indicator-review` bundles one per type (`scripts/types/program-indicators/piexpr.py`, and `scripts/types/indicators/indexpr.py` for aggregate indicators).
+- **Expect the test to change the fix.** Running a corrected definition end to end on test data routinely shows something a review can't: in one round, four of the fixes needed changing (an event-date cap, an offset type, a `null` mapping entry, a blank-as-0 guard).
 - **Reconcile against raw data** — `GET /api/dataValueSets` (aggregate) or the events/tracker API (program) confirms what landed, independent of analytics.
 - **Drop to the database when analytics is mysterious.** If a value is inexplicable, querying the `analytics_*` tables and `datavalue` directly is the fastest way to root-cause it (e.g. confirming whether a zero was stored at all). Have read access to the test database, not just the API — instances created via the `dhis2-instances` skill (if available) expose their PostgreSQL directly (`devnet_db`, database `dhis2`, user/password `dhis`/`dhis`).
 - **Remember the test mutates the instance.** Beyond imported data, you may change DE `aggregationType`/`zeroIsSignificant` and system settings during setup. That is another reason the instance must be fresh and disposable — never carry these changes into a second run or a real system.
@@ -200,6 +232,7 @@ Compare the aggregated value, your engine-layer recomputation of expression+filt
 - [ ] Org unit hierarchy with ≥2 siblings under a shared parent; dataset/program assigned to leaves and to the importing user.
 - [ ] Default COC fetched and used where needed.
 - [ ] Pre-flight lint passed on every referenced DE (aggregationType, valueType/domainType, zeroIsSignificant, COCs belong to the current combo).
+- [ ] Program indicators: PI lint passed (references, codes, brackets, boundaries and offsets, blank-as-0, mappings).
 - [ ] If testing zeros: `zeroIsSignificant=true` on those DEs and `keyIncludeZeroValuesInAnalytics=true` set before generating data.
 - [ ] Closed periods handled (`force=true` or stripped `dataInputPeriods`/`expiryDays`).
 - [ ] Distinct per-cell/per-unit input values, saved; zeros, blanks, threshold and boundary cases included.

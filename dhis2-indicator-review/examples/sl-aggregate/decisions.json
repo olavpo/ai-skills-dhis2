@@ -1,0 +1,14 @@
+{
+ "legacy-rate": {"verdict": "agree", "note": "Use R{Child Health.REPORTING_RATE}.", "by": "reviewer-1", "at": "2026-10-14T17:00:00Z"},
+ "coc-other-combo": {"verdict": "agree", "note": "Point at the current Fixed option combo.", "by": "reviewer-1", "at": "2026-10-14T17:01:00Z"},
+ "double-100": {"verdict": "agree", "note": "", "by": "reviewer-1", "at": "2026-10-14T17:02:00Z"},
+ "percent-number": {"verdict": "agree", "note": "NVP during labour rate is a percentage.", "by": "reviewer-1", "at": "2026-10-14T17:03:00Z", "confirmed": ["GfYjGL16D0W"]},
+ "ratio-in-numerator": {"verdict": "agree", "note": "Penta 1 goes to the denominator.", "by": "reviewer-1", "at": "2026-10-14T17:04:00Z"},
+ "de-count": {"verdict": "agree", "note": "LLITN given is a count.", "by": "reviewer-1", "at": "2026-10-14T17:05:00Z"},
+ "de-average": {"verdict": "agree", "note": "IPT doses are counts.", "by": "reviewer-1", "at": "2026-10-14T17:06:00Z", "confirmed": ["SA7WeFZnUci"]},
+ "stale-cocs": {"verdict": "domain", "note": "Births combo was changed; ask the RH programme which structure is current.", "by": "reviewer-1", "at": "2026-10-14T17:07:00Z"},
+ "overlap": {"verdict": "each", "note": "MCH Aide twice: probably MCH Aide Not on salary was meant; confirm with HR data owner.", "by": "reviewer-1", "at": "2026-10-14T17:08:00Z"},
+ "annualization": {"verdict": "park", "note": "", "by": "reviewer-1", "at": "2026-10-14T17:09:00Z"},
+ "long-period-sum": {"verdict": "agree", "note": "Facility assessment is yearly; document it.", "by": "reviewer-1", "at": "2026-10-14T17:10:00Z"},
+ "no-data-set": {"verdict": "park", "note": "TrueOnly is a demo test indicator.", "by": "reviewer-1", "at": "2026-10-14T17:11:00Z"}
+}
